@@ -72,22 +72,16 @@ graph TB
 
     subgraph Data["💾 Data & Storage"]
         subgraph Supabase["Supabase Platform"]
-            PostgreSQL["🗄️ PostgreSQL<br/>(+ pgvector)"]
+            PostgreSQL["🗄️ PostgreSQL<br/>(+ pgvector + cache)"]
             SupabaseStorage["📁 Storage<br/>(Files)"]
             SupabaseAuth["🔐 Auth<br/>(JWT)"]
         end
-
-        Redis["⚡ Redis Cache<br/>(Upstash)"]
     end
 
     subgraph Monitoring["📈 Observability"]
         LangSmith["🔍 LangSmith<br/>(Agent Tracing)"]
         VercelAnalytics["📊 Vercel Analytics<br/>(Performance)"]
         ErrorTracking["🐛 Sentry<br/>(Error Tracking)"]
-    end
-
-    subgraph Background["⏱️ Background Processing"]
-        Inngest["🔄 Inngest<br/>(Job Queue)"]
     end
 
     %% User to Next.js
@@ -127,15 +121,10 @@ graph TB
     %% Business to Data
     Services --> PostgreSQL
     Services --> SupabaseStorage
-    Services --> Redis
 
     %% Auth Integration
     Middleware --> SupabaseAuth
     SupabaseAuth --> PostgreSQL
-
-    %% Background Jobs
-    Services --> Inngest
-    Inngest --> Orchestrator
 
     %% Monitoring
     Orchestrator -.->|Traces| LangSmith
@@ -166,9 +155,7 @@ graph TB
     class External,OpenRouter,OpenAI externalStyle
     class Data dataStyle
     class Supabase,PostgreSQL,SupabaseStorage,SupabaseAuth supabaseStyle
-    class Redis dataStyle
     class Monitoring,LangSmith,VercelAnalytics,ErrorTracking monitoringStyle
-    class Background,Inngest backgroundStyle
 ```
 
 #### **2.1.2 Request Flow Architecture**
@@ -323,8 +310,7 @@ graph LR
 - **Embeddings**: OpenAI text-embedding-3-small
 - **Background Jobs**:
   - Vercel Cron Jobs (scheduled tasks)
-  - Inngest or Trigger.dev (background processing)
-  - Or BullMQ + Redis for self-hosted
+  - Server Actions with async processing
 - **Document Processing**:
   - pdf-parse (PDF parsing)
   - mammoth (DOCX parsing)
@@ -335,7 +321,7 @@ graph LR
 - **Primary DB**: Supabase PostgreSQL with pgvector extension
 - **Vector Storage**: Supabase pgvector (embeddings)
 - **File Storage**: Supabase Storage (S3-compatible)
-- **Cache**: Redis (Upstash Redis for serverless)
+- **Cache**: PostgreSQL (using dedicated cache table)
 - **ORM**: Drizzle ORM (lightweight, type-safe)
 
 ### **3.5 Authentication**
@@ -498,7 +484,8 @@ The database schema remains identical to the original spec (see spec.md sections
 - `tasks`
 - `user_metrics`
 - `llm_calls`
-- `cache`
+- `cache` (PostgreSQL-based caching)
+- `rate_limits` (PostgreSQL-based rate limiting)
 - `cv_embeddings` (pgvector)
 - `jd_embeddings` (pgvector)
 - `knowledge_embeddings` (pgvector)
@@ -541,6 +528,22 @@ export const cvEmbeddings = pgTable('cv_embeddings', {
   content: text('content'),
   embedding: vector('embedding', { dimensions: 1536 }), // OpenAI text-embedding-3-small
   metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Cache table
+export const cache = pgTable('cache', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  key: varchar('key', { length: 255 }).unique().notNull(),
+  value: jsonb('value').notNull(),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Rate limits table
+export const rateLimits = pgTable('rate_limits', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  identifier: varchar('identifier', { length: 255 }).notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -1160,79 +1163,14 @@ export class CVAgent {
 
 ## **10. Background Jobs**
 
-### **10.1 Using Inngest for Background Processing**
-
-```typescript
-// lib/inngest/client.ts
-import { Inngest } from 'inngest'
-
-export const inngest = new Inngest({
-  id: 'job-hunt-agent',
-  eventKey: process.env.INNGEST_EVENT_KEY,
-})
-```
-
-```typescript
-// lib/inngest/functions.ts
-import { inngest } from './client'
-import { CVAgent } from '@/lib/agents/cv-agent'
-import { createClient } from '@/lib/supabase/server'
-
-export const analyzeCVFunction = inngest.createFunction(
-  { id: 'analyze-cv' },
-  { event: 'cv/analyze.requested' },
-  async ({ event, step }) => {
-    const { documentId, sessionId, userId } = event.data
-
-    // Step 1: Parse CV
-    const parsedCV = await step.run('parse-cv', async () => {
-      const supabase = await createClient()
-      const cvAgent = new CVAgent(supabase)
-      return await cvAgent.parseCV(documentId)
-    })
-
-    // Step 2: Analyze CV
-    const analysis = await step.run('analyze-cv', async () => {
-      const supabase = await createClient()
-      const cvAgent = new CVAgent(supabase)
-      return await cvAgent.analyze(parsedCV, sessionId, userId)
-    })
-
-    // Step 3: Generate improvements
-    const improvements = await step.run('generate-improvements', async () => {
-      const supabase = await createClient()
-      const cvAgent = new CVAgent(supabase)
-      return await cvAgent.generateImprovements(analysis, sessionId, userId)
-    })
-
-    return { success: true, improvements }
-  }
-)
-```
-
-```typescript
-// app/api/inngest/route.ts - Inngest webhook endpoint
-import { serve } from 'inngest/next'
-import { inngest } from '@/lib/inngest/client'
-import { analyzeCVFunction } from '@/lib/inngest/functions'
-
-export const { GET, POST, PUT } = serve({
-  client: inngest,
-  functions: [
-    analyzeCVFunction,
-    // ... more functions
-  ],
-})
-```
-
-### **10.2 Triggering Background Jobs**
+### **10.1 Using Server Actions for Async Processing**
 
 ```typescript
 // actions/cv.ts
 'use server'
 
-import { inngest } from '@/lib/inngest/client'
 import { createClient } from '@/lib/supabase/server'
+import { CVAgent } from '@/lib/agents/cv-agent'
 
 export async function triggerCVAnalysis(documentId: string, sessionId: string) {
   const supabase = await createClient()
@@ -1242,17 +1180,100 @@ export async function triggerCVAnalysis(documentId: string, sessionId: string) {
     throw new Error('Unauthorized')
   }
 
-  // Trigger background job
-  await inngest.send({
-    name: 'cv/analyze.requested',
-    data: {
-      documentId,
-      sessionId,
-      userId: user.id,
-    },
-  })
+  // Mark task as processing in database
+  await supabase
+    .from('tasks')
+    .insert({
+      session_id: sessionId,
+      task_type: 'cv_analysis',
+      status: 'processing',
+      metadata: { documentId, userId: user.id },
+    })
 
-  return { success: true }
+  // Execute async analysis (Vercel handles this with generous timeouts)
+  try {
+    const cvAgent = new CVAgent(supabase)
+
+    // Step 1: Parse CV
+    const parsedCV = await cvAgent.parseCV(documentId)
+
+    // Step 2: Analyze CV
+    const analysis = await cvAgent.analyze(parsedCV, sessionId, user.id)
+
+    // Step 3: Generate improvements
+    const improvements = await cvAgent.generateImprovements(analysis, sessionId, user.id)
+
+    // Update task status
+    await supabase
+      .from('tasks')
+      .update({
+        status: 'completed',
+        result: improvements,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('session_id', sessionId)
+      .eq('task_type', 'cv_analysis')
+
+    return { success: true, improvements }
+  } catch (error: any) {
+    // Update task status on error
+    await supabase
+      .from('tasks')
+      .update({
+        status: 'failed',
+        error_message: error.message,
+      })
+      .eq('session_id', sessionId)
+      .eq('task_type', 'cv_analysis')
+
+    throw error
+  }
+}
+```
+
+### **10.2 Polling for Background Job Status**
+
+```typescript
+// lib/services/task-service.ts
+import { SupabaseClient } from '@supabase/supabase-js'
+
+export class TaskService {
+  constructor(private supabase: SupabaseClient) {}
+
+  async getTaskStatus(sessionId: string, taskType: string) {
+    const { data, error } = await this.supabase
+      .from('tasks')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('task_type', taskType)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  async waitForTask(sessionId: string, taskType: string, maxWaitMs = 60000) {
+    const startTime = Date.now()
+
+    while (Date.now() - startTime < maxWaitMs) {
+      const task = await this.getTaskStatus(sessionId, taskType)
+
+      if (task.status === 'completed') {
+        return task.result
+      }
+
+      if (task.status === 'failed') {
+        throw new Error(task.error_message || 'Task failed')
+      }
+
+      // Wait 1 second before next poll
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    }
+
+    throw new Error('Task timeout')
+  }
 }
 ```
 
@@ -1266,7 +1287,9 @@ export async function triggerCVAnalysis(documentId: string, sessionId: string) {
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Database (for Drizzle ORM direct connection - optional)
+DATABASE_URL=your_supabase_postgres_connection_string
 
 # OpenRouter (LLM)
 OPENROUTER_API_KEY=your_openrouter_api_key
@@ -1279,19 +1302,135 @@ LANGCHAIN_TRACING_V2=true
 LANGCHAIN_PROJECT=job-hunt-agent
 LANGCHAIN_API_KEY=your_langsmith_api_key
 
-# Redis (Upstash for serverless)
-UPSTASH_REDIS_REST_URL=your_upstash_redis_url
-UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
-
-# Inngest (Background jobs)
-INNGEST_EVENT_KEY=your_inngest_event_key
-INNGEST_SIGNING_KEY=your_inngest_signing_key
-
 # File Storage
 MAX_FILE_SIZE_MB=10
 
 # Optional
 TAVILY_API_KEY=your_tavily_key  # For web search
+```
+
+**Important Notes:**
+
+- **Never use `SUPABASE_SERVICE_ROLE_KEY`** in your Next.js app as it bypasses Row Level Security (RLS)
+- Use `NEXT_PUBLIC_SUPABASE_ANON_KEY` for client-side operations (respects RLS)
+- Use server-side Supabase clients (via `createClient()`) which inherit user context from cookies
+- `DATABASE_URL` is only needed if you want to use Drizzle ORM for direct database migrations, otherwise Supabase client handles everything
+
+### **11.2 Row Level Security (RLS) Strategy**
+
+**All tables must have RLS policies enabled to ensure data security:**
+
+```sql
+-- Enable RLS on cache table
+ALTER TABLE cache ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can read/write their own cache entries
+CREATE POLICY "Users can manage their own cache"
+  ON cache
+  FOR ALL
+  USING (auth.uid()::text = substring(key from 'user:([^:]+)'))
+  WITH CHECK (auth.uid()::text = substring(key from 'user:([^:]+)'));
+
+-- Policy: Anonymous cache access (for public data)
+CREATE POLICY "Public cache access"
+  ON cache
+  FOR SELECT
+  USING (key LIKE 'public:%');
+
+-- Enable RLS on rate_limits table
+ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Rate limits can be checked by anyone (identifier is IP or user ID)
+CREATE POLICY "Anyone can check rate limits"
+  ON rate_limits
+  FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- Enable RLS on tasks table
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can only access their own tasks
+CREATE POLICY "Users can manage their own tasks"
+  ON tasks
+  FOR ALL
+  USING (
+    session_id IN (
+      SELECT id FROM sessions WHERE user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    session_id IN (
+      SELECT id FROM sessions WHERE user_id = auth.uid()
+    )
+  );
+```
+
+**Updated Cache Service with RLS-Aware Keys:**
+
+```typescript
+// lib/services/cache-service.ts
+import { SupabaseClient } from '@supabase/supabase-js'
+
+export class CacheService {
+  constructor(private supabase: SupabaseClient) {}
+
+  // Generate RLS-safe cache key
+  private getCacheKey(userId: string | undefined, key: string): string {
+    if (userId) {
+      return `user:${userId}:${key}`
+    }
+    return `public:${key}` // For public/anonymous cache
+  }
+
+  async get<T>(key: string, userId?: string): Promise<T | null> {
+    const cacheKey = this.getCacheKey(userId, key)
+
+    const { data, error } = await this.supabase
+      .from('cache')
+      .select('value, expires_at')
+      .eq('key', cacheKey)
+      .single()
+
+    if (error || !data) return null
+
+    // Check if expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      await this.delete(key, userId)
+      return null
+    }
+
+    return data.value as T
+  }
+
+  async set<T>(key: string, value: T, userId?: string, ttlSeconds?: number): Promise<void> {
+    const cacheKey = this.getCacheKey(userId, key)
+    const expiresAt = ttlSeconds
+      ? new Date(Date.now() + ttlSeconds * 1000).toISOString()
+      : null
+
+    await this.supabase
+      .from('cache')
+      .upsert({
+        key: cacheKey,
+        value: value as any,
+        expires_at: expiresAt,
+      })
+  }
+
+  async delete(key: string, userId?: string): Promise<void> {
+    const cacheKey = this.getCacheKey(userId, key)
+    await this.supabase
+      .from('cache')
+      .delete()
+      .eq('key', cacheKey)
+  }
+}
+
+// Usage with user context
+const cacheService = new CacheService(supabase)
+const { data: { user } } = await supabase.auth.getUser()
+await cacheService.set('cv_analysis', analysisData, user?.id, 3600)
 ```
 
 ---
@@ -1361,7 +1500,7 @@ module.exports = nextConfig
 - [ ] Cover letter agent
 - [ ] Skill gap analysis
 - [ ] Interview preparation agent
-- [ ] Background job processing (Inngest)
+- [ ] Background job processing (Server Actions + PostgreSQL tasks table)
 - [ ] Real-time chat with SSE (using shadcn/ui ScrollArea)
 
 ### **Phase 4 (Week 7): Polish & Deployment**
@@ -2190,6 +2329,121 @@ export default function DashboardPage() {
 }
 ```
 
+### **17.4 PostgreSQL-Based Cache Service**
+
+```typescript
+// lib/services/cache-service.ts
+import { SupabaseClient } from '@supabase/supabase-js'
+
+export class CacheService {
+  constructor(private supabase: SupabaseClient) {}
+
+  // Generate RLS-safe cache key (prefixed with user ID)
+  private getCacheKey(userId: string | undefined, key: string): string {
+    if (userId) {
+      return `user:${userId}:${key}`
+    }
+    return `public:${key}` // For public/anonymous cache
+  }
+
+  async get<T>(key: string, userId?: string): Promise<T | null> {
+    const cacheKey = this.getCacheKey(userId, key)
+
+    const { data, error } = await this.supabase
+      .from('cache')
+      .select('value, expires_at')
+      .eq('key', cacheKey)
+      .single()
+
+    if (error || !data) return null
+
+    // Check if expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      await this.delete(key, userId)
+      return null
+    }
+
+    return data.value as T
+  }
+
+  async set<T>(key: string, value: T, userId?: string, ttlSeconds?: number): Promise<void> {
+    const cacheKey = this.getCacheKey(userId, key)
+    const expiresAt = ttlSeconds
+      ? new Date(Date.now() + ttlSeconds * 1000).toISOString()
+      : null
+
+    await this.supabase
+      .from('cache')
+      .upsert({
+        key: cacheKey,
+        value: value as any,
+        expires_at: expiresAt,
+      })
+  }
+
+  async delete(key: string, userId?: string): Promise<void> {
+    const cacheKey = this.getCacheKey(userId, key)
+    await this.supabase
+      .from('cache')
+      .delete()
+      .eq('key', cacheKey)
+  }
+
+  async clearUserCache(userId: string): Promise<void> {
+    await this.supabase
+      .from('cache')
+      .delete()
+      .like('key', `user:${userId}:%`)
+  }
+
+  async cleanExpired(): Promise<void> {
+    await this.supabase
+      .from('cache')
+      .delete()
+      .lt('expires_at', new Date().toISOString())
+  }
+}
+
+// Usage example
+// lib/services/llm-service.ts
+export class LLMService {
+  private cache: CacheService
+
+  constructor(
+    private supabase: SupabaseClient,
+    private userId?: string
+  ) {
+    this.cache = new CacheService(supabase)
+  }
+
+  async generateResponse(prompt: string): Promise<string> {
+    const cacheKey = `llm:${this.hashPrompt(prompt)}`
+
+    // Try cache first (RLS-aware with user ID)
+    const cached = await this.cache.get<string>(cacheKey, this.userId)
+    if (cached) return cached
+
+    // Generate new response
+    const response = await this.callLLM(prompt)
+
+    // Cache for 1 hour (scoped to user)
+    await this.cache.set(cacheKey, response, this.userId, 3600)
+
+    return response
+  }
+
+  private hashPrompt(prompt: string): string {
+    // Simple hash function - use crypto in production
+    return Buffer.from(prompt).toString('base64').slice(0, 50)
+  }
+
+  private async callLLM(prompt: string): Promise<string> {
+    // LLM API call implementation
+    return ''
+  }
+}
+```
+
 ---
 
 ## **18. Security Best Practices**
@@ -2198,23 +2452,56 @@ export default function DashboardPage() {
 
 ```typescript
 // lib/rate-limit.ts
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
+import { createClient } from '@/lib/supabase/server'
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-})
+export async function checkRateLimit(
+  identifier: string,
+  limit: number = 10,
+  windowSeconds: number = 10
+): Promise<{ success: boolean; remaining: number; reset: number }> {
+  const supabase = await createClient()
+  const now = new Date()
+  const windowStart = new Date(now.getTime() - windowSeconds * 1000)
 
-export const ratelimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(10, '10 s'), // 10 requests per 10 seconds
-})
+  // Clean up old entries
+  await supabase
+    .from('rate_limits')
+    .delete()
+    .lt('created_at', windowStart.toISOString())
+
+  // Count recent requests
+  const { data, error } = await supabase
+    .from('rate_limits')
+    .select('id', { count: 'exact' })
+    .eq('identifier', identifier)
+    .gte('created_at', windowStart.toISOString())
+
+  const count = data?.length || 0
+
+  if (count >= limit) {
+    return {
+      success: false,
+      remaining: 0,
+      reset: Math.ceil(windowStart.getTime() / 1000) + windowSeconds,
+    }
+  }
+
+  // Record this request
+  await supabase
+    .from('rate_limits')
+    .insert({ identifier, created_at: now.toISOString() })
+
+  return {
+    success: true,
+    remaining: limit - count - 1,
+    reset: Math.ceil(now.getTime() / 1000) + windowSeconds,
+  }
+}
 
 // Usage in Route Handler
 export async function POST(request: NextRequest) {
   const ip = request.ip ?? 'unknown'
-  const { success, limit, reset, remaining } = await ratelimit.limit(ip)
+  const { success, limit, reset, remaining } = await checkRateLimit(ip)
 
   if (!success) {
     return NextResponse.json(
@@ -2222,7 +2509,7 @@ export async function POST(request: NextRequest) {
       {
         status: 429,
         headers: {
-          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Limit': '10',
           'X-RateLimit-Remaining': remaining.toString(),
           'X-RateLimit-Reset': reset.toString(),
         },
