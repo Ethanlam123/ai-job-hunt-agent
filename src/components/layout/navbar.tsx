@@ -20,6 +20,7 @@ export function Navbar({ userEmail }: { userEmail?: string }) {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/cv-analysis', label: 'CV Analysis' },
     { href: '/workflow', label: 'Workflow' },
     { href: '/history', label: 'History' },
   ]
