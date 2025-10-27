@@ -373,31 +373,44 @@ export function CVAnalysisClient() {
               </Alert>
             ) : (
               approvals.map((approval) => {
-                const improvement = approval.proposedContent as Improvement;
+                // Handle both direct improvement object and nested structure
+                const improvement = (approval.proposedContent || approval) as any;
+
+                // Debug log to see the structure
+                console.log('Approval item:', approval);
+                console.log('Improvement data:', improvement);
+
+                // Extract fields with fallbacks
+                const title = improvement?.title || 'Improvement suggestion';
+                const section = improvement?.section || 'general';
+                const priority = improvement?.priority || 'medium';
+                const description = improvement?.description || 'No description available';
+                const reasoning = improvement?.reasoning || 'No reasoning provided';
+
                 return (
                   <Card key={approval.id} className="border-2">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-base">{improvement.title}</CardTitle>
+                          <CardTitle className="text-base">{title}</CardTitle>
                           <CardDescription className="mt-1">
-                            Section: {improvement.section}
+                            Section: {section}
                           </CardDescription>
                         </div>
-                        <Badge className={getPriorityColor(improvement.priority)}>
-                          {improvement.priority}
+                        <Badge className={getPriorityColor(priority)}>
+                          {priority}
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div>
                         <p className="text-sm font-medium mb-1">Description:</p>
-                        <p className="text-sm text-muted-foreground">{improvement.description}</p>
+                        <p className="text-sm text-muted-foreground">{description}</p>
                       </div>
 
                       <div>
                         <p className="text-sm font-medium mb-1">Reasoning:</p>
-                        <p className="text-sm text-muted-foreground">{improvement.reasoning}</p>
+                        <p className="text-sm text-muted-foreground">{reasoning}</p>
                       </div>
 
                       <div className="flex gap-2 pt-2">
