@@ -110,3 +110,132 @@ export const rateLimits = pgTable('rate_limits', {
   identifier: varchar('identifier', { length: 255 }).notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 })
+
+// Approvals table - tracks CV change approvals (human-in-the-loop)
+export const approvals = pgTable('approvals', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => sessions.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  documentId: uuid('document_id').references(() => documents.id, { onDelete: 'cascade' }),
+  changeType: varchar('change_type', { length: 50 }).notNull(), // 'cv_edit' | 'section_add' | etc.
+  originalContent: jsonb('original_content'),
+  proposedContent: jsonb('proposed_content'),
+  status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending' | 'approved' | 'rejected'
+  userFeedback: text('user_feedback'),
+  createdAt: timestamp('created_at').defaultNow(),
+  decidedAt: timestamp('decided_at'),
+})
+
+// Skill gaps table - identifies missing skills from CV vs JD comparison
+export const skillGaps = pgTable('skill_gaps', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => sessions.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  skillName: varchar('skill_name', { length: 255 }).notNull(),
+  category: varchar('category', { length: 100 }), // 'technical' | 'soft' | etc.
+  importance: varchar('importance', { length: 20 }), // 'critical' | 'important' | 'nice-to-have'
+  learningResources: jsonb('learning_resources'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// User metrics table - tracks usage statistics
+export const userMetrics = pgTable('user_metrics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  metricType: varchar('metric_type', { length: 50 }).notNull(), // 'cv_analysis' | 'interview_count' | etc.
+  value: jsonb('value').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// LLM calls table - tracks LLM API usage for monitoring and cost control
+export const llmCalls = pgTable('llm_calls', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'cascade' }),
+  model: varchar('model', { length: 100 }).notNull(),
+  provider: varchar('provider', { length: 50 }).notNull(), // 'openrouter' | 'openai'
+  promptTokens: varchar('prompt_tokens', { length: 20 }),
+  completionTokens: varchar('completion_tokens', { length: 20 }),
+  totalTokens: varchar('total_tokens', { length: 20 }),
+  cost: jsonb('cost'), // { amount: number, currency: string }
+  duration: varchar('duration', { length: 20 }), // milliseconds
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// Interview questions table - stores generated interview questions
+export const interviewQuestions = pgTable('interview_questions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => sessions.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  question: text('question').notNull(),
+  category: varchar('category', { length: 100 }), // 'technical' | 'behavioral' | etc.
+  difficulty: varchar('difficulty', { length: 20 }), // 'easy' | 'medium' | 'hard'
+  suggestedAnswer: text('suggested_answer'),
+  userAnswer: text('user_answer'),
+  feedback: text('feedback'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// Cover letters table - stores generated cover letters
+export const coverLetters = pgTable('cover_letters', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => sessions.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  cvDocumentId: uuid('cv_document_id').references(() => documents.id, { onDelete: 'set null' }),
+  jdDocumentId: uuid('jd_document_id').references(() => documents.id, { onDelete: 'set null' }),
+  content: text('content').notNull(),
+  version: varchar('version', { length: 10 }).notNull().default('1'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// Export TypeScript types
+export type User = typeof users.$inferSelect
+export type NewUser = typeof users.$inferInsert
+export type Session = typeof sessions.$inferSelect
+export type NewSession = typeof sessions.$inferInsert
+export type Message = typeof messages.$inferSelect
+export type NewMessage = typeof messages.$inferInsert
+export type Document = typeof documents.$inferSelect
+export type NewDocument = typeof documents.$inferInsert
+export type CvEmbedding = typeof cvEmbeddings.$inferSelect
+export type NewCvEmbedding = typeof cvEmbeddings.$inferInsert
+export type JobDescription = typeof jobDescriptions.$inferSelect
+export type NewJobDescription = typeof jobDescriptions.$inferInsert
+export type Task = typeof tasks.$inferSelect
+export type NewTask = typeof tasks.$inferInsert
+export type Cache = typeof cache.$inferSelect
+export type NewCache = typeof cache.$inferInsert
+export type RateLimit = typeof rateLimits.$inferSelect
+export type NewRateLimit = typeof rateLimits.$inferInsert
+export type Approval = typeof approvals.$inferSelect
+export type NewApproval = typeof approvals.$inferInsert
+export type SkillGap = typeof skillGaps.$inferSelect
+export type NewSkillGap = typeof skillGaps.$inferInsert
+export type UserMetric = typeof userMetrics.$inferSelect
+export type NewUserMetric = typeof userMetrics.$inferInsert
+export type LlmCall = typeof llmCalls.$inferSelect
+export type NewLlmCall = typeof llmCalls.$inferInsert
+export type InterviewQuestion = typeof interviewQuestions.$inferSelect
+export type NewInterviewQuestion = typeof interviewQuestions.$inferInsert
+export type CoverLetter = typeof coverLetters.$inferSelect
+export type NewCoverLetter = typeof coverLetters.$inferInsert
