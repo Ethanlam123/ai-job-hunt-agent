@@ -89,18 +89,39 @@ export function CVAnalysisClient() {
 
       setSessionId(workflowResult.sessionId);
 
-      // Fetch the analysis results
-      const analysisResponse = await getAnalysisResults(workflowResult.sessionId);
+      // Debug: Log workflow result
+      console.log('Workflow result:', workflowResult);
 
-      if (analysisResponse.success && analysisResponse.results?.result) {
-        setAnalysis(analysisResponse.results.result.analysis);
-        setImprovements(analysisResponse.results.result.improvements || []);
+      // Try to use data from workflow result first (it's already available)
+      if (workflowResult.analysis) {
+        console.log('Using analysis from workflow result');
+        setAnalysis(workflowResult.analysis);
+        setImprovements(workflowResult.improvements || []);
+      } else {
+        // Fallback: Fetch the analysis results from database
+        console.log('Fetching analysis results from database...');
+        const analysisResponse = await getAnalysisResults(workflowResult.sessionId);
+        console.log('Analysis response:', analysisResponse);
+
+        if (analysisResponse.success && analysisResponse.results?.result) {
+          console.log('Setting analysis:', analysisResponse.results.result.analysis);
+          setAnalysis(analysisResponse.results.result.analysis);
+          setImprovements(analysisResponse.results.result.improvements || []);
+        } else {
+          console.warn('No analysis results found or invalid structure:', analysisResponse);
+          throw new Error('Failed to retrieve analysis results');
+        }
       }
 
       // Fetch pending approvals
       const approvalsResponse = await getPendingApprovals(workflowResult.sessionId);
+      console.log('Approvals response:', approvalsResponse);
+
       if (approvalsResponse.success && approvalsResponse.approvals) {
+        console.log('Setting approvals:', approvalsResponse.approvals);
         setApprovals(approvalsResponse.approvals);
+      } else {
+        console.warn('No approvals found or invalid structure:', approvalsResponse);
       }
 
       setCurrentStep('results');
@@ -211,8 +232,23 @@ export function CVAnalysisClient() {
       </Card>
 
       {/* Analysis Results */}
-      {currentStep === 'results' && analysis && (
+      {currentStep === 'results' && (
         <>
+          {!analysis ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>No Analysis Results</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Analysis completed but no results were found. Please check the console for details.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          ) : (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -314,6 +350,7 @@ export function CVAnalysisClient() {
               )}
             </CardContent>
           </Card>
+          )}
         </>
       )}
 

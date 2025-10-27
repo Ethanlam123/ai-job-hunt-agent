@@ -24,7 +24,7 @@ export class CVAgent {
 
     // Initialize OpenRouter LLM
     this.llm = new ChatOpenAI({
-      model: 'openai/gpt-4o-mini', // Using GPT-4o-mini via OpenRouter
+      model: 'openai/gpt-5-nano', // Using GPT-4o-mini via OpenRouter
       temperature: 0.7,
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',
