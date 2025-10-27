@@ -33,10 +33,11 @@ interface Improvement {
 
 interface ApprovalItem {
   id: string;
-  changeType: string;
-  proposedContent: Improvement;
+  change_type: string;
+  proposed_content: Improvement;
+  original_content?: any;
   status: string;
-  createdAt: string;
+  created_at: string;
 }
 
 type WorkflowStep = 'upload' | 'analyzing' | 'results' | 'approvals';
@@ -373,12 +374,13 @@ export function CVAnalysisClient() {
               </Alert>
             ) : (
               approvals.map((approval) => {
-                // Handle both direct improvement object and nested structure
-                const improvement = (approval.proposedContent || approval) as any;
+                // Get improvement from proposed_content field (snake_case from database)
+                const improvement = (approval.proposed_content || approval.proposedContent || approval) as any;
 
                 // Debug log to see the structure
                 console.log('Approval item:', approval);
                 console.log('Improvement data:', improvement);
+                console.log('proposed_content:', approval.proposed_content);
 
                 // Extract fields with fallbacks
                 const title = improvement?.title || 'Improvement suggestion';
