@@ -51,6 +51,7 @@ export function CVAnalysisClient() {
   const [improvements, setImprovements] = useState<Improvement[]>([]);
   const [approvals, setApprovals] = useState<ApprovalItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [processingApprovals, setProcessingApprovals] = useState<Set<string>>(new Set());
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -136,6 +137,9 @@ export function CVAnalysisClient() {
   };
 
   const handleApproval = async (approvalId: string, decision: 'approved' | 'rejected', feedback?: string) => {
+    // Add to processing set
+    setProcessingApprovals(prev => new Set(prev).add(approvalId));
+
     try {
       await handleApprovalDecision(approvalId, decision, feedback);
 
@@ -149,6 +153,13 @@ export function CVAnalysisClient() {
     } catch (err) {
       console.error('Approval error:', err);
       setError(err instanceof Error ? err.message : "Failed to process approval");
+    } finally {
+      // Remove from processing set
+      setProcessingApprovals(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(approvalId);
+        return newSet;
+      });
     }
   };
 
@@ -389,8 +400,11 @@ export function CVAnalysisClient() {
                 const description = improvement?.description || 'No description available';
                 const reasoning = improvement?.reasoning || 'No reasoning provided';
 
+                // Check if this approval is being processed
+                const isProcessing = processingApprovals.has(approval.id);
+
                 return (
-                  <Card key={approval.id} className="border-2">
+                  <Card key={approval.id} className={`border-2 transition-opacity ${isProcessing ? 'opacity-60' : ''}`}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -415,24 +429,35 @@ export function CVAnalysisClient() {
                         <p className="text-sm text-muted-foreground">{reasoning}</p>
                       </div>
 
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          onClick={() => handleApproval(approval.id, 'approved')}
-                          className="flex-1"
-                          variant="default"
-                        >
-                          <ThumbsUp className="mr-2 h-4 w-4" />
-                          Approve
-                        </Button>
-                        <Button
-                          onClick={() => handleApproval(approval.id, 'rejected', 'User rejected')}
-                          className="flex-1"
-                          variant="outline"
-                        >
-                          <ThumbsDown className="mr-2 h-4 w-4" />
-                          Reject
-                        </Button>
-                      </div>
+                      {isProcessing ? (
+                        <div className="flex items-center justify-center gap-2 p-4 bg-muted rounded-md">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Processing your decision...
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            onClick={() => handleApproval(approval.id, 'approved')}
+                            className="flex-1"
+                            variant="default"
+                            disabled={isProcessing}
+                          >
+                            <ThumbsUp className="mr-2 h-4 w-4" />
+                            Approve
+                          </Button>
+                          <Button
+                            onClick={() => handleApproval(approval.id, 'rejected', 'User rejected')}
+                            className="flex-1"
+                            variant="outline"
+                            disabled={isProcessing}
+                          >
+                            <ThumbsDown className="mr-2 h-4 w-4" />
+                            Reject
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
