@@ -134,7 +134,9 @@ export class CVAgent {
       }
 
       const prompt = CVPrompts.analyzeStructure(state.cvContent)
+      console.log('Analyze Structure - Sending prompt to LLM...')
       const response = await this.llm.invoke(prompt)
+      console.log('Analyze Structure - LLM raw response:', response)
 
       // Parse LLM response
       let analysis
@@ -143,15 +145,21 @@ export class CVAgent {
           ? response.content
           : JSON.stringify(response.content)
 
+        console.log('Analyze Structure - Response content:', content)
+
         // Remove markdown code blocks if present
         const cleanContent = content
           .replace(/```json\n?/g, '')
           .replace(/```\n?/g, '')
           .trim()
 
+        console.log('Analyze Structure - Cleaned content:', cleanContent)
+
         analysis = JSON.parse(cleanContent)
+        console.log('Analyze Structure - Parsed successfully:', analysis)
       } catch (parseError) {
         console.error('Failed to parse LLM response:', parseError)
+        console.error('Raw content that failed to parse:', typeof response.content === 'string' ? response.content : JSON.stringify(response.content))
         // Fallback analysis
         analysis = {
           overallScore: 70,
@@ -160,6 +168,7 @@ export class CVAgent {
           weaknesses: ['Detailed analysis unavailable'],
           recommendations: ['Review CV structure manually'],
         }
+        console.log('Using fallback analysis data')
       }
 
       return {
@@ -181,7 +190,9 @@ export class CVAgent {
       }
 
       const prompt = CVPrompts.identifyImprovements(state.cvContent, state.analysis)
+      console.log('Identify Improvements - Sending prompt to LLM...')
       const response = await this.llm.invoke(prompt)
+      console.log('Identify Improvements - LLM raw response:', response)
 
       // Parse LLM response
       let improvementsData
@@ -190,14 +201,20 @@ export class CVAgent {
           ? response.content
           : JSON.stringify(response.content)
 
+        console.log('Identify Improvements - Response content:', content)
+
         const cleanContent = content
           .replace(/```json\n?/g, '')
           .replace(/```\n?/g, '')
           .trim()
 
+        console.log('Identify Improvements - Cleaned content:', cleanContent)
+
         improvementsData = JSON.parse(cleanContent)
+        console.log('Identify Improvements - Parsed successfully:', improvementsData)
       } catch (parseError) {
         console.error('Failed to parse improvements:', parseError)
+        console.error('Raw content that failed to parse:', typeof response.content === 'string' ? response.content : JSON.stringify(response.content))
         improvementsData = {
           improvements: [
             {
@@ -211,6 +228,7 @@ export class CVAgent {
             },
           ],
         }
+        console.log('Using fallback improvements data')
       }
 
       return {
