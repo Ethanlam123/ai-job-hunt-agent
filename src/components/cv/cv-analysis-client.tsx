@@ -4,60 +4,138 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Upload, FileText, CheckCircle2, AlertCircle } from "lucide-react";
-import { analyzeCVAction } from "@/actions/cv";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Upload, FileText, CheckCircle2, AlertCircle, ThumbsUp, ThumbsDown, Sparkles } from "lucide-react";
+import {
+  uploadAndAnalyzeCV,
+  getAnalysisResults,
+  getPendingApprovals,
+  handleApprovalDecision
+} from "@/actions/cv";
 
-interface AnalysisResult {
-  success: boolean;
-  data?: {
-    pageCount: number;
-    preview: string;
-    fullText: string;
-    insights?: string;
-  };
-  error?: string;
+interface AnalysisData {
+  overallScore: number;
+  sections: Record<string, any>;
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
 }
+
+interface Improvement {
+  id: string;
+  type: string;
+  section: string;
+  priority: 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  reasoning: string;
+}
+
+interface ApprovalItem {
+  id: string;
+  changeType: string;
+  proposedContent: Improvement;
+  status: string;
+  createdAt: string;
+}
+
+type WorkflowStep = 'upload' | 'analyzing' | 'results' | 'approvals';
 
 export function CVAnalysisClient() {
   const [file, setFile] = useState<File | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentStep, setCurrentStep] = useState<WorkflowStep>('upload');
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
+  const [improvements, setImprovements] = useState<Improvement[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
-      setResult(null);
+      setError(null);
+      setCurrentStep('upload');
     } else {
-      alert("Please select a valid PDF file");
+      setError("Please select a valid PDF file");
     }
   };
 
   const handleAnalyze = async () => {
     if (!file) return;
 
-    setIsAnalyzing(true);
-    setResult(null);
+    setIsProcessing(true);
+    setError(null);
+    setCurrentStep('analyzing');
 
     try {
-      // Convert file to base64 for server action
+      // Convert file to base64
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const base64 = buffer.toString("base64");
 
-      const analysisResult = await analyzeCVAction({
+      // Upload and trigger the full CV analysis workflow
+      const workflowResult = await uploadAndAnalyzeCV({
         fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
         fileData: base64,
       });
 
-      setResult(analysisResult);
-    } catch (error) {
-      setResult({
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to analyze CV",
-      });
+      if (!workflowResult.success) {
+        throw new Error(workflowResult.error || 'Workflow failed');
+      }
+
+      setSessionId(workflowResult.sessionId);
+
+      // Fetch the analysis results
+      const analysisResponse = await getAnalysisResults(workflowResult.sessionId);
+
+      if (analysisResponse.success && analysisResponse.results?.result) {
+        setAnalysis(analysisResponse.results.result.analysis);
+        setImprovements(analysisResponse.results.result.improvements || []);
+      }
+
+      // Fetch pending approvals
+      const approvalsResponse = await getPendingApprovals(workflowResult.sessionId);
+      if (approvalsResponse.success && approvalsResponse.approvals) {
+        setApprovals(approvalsResponse.approvals);
+      }
+
+      setCurrentStep('results');
+    } catch (err) {
+      console.error('Analysis error:', err);
+      setError(err instanceof Error ? err.message : "Failed to analyze CV");
+      setCurrentStep('upload');
     } finally {
-      setIsAnalyzing(false);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleApproval = async (approvalId: string, decision: 'approved' | 'rejected', feedback?: string) => {
+    try {
+      await handleApprovalDecision(approvalId, decision, feedback);
+
+      // Refresh approvals list
+      if (sessionId) {
+        const approvalsResponse = await getPendingApprovals(sessionId);
+        if (approvalsResponse.success && approvalsResponse.approvals) {
+          setApprovals(approvalsResponse.approvals);
+        }
+      }
+    } catch (err) {
+      console.error('Approval error:', err);
+      setError(err instanceof Error ? err.message : "Failed to process approval");
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-500';
+      case 'medium': return 'bg-yellow-500';
+      case 'low': return 'bg-blue-500';
+      default: return 'bg-gray-500';
     }
   };
 
@@ -68,7 +146,7 @@ export function CVAnalysisClient() {
         <CardHeader>
           <CardTitle>Upload Your CV</CardTitle>
           <CardDescription>
-            Upload a PDF file of your CV to get started with the analysis
+            Upload a PDF file of your CV to get AI-powered analysis and improvement suggestions
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -107,83 +185,216 @@ export function CVAnalysisClient() {
 
           <Button
             onClick={handleAnalyze}
-            disabled={!file || isAnalyzing}
+            disabled={!file || isProcessing}
             className="w-full"
           >
-            {isAnalyzing ? (
+            {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing CV...
+                Analyzing CV with AI...
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" />
+                <Sparkles className="mr-2 h-4 w-4" />
                 Analyze CV
               </>
             )}
           </Button>
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
-      {/* Results Card */}
-      {result && (
+      {/* Analysis Results */}
+      {currentStep === 'results' && analysis && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                Analysis Complete
+              </CardTitle>
+              <CardDescription>
+                Here's what we found about your CV
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Overall Score */}
+              <div className="flex items-center gap-4 p-4 bg-muted rounded-md">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground">Overall Score</p>
+                  <p className="text-4xl font-bold">{analysis.overallScore}/100</p>
+                </div>
+                <div className="w-24 h-24">
+                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                    <circle
+                      className="text-muted stroke-current"
+                      strokeWidth="10"
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="transparent"
+                    />
+                    <circle
+                      className="text-primary stroke-current"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="transparent"
+                      strokeDasharray={`${2 * Math.PI * 40}`}
+                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - analysis.overallScore / 100)}`}
+                      transform="rotate(-90 50 50)"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Strengths */}
+              {analysis.strengths && analysis.strengths.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    Strengths
+                  </h3>
+                  <ul className="space-y-2">
+                    {analysis.strengths.map((strength, index) => (
+                      <li key={index} className="text-sm p-3 bg-green-50 border border-green-200 rounded-md">
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Weaknesses */}
+              {analysis.weaknesses && analysis.weaknesses.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-yellow-500" />
+                    Areas for Improvement
+                  </h3>
+                  <ul className="space-y-2">
+                    {analysis.weaknesses.map((weakness, index) => (
+                      <li key={index} className="text-sm p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        {weakness}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {analysis.recommendations && analysis.recommendations.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Key Recommendations</h3>
+                  <ul className="space-y-2">
+                    {analysis.recommendations.map((recommendation, index) => (
+                      <li key={index} className="text-sm p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        {recommendation}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {approvals.length > 0 && (
+                <Button
+                  onClick={() => setCurrentStep('approvals')}
+                  className="w-full"
+                >
+                  Review {approvals.length} Improvement{approvals.length > 1 ? 's' : ''}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Approvals Section */}
+      {currentStep === 'approvals' && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {result.success ? (
-                <>
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  Analysis Complete
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="w-5 h-5 text-red-500" />
-                  Analysis Failed
-                </>
-              )}
-            </CardTitle>
+            <CardTitle>Review Improvements</CardTitle>
+            <CardDescription>
+              Review and approve the AI-suggested improvements to your CV
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {result.success && result.data ? (
-              <>
-                <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-md">
-                  <div>
-                    <p className="text-sm font-medium">Page Count</p>
-                    <p className="text-2xl font-bold">{result.data.pageCount}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Characters Extracted</p>
-                    <p className="text-2xl font-bold">
-                      {result.data.fullText.length.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Preview (First 500 characters)</h3>
-                  <div className="p-4 bg-muted rounded-md">
-                    <pre className="text-xs whitespace-pre-wrap font-mono">
-                      {result.data.preview}
-                    </pre>
-                  </div>
-                </div>
-
-                {result.data.insights && (
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">AI Insights</h3>
-                    <Alert>
-                      <AlertDescription className="whitespace-pre-wrap">
-                        {result.data.insights}
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
-              </>
-            ) : (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{result.error}</AlertDescription>
+            {approvals.length === 0 ? (
+              <Alert>
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>
+                  All improvements have been reviewed!
+                </AlertDescription>
               </Alert>
+            ) : (
+              approvals.map((approval) => {
+                const improvement = approval.proposedContent as Improvement;
+                return (
+                  <Card key={approval.id} className="border-2">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-base">{improvement.title}</CardTitle>
+                          <CardDescription className="mt-1">
+                            Section: {improvement.section}
+                          </CardDescription>
+                        </div>
+                        <Badge className={getPriorityColor(improvement.priority)}>
+                          {improvement.priority}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium mb-1">Description:</p>
+                        <p className="text-sm text-muted-foreground">{improvement.description}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium mb-1">Reasoning:</p>
+                        <p className="text-sm text-muted-foreground">{improvement.reasoning}</p>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          onClick={() => handleApproval(approval.id, 'approved')}
+                          className="flex-1"
+                          variant="default"
+                        >
+                          <ThumbsUp className="mr-2 h-4 w-4" />
+                          Approve
+                        </Button>
+                        <Button
+                          onClick={() => handleApproval(approval.id, 'rejected', 'User rejected')}
+                          className="flex-1"
+                          variant="outline"
+                        >
+                          <ThumbsDown className="mr-2 h-4 w-4" />
+                          Reject
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+
+            {approvals.length === 0 && (
+              <Button
+                onClick={() => setCurrentStep('results')}
+                className="w-full"
+                variant="outline"
+              >
+                Back to Results
+              </Button>
             )}
           </CardContent>
         </Card>

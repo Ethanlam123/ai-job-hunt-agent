@@ -143,6 +143,121 @@ function generateBasicInsights(text: string, pageCount: number): string {
 }
 
 /**
+ * Upload CV and trigger analysis workflow
+ */
+export async function uploadAndAnalyzeCV(input: {
+  fileName: string
+  fileType: string
+  fileSize: number
+  fileData: string // base64
+}) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  let tempFilePath: string | null = null
+
+  try {
+    // Validate file size (10MB limit)
+    const MAX_SIZE = 10 * 1024 * 1024
+    if (input.fileSize > MAX_SIZE) {
+      return { success: false, error: 'File size exceeds 10MB limit' }
+    }
+
+    // Validate file type
+    if (input.fileType !== 'application/pdf') {
+      return { success: false, error: 'Only PDF files are supported' }
+    }
+
+    // Convert base64 to buffer
+    const buffer = Buffer.from(input.fileData, 'base64')
+
+    // Generate unique file path
+    const fileExt = input.fileName.split('.').pop()
+    const storagePath = `${user.id}/${Date.now()}-${randomUUID()}.${fileExt}`
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(storagePath, buffer, {
+        contentType: input.fileType,
+        upsert: false,
+      })
+
+    if (uploadError) {
+      return { success: false, error: `Upload failed: ${uploadError.message}` }
+    }
+
+    // Parse PDF content
+    let parsedContent = null
+    if (input.fileType === 'application/pdf') {
+      const tempFileName = `cv-${randomUUID()}.pdf`
+      tempFilePath = join(tmpdir(), tempFileName)
+      await writeFile(tempFilePath, buffer)
+
+      const loader = new PDFLoader(tempFilePath)
+      const docs = await loader.load()
+
+      parsedContent = {
+        pageCount: docs.length,
+        fullText: docs.map(doc => doc.pageContent).join('\n\n'),
+        pages: docs.map((doc, index) => ({
+          pageNumber: index + 1,
+          content: doc.pageContent,
+        })),
+        extractedAt: new Date().toISOString(),
+      }
+    }
+
+    // Create document record in database
+    const { data: document, error: dbError } = await supabase
+      .from('documents')
+      .insert({
+        user_id: user.id,
+        document_type: 'cv',
+        original_filename: input.fileName,
+        file_path: uploadData.path,
+        file_format: fileExt,
+        parsed_content: parsedContent,
+        metadata: {
+          size: input.fileSize,
+          mimeType: input.fileType,
+          uploadedAt: new Date().toISOString(),
+        },
+      })
+      .select()
+      .single()
+
+    if (dbError) {
+      // Clean up uploaded file if database insert fails
+      await supabase.storage.from('documents').remove([storagePath])
+      return { success: false, error: `Failed to create document record: ${dbError.message}` }
+    }
+
+    // Now trigger the workflow with the documentId
+    return await triggerCVAnalysisWorkflow(document.id)
+  } catch (error: any) {
+    console.error('Upload and analyze error:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to upload and analyze CV',
+    }
+  } finally {
+    // Clean up temporary file
+    if (tempFilePath) {
+      try {
+        await unlink(tempFilePath)
+      } catch (cleanupError) {
+        console.error('Failed to clean up temp file:', cleanupError)
+      }
+    }
+  }
+}
+
+/**
  * Trigger CV analysis workflow using CV Agent
  */
 export async function triggerCVAnalysisWorkflow(documentId: string) {
@@ -203,7 +318,7 @@ export async function getAnalysisResults(sessionId: string) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return { success: false, error: 'Unauthorized' }
+    return { success: false, error: 'Unauthorized', results: null }
   }
 
   try {
@@ -213,11 +328,13 @@ export async function getAnalysisResults(sessionId: string) {
     return {
       success: true,
       results,
+      error: null,
     }
   } catch (error: any) {
     return {
       success: false,
       error: error.message,
+      results: null,
     }
   }
 }
@@ -230,7 +347,7 @@ export async function getPendingApprovals(sessionId: string) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return { success: false, error: 'Unauthorized' }
+    return { success: false, error: 'Unauthorized', approvals: null }
   }
 
   try {
@@ -240,11 +357,13 @@ export async function getPendingApprovals(sessionId: string) {
     return {
       success: true,
       approvals,
+      error: null,
     }
   } catch (error: any) {
     return {
       success: false,
       error: error.message,
+      approvals: null,
     }
   }
 }
