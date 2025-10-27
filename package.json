@@ -16,6 +16,8 @@
     "@hookform/resolvers": "^5.2.2",
     "@langchain/community": "^1.0.0",
     "@langchain/core": "^1.0.1",
+    "@langchain/langgraph": "^1.0.1",
+    "@langchain/openai": "^1.0.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-select": "^2.2.6",

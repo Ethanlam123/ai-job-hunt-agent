@@ -1,10 +1,13 @@
 'use server'
 
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
-import { writeFile, unlink } from "fs/promises";
-import { join } from "path";
-import { tmpdir } from "os";
-import { randomUUID } from "crypto";
+import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf"
+import { writeFile, unlink } from "fs/promises"
+import { join } from "path"
+import { tmpdir } from "os"
+import { randomUUID } from "crypto"
+import { createClient } from '@/lib/supabase/server'
+import { CVAgent } from '@/lib/agents/cv-agent'
+import { revalidatePath } from 'next/cache'
 
 interface AnalyzeCVInput {
   fileName: string;
@@ -137,4 +140,149 @@ function generateBasicInsights(text: string, pageCount: number): string {
   insights.push(`\nWord count: ${wordCount} words`);
 
   return insights.join("\n");
+}
+
+/**
+ * Trigger CV analysis workflow using CV Agent
+ */
+export async function triggerCVAnalysisWorkflow(documentId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  try {
+    // Create or get session
+    const { data: session, error: sessionError } = await supabase
+      .from('sessions')
+      .insert({
+        user_id: user.id,
+        current_stage: 'cv_analysis',
+        state: { documentId },
+      })
+      .select()
+      .single()
+
+    if (sessionError) {
+      throw new Error(`Failed to create session: ${sessionError.message}`)
+    }
+
+    // Initialize CV Agent
+    const cvAgent = new CVAgent(supabase)
+
+    // Run analysis workflow
+    const result = await cvAgent.analyzeCV(documentId, session.id, user.id)
+
+    // Revalidate paths
+    revalidatePath('/cv-analysis')
+    revalidatePath(`/workflow/${session.id}`)
+
+    return {
+      success: true,
+      sessionId: session.id,
+      analysis: result.analysis,
+      improvements: result.improvements,
+      error: result.error,
+    }
+  } catch (error: any) {
+    console.error('CV Analysis Workflow Error:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to analyze CV',
+    }
+  }
+}
+
+/**
+ * Get CV analysis results for a session
+ */
+export async function getAnalysisResults(sessionId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  try {
+    const cvAgent = new CVAgent(supabase)
+    const results = await cvAgent.getAnalysisResults(sessionId, user.id)
+
+    return {
+      success: true,
+      results,
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * Get pending approvals for improvements
+ */
+export async function getPendingApprovals(sessionId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  try {
+    const cvAgent = new CVAgent(supabase)
+    const approvals = await cvAgent.getPendingApprovals(sessionId, user.id)
+
+    return {
+      success: true,
+      approvals,
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
+}
+
+/**
+ * Handle approval decision (approve/reject improvement)
+ */
+export async function handleApprovalDecision(
+  approvalId: string,
+  decision: 'approved' | 'rejected',
+  feedback?: string
+) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  try {
+    const cvAgent = new CVAgent(supabase)
+    const result = await cvAgent.handleApproval(
+      approvalId,
+      decision,
+      feedback || null,
+      user.id
+    )
+
+    revalidatePath('/cv-analysis')
+
+    return {
+      success: true,
+      approval: result,
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
 }
