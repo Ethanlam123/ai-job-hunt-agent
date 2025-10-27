@@ -405,3 +405,70 @@ export async function handleApprovalDecision(
     }
   }
 }
+
+/**
+ * Get approval summary statistics for a session
+ */
+export async function getApprovalSummary(sessionId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized', summary: null }
+  }
+
+  try {
+    // Get all approvals for this session
+    const { data: allApprovals, error: approvalsError } = await supabase
+      .from('approvals')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+
+    if (approvalsError) {
+      throw new Error(`Failed to fetch approvals: ${approvalsError.message}`)
+    }
+
+    // Calculate statistics
+    const total = allApprovals.length
+    const approved = allApprovals.filter(a => a.status === 'approved')
+    const rejected = allApprovals.filter(a => a.status === 'rejected')
+    const pending = allApprovals.filter(a => a.status === 'pending')
+
+    return {
+      success: true,
+      summary: {
+        total,
+        approvedCount: approved.length,
+        rejectedCount: rejected.length,
+        pendingCount: pending.length,
+        approved: approved.map(a => ({
+          id: a.id,
+          changeType: a.change_type,
+          content: a.proposed_content,
+          decidedAt: a.decided_at,
+        })),
+        rejected: rejected.map(a => ({
+          id: a.id,
+          changeType: a.change_type,
+          content: a.proposed_content,
+          feedback: a.user_feedback,
+          decidedAt: a.decided_at,
+        })),
+        pending: pending.map(a => ({
+          id: a.id,
+          changeType: a.change_type,
+          content: a.proposed_content,
+        })),
+      },
+      error: null,
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+      summary: null,
+    }
+  }
+}
