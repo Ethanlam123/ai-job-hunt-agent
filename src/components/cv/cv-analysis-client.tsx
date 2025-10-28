@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Upload, FileText, CheckCircle2, AlertCircle, ThumbsUp, ThumbsDown, Sparkles } from "lucide-react";
+import { Loader2, Upload, FileText, CheckCircle2, AlertCircle, ThumbsUp, ThumbsDown, Sparkles, BarChart3 } from "lucide-react";
 import {
   uploadAndAnalyzeCV,
   getAnalysisResults,
   getPendingApprovals,
-  handleApprovalDecision
+  handleApprovalDecision,
+  getApprovalSummary
 } from "@/actions/cv";
+import { ApprovalSummary } from "./approval-summary";
 
 interface AnalysisData {
   overallScore: number;
@@ -40,7 +42,32 @@ interface ApprovalItem {
   created_at: string;
 }
 
-type WorkflowStep = 'upload' | 'analyzing' | 'results' | 'approvals';
+interface ApprovalSummaryData {
+  total: number;
+  approvedCount: number;
+  rejectedCount: number;
+  pendingCount: number;
+  approved: Array<{
+    id: string;
+    changeType: string;
+    content: any;
+    decidedAt: string;
+  }>;
+  rejected: Array<{
+    id: string;
+    changeType: string;
+    content: any;
+    feedback: string;
+    decidedAt: string;
+  }>;
+  pending: Array<{
+    id: string;
+    changeType: string;
+    content: any;
+  }>;
+}
+
+type WorkflowStep = 'upload' | 'analyzing' | 'results' | 'approvals' | 'summary';
 
 export function CVAnalysisClient() {
   const [file, setFile] = useState<File | null>(null);
@@ -52,6 +79,7 @@ export function CVAnalysisClient() {
   const [approvals, setApprovals] = useState<ApprovalItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [processingApprovals, setProcessingApprovals] = useState<Set<string>>(new Set());
+  const [summary, setSummary] = useState<ApprovalSummaryData | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -169,6 +197,24 @@ export function CVAnalysisClient() {
       case 'medium': return 'bg-yellow-500';
       case 'low': return 'bg-blue-500';
       default: return 'bg-gray-500';
+    }
+  };
+
+  const handleViewSummary = async () => {
+    if (!sessionId) return;
+
+    try {
+      const summaryResponse = await getApprovalSummary(sessionId);
+
+      if (summaryResponse.success && summaryResponse.summary) {
+        setSummary(summaryResponse.summary);
+        setCurrentStep('summary');
+      } else {
+        setError(summaryResponse.error || 'Failed to load summary');
+      }
+    } catch (err) {
+      console.error('Summary error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load summary');
     }
   };
 
@@ -386,7 +432,7 @@ export function CVAnalysisClient() {
             ) : (
               approvals.map((approval) => {
                 // Get improvement from proposed_content field (snake_case from database)
-                const improvement = (approval.proposed_content || approval.proposedContent || approval) as any;
+                const improvement = (approval.proposed_content || approval) as any;
 
                 // Debug log to see the structure
                 console.log('Approval item:', approval);
@@ -464,17 +510,45 @@ export function CVAnalysisClient() {
               })
             )}
 
-            {approvals.length === 0 && (
-              <Button
-                onClick={() => setCurrentStep('results')}
-                className="w-full"
-                variant="outline"
-              >
-                Back to Results
-              </Button>
-            )}
+            <div className="flex gap-2 mt-6">
+              {approvals.length === 0 ? (
+                <>
+                  <Button
+                    onClick={() => setCurrentStep('results')}
+                    className="flex-1"
+                    variant="outline"
+                  >
+                    Back to Results
+                  </Button>
+                  <Button
+                    onClick={handleViewSummary}
+                    className="flex-1"
+                  >
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    View Summary
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={handleViewSummary}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  View Summary (Review in Progress)
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Summary View */}
+      {currentStep === 'summary' && summary && (
+        <ApprovalSummary
+          summary={summary}
+          onBack={() => setCurrentStep('approvals')}
+        />
       )}
     </div>
   );
