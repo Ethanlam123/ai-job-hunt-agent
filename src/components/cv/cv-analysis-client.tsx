@@ -544,9 +544,10 @@ export function CVAnalysisClient() {
       )}
 
       {/* Summary View */}
-      {currentStep === 'summary' && summary && (
+      {currentStep === 'summary' && summary && sessionId && (
         <ApprovalSummary
           summary={summary}
+          sessionId={sessionId}
           onBack={() => setCurrentStep('approvals')}
         />
       )}

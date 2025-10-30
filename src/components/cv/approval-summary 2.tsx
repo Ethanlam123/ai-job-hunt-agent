@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Clock, ArrowLeft, Download, Loader2 } from "lucide-react";
-import { generateUpdatedCV } from "@/actions/cv";
+import { CheckCircle2, XCircle, Clock, ArrowLeft, Download } from "lucide-react";
 
 interface ApprovalSummary {
   total: number;
@@ -35,38 +33,13 @@ interface ApprovalSummary {
 
 interface ApprovalSummaryProps {
   summary: ApprovalSummary;
-  sessionId: string;
   onBack: () => void;
 }
 
-export function ApprovalSummary({ summary, sessionId, onBack }: ApprovalSummaryProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
+export function ApprovalSummary({ summary, onBack }: ApprovalSummaryProps) {
   const approvalPercentage = summary.total > 0
     ? Math.round((summary.approvedCount / summary.total) * 100)
     : 0;
-
-  const handleGenerateCV = async () => {
-    setIsGenerating(true);
-    setError(null);
-
-    try {
-      const result = await generateUpdatedCV(sessionId);
-
-      if (result.success && result.downloadUrl) {
-        setDownloadUrl(result.downloadUrl);
-      } else {
-        setError(result.error || 'Failed to generate CV');
-      }
-    } catch (err) {
-      console.error('Generate CV error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to generate CV');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -224,48 +197,16 @@ export function ApprovalSummary({ summary, sessionId, onBack }: ApprovalSummaryP
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-blue-800">
-              Great! You've reviewed all suggestions. Generate your updated CV with all approved improvements!
+              Great! You've reviewed all suggestions. Here's what you can do next:
             </p>
-            <div className="space-y-3">
-              {!downloadUrl ? (
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleGenerateCV}
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Generating Updated CV...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-5 w-5" />
-                      Generate Updated CV
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={() => window.open(downloadUrl, '_blank')}
-                  >
-                    <Download className="mr-2 h-5 w-5" />
-                    Download Updated CV
-                  </Button>
-                  <p className="text-xs text-blue-600 text-center">
-                    Your updated CV is ready! Click to download as a markdown file.
-                  </p>
-                </div>
-              )}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            <div className="space-y-2">
+              <Button className="w-full" size="lg" disabled>
+                <Download className="mr-2 h-5 w-5" />
+                Generate Updated CV (Coming Soon)
+              </Button>
+              <p className="text-xs text-blue-600 text-center">
+                CV generation feature will be available in the next update
+              </p>
             </div>
           </CardContent>
         </Card>

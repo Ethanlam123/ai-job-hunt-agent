@@ -472,3 +472,122 @@ export async function getApprovalSummary(sessionId: string) {
     }
   }
 }
+
+/**
+ * Generate updated CV by applying approved improvements
+ */
+export async function generateUpdatedCV(sessionId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized', documentId: null, downloadUrl: null }
+  }
+
+  try {
+    // Get session to find original document
+    const { data: session, error: sessionError } = await supabase
+      .from('sessions')
+      .select('state')
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (sessionError || !session) {
+      throw new Error('Session not found')
+    }
+
+    const documentId = session.state?.documentId
+    if (!documentId) {
+      throw new Error('Original document not found in session')
+    }
+
+    // Get original document
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('parsed_content')
+      .eq('id', documentId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (docError || !document) {
+      throw new Error('Failed to fetch original document')
+    }
+
+    const originalCV = document.parsed_content?.fullText || ''
+    if (!originalCV) {
+      throw new Error('Original CV content is empty')
+    }
+
+    // Get approved improvements
+    const { data: approvals, error: approvalsError } = await supabase
+      .from('approvals')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('user_id', user.id)
+      .eq('status', 'approved')
+
+    if (approvalsError) {
+      throw new Error(`Failed to fetch approvals: ${approvalsError.message}`)
+    }
+
+    if (!approvals || approvals.length === 0) {
+      throw new Error('No approved improvements found')
+    }
+
+    // Transform approvals to the format expected by CVGenerationService
+    const improvements = approvals.map(approval => ({
+      id: approval.id,
+      changeType: approval.change_type,
+      content: approval.proposed_content,
+    }))
+
+    // Generate updated CV
+    const { CVGenerationService } = await import('@/lib/services/cv-generation-service')
+    const generationService = new CVGenerationService(supabase)
+
+    const result = await generationService.generateUpdatedCV(originalCV, improvements)
+
+    if (!result.success || !result.updatedCV) {
+      throw new Error(result.error || 'Failed to generate updated CV')
+    }
+
+    // Save generated CV
+    const saveResult = await generationService.saveGeneratedCV(
+      user.id,
+      sessionId,
+      documentId,
+      result.updatedCV
+    )
+
+    if (!saveResult.success || !saveResult.documentId || !saveResult.filePath) {
+      throw new Error(saveResult.error || 'Failed to save generated CV')
+    }
+
+    // Get download URL
+    const { data: urlData, error: urlError } = await supabase.storage
+      .from('documents')
+      .createSignedUrl(saveResult.filePath, 3600) // 1 hour expiry
+
+    if (urlError) {
+      throw new Error(`Failed to create download URL: ${urlError.message}`)
+    }
+
+    revalidatePath('/cv-analysis')
+
+    return {
+      success: true,
+      documentId: saveResult.documentId,
+      downloadUrl: urlData.signedUrl,
+      error: null,
+    }
+  } catch (error: any) {
+    console.error('Generate updated CV error:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to generate updated CV',
+      documentId: null,
+      downloadUrl: null,
+    }
+  }
+}
