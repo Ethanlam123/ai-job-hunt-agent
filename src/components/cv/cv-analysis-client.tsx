@@ -220,74 +220,93 @@ export function CVAnalysisClient() {
 
   return (
     <div className="space-y-6">
-      {/* Upload Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload Your CV</CardTitle>
-          <CardDescription>
-            Upload a PDF file of your CV to get AI-powered analysis and improvement suggestions
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <label
-                htmlFor="cv-upload"
-                className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer hover:border-gray-400 focus:outline-none"
-              >
-                <div className="flex flex-col items-center space-y-2">
-                  <Upload className="w-8 h-8 text-gray-400" />
-                  <span className="text-sm text-gray-600">
-                    {file ? file.name : "Click to upload PDF"}
-                  </span>
-                </div>
-                <input
-                  id="cv-upload"
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </label>
+      {/* Upload Card - Only show when on upload step */}
+      {currentStep === 'upload' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload Your CV</CardTitle>
+            <CardDescription>
+              Upload a PDF file of your CV to get AI-powered analysis and improvement suggestions
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label
+                  htmlFor="cv-upload"
+                  className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer hover:border-gray-400 focus:outline-none"
+                >
+                  <div className="flex flex-col items-center space-y-2">
+                    <Upload className="w-8 h-8 text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      {file ? file.name : "Click to upload PDF"}
+                    </span>
+                  </div>
+                  <input
+                    id="cv-upload"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
-          </div>
 
-          {file && (
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-              <FileText className="w-5 h-5" />
-              <span className="text-sm flex-1">{file.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {(file.size / 1024).toFixed(1)} KB
-              </span>
-            </div>
-          )}
-
-          <Button
-            onClick={handleAnalyze}
-            disabled={!file || isProcessing}
-            className="w-full"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing CV with AI...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Analyze CV
-              </>
+            {file && (
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                <FileText className="w-5 h-5" />
+                <span className="text-sm flex-1">{file.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {(file.size / 1024).toFixed(1)} KB
+                </span>
+              </div>
             )}
-          </Button>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+            <Button
+              onClick={handleAnalyze}
+              disabled={!file || isProcessing}
+              className="w-full"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing CV with AI...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Analyze CV
+                </>
+              )}
+            </Button>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Analyzing State */}
+      {currentStep === 'analyzing' && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold">Analyzing Your CV</h3>
+                <p className="text-sm text-muted-foreground">
+                  Our AI is reviewing your CV and generating personalized improvement suggestions...
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Analysis Results */}
       {currentStep === 'results' && (
@@ -398,14 +417,25 @@ export function CVAnalysisClient() {
                 </div>
               )}
 
-              {approvals.length > 0 && (
-                <Button
-                  onClick={() => setCurrentStep('approvals')}
-                  className="w-full"
-                >
-                  Review {approvals.length} Improvement{approvals.length > 1 ? 's' : ''}
-                </Button>
-              )}
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                {approvals.length > 0 ? (
+                  <Button
+                    onClick={() => setCurrentStep('approvals')}
+                    className="w-full"
+                  >
+                    Review {approvals.length} Improvement{approvals.length > 1 ? 's' : ''}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleViewSummary}
+                    className="w-full"
+                  >
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    View Approval Summary
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
           )}
@@ -548,7 +578,7 @@ export function CVAnalysisClient() {
         <ApprovalSummary
           summary={summary}
           sessionId={sessionId}
-          onBack={() => setCurrentStep('approvals')}
+          onBack={() => setCurrentStep('results')}
         />
       )}
     </div>

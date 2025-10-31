@@ -86,6 +86,9 @@ export const tasks = pgTable('tasks', {
   sessionId: uuid('session_id')
     .notNull()
     .references(() => sessions.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
   taskType: varchar('task_type', { length: 50 }).notNull(), // 'cv_analysis' | 'cover_letter' | etc.
   status: varchar('status', { length: 20 }).notNull(), // 'processing' | 'completed' | 'failed'
   result: jsonb('result'),
