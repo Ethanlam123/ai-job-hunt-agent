@@ -1287,6 +1287,7 @@ export class TaskService {
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key  # For development/admin tasks only
 
 # Database (for Drizzle ORM direct connection - optional)
 DATABASE_URL=your_supabase_postgres_connection_string
@@ -1311,8 +1312,10 @@ TAVILY_API_KEY=your_tavily_key  # For web search
 
 **Important Notes:**
 
-- **Never use `SUPABASE_SERVICE_ROLE_KEY`** in your Next.js app as it bypasses Row Level Security (RLS)
-- Use `NEXT_PUBLIC_SUPABASE_ANON_KEY` for client-side operations (respects RLS)
+- **`SUPABASE_SERVICE_ROLE_KEY` usage:** This key bypasses Row Level Security (RLS)
+  - **Development:** Can be used for testing, database seeding, or admin operations
+  - **Production:** NEVER use in production client-facing code - creates security vulnerabilities
+- **For standard operations:** Use `NEXT_PUBLIC_SUPABASE_ANON_KEY` for client-side operations (respects RLS)
 - Use server-side Supabase clients (via `createClient()`) which inherit user context from cookies
 - `DATABASE_URL` is only needed if you want to use Drizzle ORM for direct database migrations, otherwise Supabase client handles everything
 

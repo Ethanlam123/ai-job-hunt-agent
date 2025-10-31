@@ -95,11 +95,14 @@ actions/                # Server Actions ('use server')
 
 ### Row Level Security (RLS)
 
-**NEVER use `SUPABASE_SERVICE_ROLE_KEY` in the Next.js app** - it bypasses RLS and creates security vulnerabilities.
+**IMPORTANT:** `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS and should be used with caution:
+- **Development**: Can be used for testing, seeding databases, or admin operations
+- **Production**: NEVER use in production client-facing code - it creates security vulnerabilities
 
-**Always use:**
+**For standard operations, always use:**
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` for client-side operations (respects RLS)
 - Server-side Supabase clients created via `createClient()` (inherit user context from cookies)
+- `SUPABASE_SERVICE_ROLE_KEY` only in development for admin tasks or when you explicitly need to bypass RLS
 
 **RLS-Aware Cache Keys:**
 All cache operations must use user-scoped keys:
@@ -172,6 +175,7 @@ Required environment variables (see `.env.example`):
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=  # For development/admin tasks only - NEVER use in production client code
 
 # Database (optional, for Drizzle ORM migrations)
 DATABASE_URL=
@@ -191,7 +195,7 @@ LANGCHAIN_API_KEY=
 TAVILY_API_KEY=  # For web search
 ```
 
-**Note:** `.env.example` incorrectly includes `SUPABASE_SERVICE_ROLE_KEY`, `UPSTASH_REDIS_*`, and `INNGEST_*` variables. These should be removed as they are not used in the final architecture.
+**Note:** `.env.example` incorrectly includes `UPSTASH_REDIS_*` and `INNGEST_*` variables. These should be removed as they are not used in the final architecture (we use PostgreSQL for caching and background jobs).
 
 ## Implementation Guidelines
 
