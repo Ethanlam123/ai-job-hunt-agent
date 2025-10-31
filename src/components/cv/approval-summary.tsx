@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Clock, ArrowLeft, Download, Loader2 } from "lucide-react";
-import { generateUpdatedCV } from "@/actions/cv";
+import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { generateUpdatedCV, getDocumentContent } from "@/actions/cv";
+import { CVComparison } from "./cv-comparison";
+import { createClient } from "@/lib/supabase/client";
 
 interface ApprovalSummary {
   total: number;
@@ -40,236 +41,127 @@ interface ApprovalSummaryProps {
 }
 
 export function ApprovalSummary({ summary, sessionId, onBack }: ApprovalSummaryProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [originalCV, setOriginalCV] = useState<string>('');
+  const [updatedCV, setUpdatedCV] = useState<string>('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const approvalPercentage = summary.total > 0
-    ? Math.round((summary.approvedCount / summary.total) * 100)
-    : 0;
-
-  const handleGenerateCV = async () => {
-    setIsGenerating(true);
-    setError(null);
-
-    try {
-      const result = await generateUpdatedCV(sessionId);
-
-      if (result.success && result.downloadUrl) {
-        setDownloadUrl(result.downloadUrl);
-      } else {
-        setError(result.error || 'Failed to generate CV');
+  // Auto-generate CV and fetch content when component mounts
+  useEffect(() => {
+    const initializeComparison = async () => {
+      if (summary.approvedCount === 0) {
+        setError('No approved improvements found');
+        setIsLoading(false);
+        return;
       }
-    } catch (err) {
-      console.error('Generate CV error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to generate CV');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
-  return (
-    <div className="space-y-6">
-      {/* Header Card */}
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Step 1: Generate the updated CV
+        console.log('Generating updated CV...');
+        const generateResult = await generateUpdatedCV(sessionId);
+
+        if (!generateResult.success || !generateResult.documentId) {
+          throw new Error(generateResult.error || 'Failed to generate CV');
+        }
+
+        setDownloadUrl(generateResult.downloadUrl);
+
+        // Step 2: Get session to find original document ID
+        const supabase = createClient();
+        const { data: session, error: sessionError } = await supabase
+          .from('sessions')
+          .select('state')
+          .eq('id', sessionId)
+          .single();
+
+        if (sessionError || !session?.state?.documentId) {
+          throw new Error('Failed to find original document');
+        }
+
+        // Step 3: Fetch original CV content
+        console.log('Fetching original CV...');
+        const originalResult = await getDocumentContent(session.state.documentId);
+
+        if (!originalResult.success || !originalResult.content) {
+          throw new Error(originalResult.error || 'Failed to fetch original CV');
+        }
+
+        setOriginalCV(originalResult.content);
+
+        // Step 4: Fetch updated CV content
+        console.log('Fetching updated CV...');
+        const updatedResult = await getDocumentContent(generateResult.documentId);
+
+        if (!updatedResult.success || !updatedResult.content) {
+          throw new Error(updatedResult.error || 'Failed to fetch updated CV');
+        }
+
+        setUpdatedCV(updatedResult.content);
+      } catch (err) {
+        console.error('Initialize comparison error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load CV comparison');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeComparison();
+  }, [sessionId, summary.approvedCount]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-semibold">Generating Your Updated CV</h3>
+              <p className="text-sm text-muted-foreground">
+                Applying {summary.approvedCount} approved improvement{summary.approvedCount !== 1 ? 's' : ''}...
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">Review Summary</CardTitle>
-              <CardDescription className="mt-2">
-                Here's a summary of your review decisions
-              </CardDescription>
-            </div>
-            <Button onClick={onBack} variant="outline">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Results
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            Error
+          </CardTitle>
         </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <Button onClick={onBack} variant="outline">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Results
+          </Button>
+        </CardContent>
       </Card>
+    );
+  }
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Total Suggestions</CardDescription>
-            <CardTitle className="text-4xl">{summary.total}</CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              Approved
-            </CardDescription>
-            <CardTitle className="text-4xl text-green-700">{summary.approvedCount}</CardTitle>
-            <p className="text-sm text-green-600">{approvalPercentage}% of total</p>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-2">
-              <XCircle className="h-4 w-4 text-red-600" />
-              Rejected
-            </CardDescription>
-            <CardTitle className="text-4xl text-red-700">{summary.rejectedCount}</CardTitle>
-            <p className="text-sm text-red-600">
-              {summary.total > 0 ? Math.round((summary.rejectedCount / summary.total) * 100) : 0}% of total
-            </p>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-600" />
-              Pending
-            </CardDescription>
-            <CardTitle className="text-4xl text-yellow-700">{summary.pendingCount}</CardTitle>
-            <p className="text-sm text-yellow-600">Not yet reviewed</p>
-          </CardHeader>
-        </Card>
-      </div>
-
-      {/* Approved Changes */}
-      {summary.approvedCount > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              Approved Changes ({summary.approvedCount})
-            </CardTitle>
-            <CardDescription>
-              These improvements will be included in your updated CV
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {summary.approved.map((item) => {
-              const content = item.content || {};
-              return (
-                <div key={item.id} className="p-4 border border-green-200 bg-green-50 rounded-lg">
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-semibold text-green-900">
-                      {content.title || 'Improvement'}
-                    </h4>
-                    <Badge variant="outline" className="bg-white">
-                      {item.changeType}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-green-800">{content.description || 'No description'}</p>
-                  {content.section && (
-                    <p className="text-xs text-green-600 mt-2">Section: {content.section}</p>
-                  )}
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Rejected Changes */}
-      {summary.rejectedCount > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-red-600" />
-              Rejected Changes ({summary.rejectedCount})
-            </CardTitle>
-            <CardDescription>
-              These suggestions were not applied to your CV
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {summary.rejected.map((item) => {
-              const content = item.content || {};
-              return (
-                <div key={item.id} className="p-4 border border-red-200 bg-red-50 rounded-lg">
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-semibold text-red-900">
-                      {content.title || 'Improvement'}
-                    </h4>
-                    <Badge variant="outline" className="bg-white">
-                      {item.changeType}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-red-800">{content.description || 'No description'}</p>
-                  {item.feedback && (
-                    <p className="text-xs text-red-600 mt-2 italic">Your feedback: {item.feedback}</p>
-                  )}
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Pending Changes */}
-      {summary.pendingCount > 0 && (
-        <Alert>
-          <Clock className="h-4 w-4" />
-          <AlertDescription>
-            You still have {summary.pendingCount} pending suggestion{summary.pendingCount > 1 ? 's' : ''} to review.
-            Go back to the review page to complete your evaluation.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Next Steps */}
-      {summary.approvedCount > 0 && summary.pendingCount === 0 && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="text-blue-900">Next Steps</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-blue-800">
-              Great! You've reviewed all suggestions. Generate your updated CV with all approved improvements!
-            </p>
-            <div className="space-y-3">
-              {!downloadUrl ? (
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleGenerateCV}
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Generating Updated CV...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-5 w-5" />
-                      Generate Updated CV
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={() => window.open(downloadUrl, '_blank')}
-                  >
-                    <Download className="mr-2 h-5 w-5" />
-                    Download Updated CV
-                  </Button>
-                  <p className="text-xs text-blue-600 text-center">
-                    Your updated CV is ready! Click to download as a markdown file.
-                  </p>
-                </div>
-              )}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+  // Show CV comparison
+  return (
+    <CVComparison
+      originalCV={originalCV}
+      updatedCV={updatedCV}
+      downloadUrl={downloadUrl}
+      approvedCount={summary.approvedCount}
+      onBack={onBack}
+    />
   );
 }

@@ -474,6 +474,46 @@ export async function getApprovalSummary(sessionId: string) {
 }
 
 /**
+ * Get document content by ID
+ */
+export async function getDocumentContent(documentId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized', content: null }
+  }
+
+  try {
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('parsed_content, file_path, original_filename')
+      .eq('id', documentId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (docError || !document) {
+      throw new Error('Document not found')
+    }
+
+    const content = document.parsed_content?.fullText || ''
+
+    return {
+      success: true,
+      content,
+      fileName: document.original_filename,
+      error: null,
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Failed to fetch document content',
+      content: null,
+    }
+  }
+}
+
+/**
  * Generate updated CV by applying approved improvements
  */
 export async function generateUpdatedCV(sessionId: string) {
