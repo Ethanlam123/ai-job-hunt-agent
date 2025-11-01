@@ -10,9 +10,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FileText, Upload, Loader2, Download, Edit2, Sparkles } from 'lucide-react'
 import { generateCoverLetter } from '@/actions/cover-letter'
+import { getDocumentById } from '@/actions/documents'
+import { DocumentSelector } from '@/components/documents/document-selector'
 
 export function CoverLetterClient() {
   const [cvFile, setCvFile] = useState<File | null>(null)
+  const [selectedCvId, setSelectedCvId] = useState<string | null>(null)
+  const [cvMode, setCvMode] = useState<'existing' | 'new'>('existing')
   const [jobDescription, setJobDescription] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [positionTitle, setPositionTitle] = useState('')
@@ -41,8 +45,13 @@ export function CoverLetterClient() {
   }
 
   const handleGenerate = async () => {
-    if (!cvFile) {
+    // Validate CV selection
+    if (cvMode === 'new' && !cvFile) {
       setError('Please upload your CV')
+      return
+    }
+    if (cvMode === 'existing' && !selectedCvId) {
+      setError('Please select an existing CV')
       return
     }
     if (!jobDescription.trim()) {
@@ -58,16 +67,40 @@ export function CoverLetterClient() {
     setError(null)
 
     try {
-      // Convert file to base64
-      const arrayBuffer = await cvFile.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-      const base64 = buffer.toString('base64')
+      let fileData: { fileName: string; fileType: string; fileSize: number; fileData: string; documentId?: string }
+
+      if (cvMode === 'existing' && selectedCvId) {
+        // Use existing document
+        const docResult = await getDocumentById(selectedCvId)
+        if (!docResult.success || !docResult.document) {
+          throw new Error('Failed to load selected CV')
+        }
+
+        fileData = {
+          fileName: docResult.document.original_filename,
+          fileType: docResult.document.metadata?.mimeType || 'application/pdf',
+          fileSize: docResult.document.metadata?.size || 0,
+          fileData: '',
+          documentId: selectedCvId,
+        }
+      } else if (cvFile) {
+        // Upload new file
+        const arrayBuffer = await cvFile.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        const base64 = buffer.toString('base64')
+
+        fileData = {
+          fileName: cvFile.name,
+          fileType: cvFile.type,
+          fileSize: cvFile.size,
+          fileData: base64,
+        }
+      } else {
+        throw new Error('No CV selected')
+      }
 
       const result = await generateCoverLetter({
-        fileName: cvFile.name,
-        fileType: cvFile.type,
-        fileSize: cvFile.size,
-        fileData: base64,
+        ...fileData,
         jobDescription,
         companyName,
         positionTitle,
@@ -118,32 +151,49 @@ export function CoverLetterClient() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Upload Your CV
+                <FileText className="h-5 w-5" />
+                Select Your CV
               </CardTitle>
               <CardDescription>
-                Upload your CV in PDF, DOCX, or TXT format (max 10MB)
+                Choose an existing CV or upload a new one
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                  <Input
-                    type="file"
-                    accept=".pdf,.docx,.txt"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="cv-upload"
+              <Tabs value={cvMode} onValueChange={(value) => setCvMode(value as 'existing' | 'new')}>
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="existing">Use Existing CV</TabsTrigger>
+                  <TabsTrigger value="new">Upload New CV</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="existing" className="space-y-4">
+                  <DocumentSelector
+                    documentType="cv"
+                    onSelect={setSelectedCvId}
+                    selectedDocumentId={selectedCvId}
+                    label="Select Your CV"
+                    placeholder="Choose a CV"
                   />
-                  <label htmlFor="cv-upload" className="cursor-pointer">
-                    <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600 mb-1">
-                      {cvFile ? cvFile.name : 'Click to upload your CV'}
-                    </p>
-                    <p className="text-xs text-gray-500">PDF, DOCX, or TXT (max 10MB)</p>
-                  </label>
-                </div>
-              </div>
+                </TabsContent>
+
+                <TabsContent value="new" className="space-y-4">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                    <Input
+                      type="file"
+                      accept=".pdf,.docx,.txt"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      id="cv-upload"
+                    />
+                    <label htmlFor="cv-upload" className="cursor-pointer">
+                      <Upload className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        {cvFile ? cvFile.name : 'Click to upload your CV'}
+                      </p>
+                      <p className="text-xs text-gray-500">PDF, DOCX, or TXT (max 10MB)</p>
+                    </label>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 

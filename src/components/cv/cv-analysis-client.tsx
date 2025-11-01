@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Upload, FileText, CheckCircle2, AlertCircle, ThumbsUp, ThumbsDown, Sparkles, BarChart3 } from "lucide-react";
 import {
   uploadAndAnalyzeCV,
@@ -13,6 +14,8 @@ import {
   handleApprovalDecision,
   getApprovalSummary
 } from "@/actions/cv";
+import { getDocumentById } from "@/actions/documents";
+import { DocumentSelector } from "@/components/documents/document-selector";
 import { ApprovalSummary } from "./approval-summary";
 
 interface AnalysisData {
@@ -71,6 +74,8 @@ type WorkflowStep = 'upload' | 'analyzing' | 'results' | 'approvals' | 'summary'
 
 export function CVAnalysisClient() {
   const [file, setFile] = useState<File | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [uploadMode, setUploadMode] = useState<'existing' | 'new'>('existing');
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState<WorkflowStep>('upload');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -93,25 +98,56 @@ export function CVAnalysisClient() {
   };
 
   const handleAnalyze = async () => {
-    if (!file) return;
+    // Validate input based on mode
+    if (uploadMode === 'new' && !file) {
+      setError('Please select a file to upload');
+      return;
+    }
+    if (uploadMode === 'existing' && !selectedDocumentId) {
+      setError('Please select an existing CV');
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
     setCurrentStep('analyzing');
 
     try {
-      // Convert file to base64
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const base64 = buffer.toString("base64");
+      let fileData: { fileName: string; fileType: string; fileSize: number; fileData: string; documentId?: string };
+
+      if (uploadMode === 'existing' && selectedDocumentId) {
+        // Use existing document
+        const docResult = await getDocumentById(selectedDocumentId);
+        if (!docResult.success || !docResult.document) {
+          throw new Error('Failed to load selected document');
+        }
+
+        // For existing documents, we pass the documentId
+        fileData = {
+          fileName: docResult.document.original_filename,
+          fileType: docResult.document.metadata?.mimeType || 'application/pdf',
+          fileSize: docResult.document.metadata?.size || 0,
+          fileData: '', // Empty for existing documents
+          documentId: selectedDocumentId,
+        };
+      } else if (file) {
+        // Upload new file
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64 = buffer.toString("base64");
+
+        fileData = {
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          fileData: base64,
+        };
+      } else {
+        throw new Error('No file or document selected');
+      }
 
       // Upload and trigger the full CV analysis workflow
-      const workflowResult = await uploadAndAnalyzeCV({
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        fileData: base64,
-      });
+      const workflowResult = await uploadAndAnalyzeCV(fileData);
 
       if (!workflowResult.success) {
         throw new Error(workflowResult.error || 'Workflow failed');
@@ -224,48 +260,67 @@ export function CVAnalysisClient() {
       {currentStep === 'upload' && (
         <Card>
           <CardHeader>
-            <CardTitle>Upload Your CV</CardTitle>
+            <CardTitle>Select Your CV</CardTitle>
             <CardDescription>
-              Upload a PDF file of your CV to get AI-powered analysis and improvement suggestions
+              Choose an existing CV or upload a new one to get AI-powered analysis and improvement suggestions
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <label
-                  htmlFor="cv-upload"
-                  className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer hover:border-gray-400 focus:outline-none"
-                >
-                  <div className="flex flex-col items-center space-y-2">
-                    <Upload className="w-8 h-8 text-gray-400" />
-                    <span className="text-sm text-gray-600">
-                      {file ? file.name : "Click to upload PDF"}
+            <Tabs value={uploadMode} onValueChange={(value) => setUploadMode(value as 'existing' | 'new')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="existing">Use Existing CV</TabsTrigger>
+                <TabsTrigger value="new">Upload New CV</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="existing" className="space-y-4 mt-4">
+                <DocumentSelector
+                  documentType="cv"
+                  onSelect={setSelectedDocumentId}
+                  selectedDocumentId={selectedDocumentId}
+                  label="Select Your CV"
+                  placeholder="Choose a CV to analyze"
+                />
+              </TabsContent>
+
+              <TabsContent value="new" className="space-y-4 mt-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label
+                      htmlFor="cv-upload"
+                      className="flex items-center justify-center w-full h-32 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md appearance-none cursor-pointer hover:border-gray-400 focus:outline-none"
+                    >
+                      <div className="flex flex-col items-center space-y-2">
+                        <Upload className="w-8 h-8 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {file ? file.name : "Click to upload PDF"}
+                        </span>
+                      </div>
+                      <input
+                        id="cv-upload"
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {file && (
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                    <FileText className="w-5 h-5" />
+                    <span className="text-sm flex-1">{file.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {(file.size / 1024).toFixed(1)} KB
                     </span>
                   </div>
-                  <input
-                    id="cv-upload"
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            </div>
-
-            {file && (
-              <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                <FileText className="w-5 h-5" />
-                <span className="text-sm flex-1">{file.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {(file.size / 1024).toFixed(1)} KB
-                </span>
-              </div>
-            )}
+                )}
+              </TabsContent>
+            </Tabs>
 
             <Button
               onClick={handleAnalyze}
-              disabled={!file || isProcessing}
+              disabled={(uploadMode === 'new' && !file) || (uploadMode === 'existing' && !selectedDocumentId) || isProcessing}
               className="w-full"
             >
               {isProcessing ? (

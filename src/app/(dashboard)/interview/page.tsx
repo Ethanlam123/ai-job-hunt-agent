@@ -52,7 +52,7 @@ export default async function InterviewPage() {
               To start interview preparation, you need to upload at least one CV document.
             </p>
             <p className="text-yellow-800 mt-4">
-              Please visit the <a href="/upload" className="underline font-medium">Upload</a> page to add your CV.
+              Please visit the <a href="/documents" className="underline font-medium">Documents</a> page to upload your CV.
             </p>
             <p className="text-yellow-800 mt-2 text-sm">
               Note: You can paste the job description text directly in the interview setup.
