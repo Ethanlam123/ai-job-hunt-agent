@@ -110,7 +110,9 @@ export function InterviewPracticeClient({
 }: InterviewPracticeClientProps) {
   const [currentStep, setCurrentStep] = useState<WorkflowStep>('setup')
   const [cvDocumentId, setCvDocumentId] = useState<string>('')
+  const [jdInputMode, setJdInputMode] = useState<'document' | 'text'>('text')
   const [jdDocumentId, setJdDocumentId] = useState<string>('')
+  const [jdText, setJdText] = useState<string>('')
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate')
   const [questionCount, setQuestionCount] = useState<number>(10)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -127,8 +129,18 @@ export function InterviewPracticeClient({
   const currentQuestion = questions[currentQuestionIndex]
 
   const handleGenerateQuestions = async () => {
-    if (!cvDocumentId || !jdDocumentId) {
-      setError('Please select both CV and Job Description')
+    if (!cvDocumentId) {
+      setError('Please select a CV document')
+      return
+    }
+
+    if (jdInputMode === 'document' && !jdDocumentId) {
+      setError('Please select a Job Description document')
+      return
+    }
+
+    if (jdInputMode === 'text' && !jdText.trim()) {
+      setError('Please enter the Job Description text')
       return
     }
 
@@ -139,7 +151,8 @@ export function InterviewPracticeClient({
     try {
       const result = await generateInterviewQuestions({
         cvDocumentId,
-        jdDocumentId,
+        jdDocumentId: jdInputMode === 'document' ? jdDocumentId : undefined,
+        jdText: jdInputMode === 'text' ? jdText : undefined,
         difficulty,
         questionCount,
       })
@@ -323,19 +336,48 @@ export function InterviewPracticeClient({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Select Job Description</label>
-              <Select value={jdDocumentId} onValueChange={setJdDocumentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a job description" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jdDocuments.map((doc) => (
-                    <SelectItem key={doc.id} value={doc.id}>
-                      {doc.original_filename}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">Job Description</label>
+              <div className="flex gap-2 mb-2">
+                <Button
+                  type="button"
+                  variant={jdInputMode === 'text' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setJdInputMode('text')}
+                >
+                  Paste Text
+                </Button>
+                <Button
+                  type="button"
+                  variant={jdInputMode === 'document' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setJdInputMode('document')}
+                >
+                  Select Document
+                </Button>
+              </div>
+
+              {jdInputMode === 'text' ? (
+                <Textarea
+                  placeholder="Paste the job description here..."
+                  value={jdText}
+                  onChange={(e) => setJdText(e.target.value)}
+                  rows={8}
+                  className="font-mono text-sm"
+                />
+              ) : (
+                <Select value={jdDocumentId} onValueChange={setJdDocumentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a job description" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jdDocuments.map((doc) => (
+                      <SelectItem key={doc.id} value={doc.id}>
+                        {doc.original_filename}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -369,7 +411,12 @@ export function InterviewPracticeClient({
 
             <Button
               onClick={handleGenerateQuestions}
-              disabled={isProcessing || !cvDocumentId || !jdDocumentId}
+              disabled={
+                isProcessing ||
+                !cvDocumentId ||
+                (jdInputMode === 'document' && !jdDocumentId) ||
+                (jdInputMode === 'text' && !jdText.trim())
+              }
               className="w-full"
             >
               {isProcessing ? (

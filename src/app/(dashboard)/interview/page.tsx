@@ -45,22 +45,17 @@ export default async function InterviewPage() {
           </p>
         </div>
 
-        {cvDocs.length === 0 || jdDocs.length === 0 ? (
+        {cvDocs.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
             <h3 className="font-semibold text-yellow-900 mb-2">Setup Required</h3>
             <p className="text-yellow-800 mb-4">
-              To start interview preparation, you need:
+              To start interview preparation, you need to upload at least one CV document.
             </p>
-            <ul className="list-disc list-inside text-yellow-800 space-y-1">
-              {cvDocs.length === 0 && (
-                <li>Upload at least one CV document</li>
-              )}
-              {jdDocs.length === 0 && (
-                <li>Upload at least one job description</li>
-              )}
-            </ul>
             <p className="text-yellow-800 mt-4">
-              Please visit the <a href="/upload" className="underline font-medium">Upload</a> page to add your documents.
+              Please visit the <a href="/upload" className="underline font-medium">Upload</a> page to add your CV.
+            </p>
+            <p className="text-yellow-800 mt-2 text-sm">
+              Note: You can paste the job description text directly in the interview setup.
             </p>
           </div>
         ) : (

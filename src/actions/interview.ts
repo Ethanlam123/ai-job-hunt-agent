@@ -10,7 +10,8 @@ import { revalidatePath } from 'next/cache'
  */
 export async function generateInterviewQuestions(input: {
   cvDocumentId: string
-  jdDocumentId: string
+  jdDocumentId?: string
+  jdText?: string
   difficulty?: 'beginner' | 'intermediate' | 'advanced'
   questionCount?: number
 }) {
@@ -25,11 +26,17 @@ export async function generateInterviewQuestions(input: {
     const {
       cvDocumentId,
       jdDocumentId,
+      jdText,
       difficulty = 'intermediate',
       questionCount = 10,
     } = input
 
-    // Validate that both documents exist and belong to the user
+    // Validate that either jdDocumentId or jdText is provided
+    if (!jdDocumentId && !jdText) {
+      return { success: false, error: 'Either job description document or text is required' }
+    }
+
+    // Validate CV document exists and belongs to the user
     const { data: cvDoc, error: cvError } = await supabase
       .from('documents')
       .select('id')
@@ -41,15 +48,49 @@ export async function generateInterviewQuestions(input: {
       return { success: false, error: 'CV document not found' }
     }
 
-    const { data: jdDoc, error: jdError } = await supabase
-      .from('documents')
-      .select('id')
-      .eq('id', jdDocumentId)
-      .eq('user_id', user.id)
-      .single()
+    // Handle JD document or text
+    let finalJdDocumentId = jdDocumentId
 
-    if (jdError || !jdDoc) {
-      return { success: false, error: 'Job description not found' }
+    if (jdText && !jdDocumentId) {
+      // Create a temporary JD document from the text
+      const { data: tempJdDoc, error: tempJdError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: user.id,
+          document_type: 'job_description',
+          original_filename: `Job Description - ${new Date().toISOString().split('T')[0]}`,
+          file_path: null,
+          file_format: 'txt',
+          parsed_content: {
+            fullText: jdText,
+            pageCount: 1,
+            extractedAt: new Date().toISOString(),
+          },
+          metadata: {
+            source: 'text_input',
+            createdAt: new Date().toISOString(),
+          },
+        })
+        .select()
+        .single()
+
+      if (tempJdError || !tempJdDoc) {
+        return { success: false, error: 'Failed to create job description record' }
+      }
+
+      finalJdDocumentId = tempJdDoc.id
+    } else if (jdDocumentId) {
+      // Validate JD document exists and belongs to the user
+      const { data: jdDoc, error: jdError } = await supabase
+        .from('documents')
+        .select('id')
+        .eq('id', jdDocumentId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (jdError || !jdDoc) {
+        return { success: false, error: 'Job description document not found' }
+      }
     }
 
     // Create session for this interview preparation
@@ -60,9 +101,10 @@ export async function generateInterviewQuestions(input: {
         current_stage: 'interview_preparation',
         state: {
           cvDocumentId,
-          jdDocumentId,
+          jdDocumentId: finalJdDocumentId,
           difficulty,
           questionCount,
+          jdSource: jdText ? 'text_input' : 'document',
         },
       })
       .select()
@@ -78,7 +120,7 @@ export async function generateInterviewQuestions(input: {
     // Generate questions
     const result = await interviewAgent.generateInterviewQuestions(
       cvDocumentId,
-      jdDocumentId,
+      finalJdDocumentId!,
       session.id,
       user.id,
       difficulty,
