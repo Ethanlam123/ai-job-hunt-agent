@@ -21,84 +21,84 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>CV Analysis</CardTitle>
             <CardDescription>
               Upload and analyze your CV to get improvement suggestions
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 flex items-end">
             <Button asChild className="w-full">
               <Link href="/cv-analysis">Start CV Analysis</Link>
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>Cover Letter</CardTitle>
             <CardDescription>
               Generate personalized cover letters for job applications
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 flex items-end">
             <Button asChild className="w-full">
               <Link href="/cover-letter">Create Cover Letter</Link>
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>Interview Prep</CardTitle>
             <CardDescription>
               Practice with AI-generated mock interview questions
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 flex items-end">
             <Button asChild className="w-full">
               <Link href="/interview">Start Interview Prep</Link>
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>Skill Gap Analysis</CardTitle>
             <CardDescription>
               Identify missing skills and get a learning roadmap
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 flex items-end">
             <Button asChild className="w-full" variant="outline">
               <Link href="/workflow?type=skill-gap">Analyze Skills</Link>
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>Session History</CardTitle>
             <CardDescription>
               View your past sessions and download results
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 flex items-end">
             <Button asChild className="w-full" variant="outline">
               <Link href="/history">View History</Link>
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>Profile Settings</CardTitle>
             <CardDescription>
               Manage your account and preferences
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 flex items-end">
             <Button asChild className="w-full" variant="outline">
               <Link href="/profile">Settings</Link>
             </Button>
