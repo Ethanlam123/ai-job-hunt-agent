@@ -86,6 +86,69 @@ export async function uploadDocument(formData: FormData) {
   }
 }
 
+export async function getUserDocuments(documentType?: DocumentType) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: 'Unauthorized' }
+  }
+
+  try {
+    let query = supabase
+      .from('documents')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (documentType) {
+      query = query.eq('document_type', documentType)
+    }
+
+    const { data: documents, error: dbError } = await query
+
+    if (dbError) {
+      return { error: `Failed to fetch documents: ${dbError.message}` }
+    }
+
+    return { success: true, documents: documents || [] }
+  } catch (error: any) {
+    return { error: error.message || 'An unexpected error occurred' }
+  }
+}
+
+export async function getDocumentById(documentId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: 'Unauthorized' }
+  }
+
+  try {
+    const { data: document, error: dbError } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('id', documentId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (dbError || !document) {
+      return { error: 'Document not found' }
+    }
+
+    return { success: true, document }
+  } catch (error: any) {
+    return { error: error.message || 'An unexpected error occurred' }
+  }
+}
+
 export async function deleteDocument(documentId: string) {
   const supabase = await createClient()
   const {

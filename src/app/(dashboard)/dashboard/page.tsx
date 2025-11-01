@@ -34,9 +34,23 @@ export default async function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="flex flex-col">
           <CardHeader>
+            <CardTitle>My Documents</CardTitle>
+            <CardDescription>
+              Manage your uploaded CVs and documents in one place
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex items-end">
+            <Button asChild className="w-full">
+              <Link href="/documents">Manage Documents</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader>
             <CardTitle>CV Analysis</CardTitle>
             <CardDescription>
-              Upload and analyze your CV to get improvement suggestions
+              Analyze your CV to get improvement suggestions
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex items-end">

@@ -20,10 +20,10 @@ export function Navbar({ userEmail }: { userEmail?: string }) {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/documents', label: 'Documents' },
     { href: '/cv-analysis', label: 'CV Analysis' },
     { href: '/cover-letter', label: 'Cover Letter' },
     { href: '/interview', label: 'Interview Prep' },
-    { href: '/workflow', label: 'Workflow' },
     { href: '/history', label: 'History' },
   ]
 
