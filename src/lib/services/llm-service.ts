@@ -19,7 +19,7 @@ export function createLLM(options?: {
   maxTokens?: number
 }) {
   const {
-    model = 'openai/gpt-4o', // Default model - can be changed to gpt-4o-mini or others
+    model = 'openai/gpt-5-nano', // Default model - can be changed to gpt-4o-mini or others
     temperature = 0.7,
     maxTokens = 2000,
   } = options || {}
@@ -29,12 +29,12 @@ export function createLLM(options?: {
   }
 
   return new ChatOpenAI({
-    openAIApiKey: process.env.OPENROUTER_API_KEY,
-    modelName: model,
+    model,
     temperature,
     maxTokens,
     configuration: {
       baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: process.env.OPENROUTER_API_KEY,
       defaultHeaders: {
         'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
         'X-Title': 'AI Job Hunt Agent',

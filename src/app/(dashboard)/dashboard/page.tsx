@@ -30,7 +30,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <Link href="/workflow?type=cv">Start CV Analysis</Link>
+              <Link href="/cv-analysis">Start CV Analysis</Link>
             </Button>
           </CardContent>
         </Card>
@@ -43,8 +43,8 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild className="w-full" variant="outline">
-              <Link href="/workflow?type=cover-letter">Create Cover Letter</Link>
+            <Button asChild className="w-full">
+              <Link href="/cover-letter">Create Cover Letter</Link>
             </Button>
           </CardContent>
         </Card>
