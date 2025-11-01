@@ -2,12 +2,17 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { createStatsService } from '@/lib/services/stats-service'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  // Fetch user stats
+  const statsService = createStatsService()
+  const stats = user ? await statsService.getUserStats(user.id) : null
 
   return (
     <div className="space-y-8">
@@ -115,19 +120,19 @@ export default async function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Total Sessions</p>
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{stats?.totalSessions || 0}</p>
             </div>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">CVs Analyzed</p>
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{stats?.cvsAnalyzed || 0}</p>
             </div>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Cover Letters</p>
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{stats?.coverLetters || 0}</p>
             </div>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Mock Interviews</p>
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{stats?.mockInterviews || 0}</p>
             </div>
           </div>
         </CardContent>
