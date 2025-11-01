@@ -608,29 +608,31 @@ export function InterviewPracticeClient({
           </CardContent>
         </Card>
 
-        {/* Navigation */}
-        <div className="flex justify-between items-center">
-          <Button
-            variant="outline"
-            onClick={handlePreviousQuestion}
-            disabled={currentQuestionIndex === 0}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Previous
-          </Button>
+        {/* Navigation - Only show after answering */}
+        {currentQuestion.userAnswer && (
+          <div className="flex justify-between items-center">
+            <Button
+              variant="outline"
+              onClick={handlePreviousQuestion}
+              disabled={currentQuestionIndex === 0}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Previous
+            </Button>
 
-          {currentQuestionIndex < questions.length - 1 ? (
-            <Button onClick={handleNextQuestion}>
-              Next
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button onClick={handleViewResults} disabled={progress.answeredQuestions === 0}>
-              <BarChart3 className="mr-2 h-4 w-4" />
-              View Performance Analysis
-            </Button>
-          )}
-        </div>
+            {currentQuestionIndex < questions.length - 1 ? (
+              <Button onClick={handleNextQuestion}>
+                Next
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button onClick={handleViewResults} disabled={progress.answeredQuestions === 0}>
+                <BarChart3 className="mr-2 h-4 w-4" />
+                View Performance Analysis
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     )
   }
