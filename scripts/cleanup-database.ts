@@ -23,7 +23,8 @@ async function cleanupDatabase() {
   console.log('⚠️  WARNING: This will DELETE ALL DATA!')
   console.log('')
 
-  const sql = postgres(connectionString, { prepare: false })
+  // TypeScript assertion: we know connectionString is defined here
+  const sql = postgres(connectionString!, { prepare: false })
 
   try {
     // Disable RLS temporarily for cleanup
