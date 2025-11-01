@@ -33,9 +33,9 @@ Generate questions in JSON format:
       "category": "experience" | "skills" | "culture-fit" | "problem-solving" | "leadership",
       "difficulty": "beginner" | "intermediate" | "advanced",
       "question": "The interview question",
-      "expectedAnswer": "What a strong answer would include",
+      "expectedAnswer": "For JD-based/technical questions only: what a strong answer includes. For CV-based questions about candidate's experience, leave this empty or null since the candidate knows their own experience better than the interviewer",
       "evaluationCriteria": [
-        "Key point 1 to evaluate",
+        "Key point 1 to evaluate (focus on structure, clarity, and depth for CV-based questions)",
         "Key point 2 to evaluate"
       ],
       "reasoning": "Why this question is relevant for this candidate and role"
@@ -51,9 +51,23 @@ Generate questions in JSON format:
 Guidelines:
 - Mix question types (30% behavioral, 40% technical, 20% situational, 10% competency)
 - Align questions with CV experience and JD requirements
+
+**For CV-based/behavioral questions:**
+- Ask about specific projects, achievements, or experiences mentioned in the CV
+- Do NOT provide expected answers - the candidate's actual experience IS the answer
+- Focus evaluation criteria on: clarity, STAR method usage, depth of reflection, lessons learned
+- Examples: "Tell me about [project X] from your CV", "How did you handle [situation Y]?"
+
+**For JD-based/technical questions:**
+- Ask about skills, technologies, or competencies required by the job description
+- Provide expected answers with key technical points or best practices
+- Focus evaluation criteria on: technical accuracy, depth of knowledge, practical application
+- Examples: "How would you implement [JD requirement]?", "Explain your approach to [technical challenge]"
+
+Additional guidelines:
 - Include questions that probe specific achievements mentioned in CV
 - Test both depth of knowledge and breadth of experience
-- Include questions about gaps or transitions in career
+- Include questions about gaps or transitions in career (if any)
 - Ensure questions are clear and unambiguous
 - Avoid discriminatory or inappropriate questions
 
@@ -69,14 +83,14 @@ Return ONLY valid JSON, no markdown or additional text.`
     candidateAnswer: string,
     evaluationCriteria: string[]
   ): string {
+    const hasExpectedAnswer = expectedAnswer && expectedAnswer.trim().length > 0
+
     return `You are an expert interviewer evaluating a candidate's response. Provide detailed feedback.
 
 Question:
 ${question}
 
-Expected Answer Points:
-${expectedAnswer}
-
+${hasExpectedAnswer ? `Expected Answer Points:\n${expectedAnswer}\n` : `Note: This is a CV-based/behavioral question. The candidate's actual experience is the correct answer. Focus on evaluating the QUALITY of their response (clarity, structure, depth, reflection) rather than comparing to an expected answer.\n`}
 Evaluation Criteria:
 ${evaluationCriteria.join('\n')}
 
@@ -116,10 +130,26 @@ Provide evaluation in JSON format:
 Evaluation Guidelines:
 - Be constructive and specific in feedback
 - Recognize both strengths and areas for improvement
-- Consider the STAR method (Situation, Task, Action, Result) for behavioral questions
-- Assess technical accuracy for technical questions
-- Evaluate clarity and structure of the response
+
+${hasExpectedAnswer ?
+  `For technical/JD-based questions:
+- Assess technical accuracy and completeness
+- Compare answer to expected answer points
+- Evaluate depth of knowledge and practical understanding
+- Check if all key concepts from expected answer are covered`
+  :
+  `For CV-based/behavioral questions:
+- Do NOT penalize for differences from "expected answer" - there is no single correct answer
+- Evaluate using STAR method: Situation, Task, Action, Result
+- Assess clarity, structure, and depth of reflection
+- Look for specific examples and measurable outcomes
+- Evaluate lessons learned and self-awareness
+- Consider authenticity and relevance to their actual experience`}
+
+General evaluation:
+- Evaluate overall clarity and communication skills
 - Note if the answer directly addresses the question
+- Identify areas for improvement with specific, actionable suggestions
 
 Return ONLY valid JSON, no markdown or additional text.`
   }
