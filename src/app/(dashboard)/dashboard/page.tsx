@@ -31,6 +31,35 @@ export default async function DashboardPage() {
         </p>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Stats</CardTitle>
+          <CardDescription>Your activity overview</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">CVs Uploaded</p>
+              <p className="text-2xl font-bold">{stats?.cvsAnalyzed || 0}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Cover Letters</p>
+              <p className="text-2xl font-bold">{stats?.coverLetters || 0}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Interview Sessions</p>
+              <p className="text-2xl font-bold">{stats?.mockInterviews || 0}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Total Activities</p>
+              <p className="text-2xl font-bold">
+                {(stats?.cvsAnalyzed || 0) + (stats?.coverLetters || 0) + (stats?.mockInterviews || 0)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="flex flex-col">
           <CardHeader>
@@ -130,35 +159,6 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Stats</CardTitle>
-          <CardDescription>Your activity overview</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">CVs Uploaded</p>
-              <p className="text-2xl font-bold">{stats?.cvsAnalyzed || 0}</p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Cover Letters</p>
-              <p className="text-2xl font-bold">{stats?.coverLetters || 0}</p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Interview Sessions</p>
-              <p className="text-2xl font-bold">{stats?.mockInterviews || 0}</p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Total Activities</p>
-              <p className="text-2xl font-bold">
-                {(stats?.cvsAnalyzed || 0) + (stats?.coverLetters || 0) + (stats?.mockInterviews || 0)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
