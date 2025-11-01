@@ -153,7 +153,7 @@ export function InterviewPracticeClient({
 
       // Fetch the generated questions
       const questionsResult = await getInterviewQuestions(result.sessionId)
-      if (!questionsResult.success) {
+      if (!questionsResult.success || !questionsResult.questions) {
         throw new Error(questionsResult.error || 'Failed to fetch questions')
       }
 
@@ -162,7 +162,7 @@ export function InterviewPracticeClient({
 
       // Load progress
       const progressResult = await getSessionProgress(result.sessionId)
-      if (progressResult.success) {
+      if (progressResult.success && progressResult.progress) {
         setProgress(progressResult.progress)
       }
     } catch (err) {
@@ -212,7 +212,7 @@ export function InterviewPracticeClient({
       // Update progress
       if (sessionId) {
         const progressResult = await getSessionProgress(sessionId)
-        if (progressResult.success) {
+        if (progressResult.success && progressResult.progress) {
           setProgress(progressResult.progress)
         }
       }
