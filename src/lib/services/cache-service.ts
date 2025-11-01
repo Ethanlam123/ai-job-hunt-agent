@@ -123,12 +123,9 @@ export class CacheService {
    * Clear all expired cache entries (cleanup task)
    * Should be run periodically (e.g., via cron job)
    */
-  async clearExpired(): Promise<number> {
+  async clearExpired(): Promise<void> {
     const now = new Date()
-
-    const result = await db.delete(cache).where(lt(cache.expiresAt, now))
-
-    return result.rowCount || 0
+    await db.delete(cache).where(lt(cache.expiresAt, now))
   }
 
   /**

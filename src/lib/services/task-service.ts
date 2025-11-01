@@ -186,13 +186,12 @@ export class TaskService {
   /**
    * Delete old completed tasks (cleanup)
    * @param olderThanDays - Delete tasks older than this many days
-   * @returns Number of deleted tasks
    */
-  async cleanup(olderThanDays: number = 30): Promise<number> {
+  async cleanup(olderThanDays: number = 30): Promise<void> {
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
 
-    const result = await db
+    await db
       .delete(tasks)
       .where(
         and(
@@ -200,8 +199,6 @@ export class TaskService {
           eq(tasks.createdAt, cutoffDate)
         )
       )
-
-    return result.rowCount || 0
   }
 
   /**

@@ -81,14 +81,9 @@ export class RateLimitService {
    * Should be run periodically to prevent table bloat
    * @param olderThan - Delete records older than this many seconds (default: 3600 = 1 hour)
    */
-  async cleanup(olderThan: number = 3600): Promise<number> {
+  async cleanup(olderThan: number = 3600): Promise<void> {
     const cutoffDate = new Date(Date.now() - olderThan * 1000)
-
-    const result = await db
-      .delete(rateLimits)
-      .where(eq(rateLimits.createdAt, cutoffDate))
-
-    return result.rowCount || 0
+    await db.delete(rateLimits).where(eq(rateLimits.createdAt, cutoffDate))
   }
 
   /**
