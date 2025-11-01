@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, jsonb, vector } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, timestamp, jsonb, vector, integer } from 'drizzle-orm/pg-core'
 
 // Users table (managed by Supabase Auth, defined here for relationships)
 export const users = pgTable('users', {
@@ -185,12 +185,18 @@ export const interviewQuestions = pgTable('interview_questions', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  question: text('question').notNull(),
-  category: varchar('category', { length: 100 }), // 'technical' | 'behavioral' | etc.
-  difficulty: varchar('difficulty', { length: 20 }), // 'easy' | 'medium' | 'hard'
-  suggestedAnswer: text('suggested_answer'),
+  documentId: uuid('document_id').references(() => documents.id, { onDelete: 'set null' }), // CV document
+  jobDescriptionId: uuid('job_description_id').references(() => documents.id, { onDelete: 'set null' }), // JD document
+  questionType: varchar('question_type', { length: 50 }).notNull(), // 'behavioral' | 'technical' | 'situational' | 'competency'
+  difficulty: varchar('difficulty', { length: 20 }).notNull(), // 'beginner' | 'intermediate' | 'advanced'
+  questionText: text('question_text').notNull(),
+  expectedAnswer: text('expected_answer'),
+  evaluationCriteria: jsonb('evaluation_criteria').$type<string[]>(), // Array of criteria
+  orderIndex: integer('order_index').notNull().default(0), // Order in the question set
   userAnswer: text('user_answer'),
-  feedback: text('feedback'),
+  evaluationResult: jsonb('evaluation_result'), // Stores evaluation feedback
+  answeredAt: timestamp('answered_at'),
+  metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow(),
 })
 
