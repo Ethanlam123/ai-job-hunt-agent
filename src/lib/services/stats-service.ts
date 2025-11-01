@@ -4,7 +4,7 @@
  * Provides user statistics and metrics for dashboard display
  */
 
-import { createClient as createDbClient } from '@/lib/db'
+import { db } from '@/lib/db'
 import { sessions, documents, coverLetters, interviewQuestions } from '@/lib/db/schema'
 import { eq, and, isNotNull, sql } from 'drizzle-orm'
 
@@ -23,7 +23,6 @@ export class StatsService {
    * @returns User statistics
    */
   async getUserStats(userId: string): Promise<UserStats> {
-    const db = await createDbClient()
 
     // Get total sessions
     const sessionsResult = await db
@@ -80,7 +79,6 @@ export class StatsService {
    * @param limit - Number of recent items to fetch
    */
   async getRecentActivity(userId: string, limit: number = 5) {
-    const db = await createDbClient()
 
     const recentSessions = await db
       .select()
@@ -97,7 +95,6 @@ export class StatsService {
    * @param userId - User ID
    */
   async getDocumentStats(userId: string) {
-    const db = await createDbClient()
 
     const stats = await db
       .select({
@@ -124,7 +121,6 @@ export class StatsService {
    * @param userId - User ID
    */
   async getInterviewStats(userId: string) {
-    const db = await createDbClient()
 
     // Total questions
     const totalQuestionsResult = await db

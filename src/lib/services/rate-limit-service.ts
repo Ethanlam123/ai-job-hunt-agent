@@ -6,7 +6,7 @@
  */
 
 import { rateLimits } from '@/lib/db/schema'
-import { createClient as createDbClient } from '@/lib/db'
+import { db } from '@/lib/db'
 import { eq, gte, and } from 'drizzle-orm'
 
 export interface RateLimitResult {
@@ -34,7 +34,6 @@ export class RateLimitService {
     limit: number = 10,
     window: number = 60
   ): Promise<RateLimitResult> {
-    const db = await createDbClient()
     const now = new Date()
     const windowStart = new Date(now.getTime() - window * 1000)
 
@@ -83,7 +82,6 @@ export class RateLimitService {
    * @param olderThan - Delete records older than this many seconds (default: 3600 = 1 hour)
    */
   async cleanup(olderThan: number = 3600): Promise<number> {
-    const db = await createDbClient()
     const cutoffDate = new Date(Date.now() - olderThan * 1000)
 
     const result = await db
@@ -104,7 +102,6 @@ export class RateLimitService {
     limit: number = 10,
     window: number = 60
   ): Promise<RateLimitResult> {
-    const db = await createDbClient()
     const now = new Date()
     const windowStart = new Date(now.getTime() - window * 1000)
 
@@ -135,7 +132,6 @@ export class RateLimitService {
    * @param identifier - Unique identifier to reset
    */
   async reset(identifier: string): Promise<void> {
-    const db = await createDbClient()
     await db.delete(rateLimits).where(eq(rateLimits.identifier, identifier))
   }
 }

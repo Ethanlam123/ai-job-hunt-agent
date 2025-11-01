@@ -5,7 +5,7 @@
  * Used for long-running operations like CV analysis, cover letter generation, etc.
  */
 
-import { createClient as createDbClient } from '@/lib/db'
+import { db } from '@/lib/db'
 import { tasks, type Task, type NewTask } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
@@ -37,7 +37,6 @@ export class TaskService {
     taskType: TaskType,
     metadata?: any
   ): Promise<string> {
-    const db = await createDbClient()
 
     const newTask: NewTask = {
       userId,
@@ -60,7 +59,6 @@ export class TaskService {
    * @returns Task or null if not found
    */
   async getTask(taskId: string, userId?: string): Promise<TaskResult | null> {
-    const db = await createDbClient()
 
     const conditions = userId ? and(eq(tasks.id, taskId), eq(tasks.userId, userId)) : eq(tasks.id, taskId)
 
@@ -96,7 +94,6 @@ export class TaskService {
     result?: any,
     errorMessage?: string
   ): Promise<void> {
-    const db = await createDbClient()
 
     const updateData: Partial<Task> = {
       status,
@@ -142,7 +139,6 @@ export class TaskService {
    * @returns Array of tasks
    */
   async getSessionTasks(sessionId: string, userId: string): Promise<TaskResult[]> {
-    const db = await createDbClient()
 
     const result = await db
       .select()
@@ -168,7 +164,6 @@ export class TaskService {
    * @returns Array of tasks
    */
   async getUserTasks(userId: string, limit: number = 50): Promise<TaskResult[]> {
-    const db = await createDbClient()
 
     const result = await db
       .select()
@@ -194,7 +189,6 @@ export class TaskService {
    * @returns Number of deleted tasks
    */
   async cleanup(olderThanDays: number = 30): Promise<number> {
-    const db = await createDbClient()
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
 

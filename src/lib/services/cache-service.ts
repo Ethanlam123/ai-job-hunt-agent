@@ -8,7 +8,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { cache } from '@/lib/db/schema'
 import { eq, lt } from 'drizzle-orm'
-import { createClient as createDbClient } from '@/lib/db'
+import { db } from '@/lib/db'
 
 export interface CacheOptions {
   ttl?: number // Time to live in seconds (default: 3600 = 1 hour)
@@ -50,8 +50,6 @@ export class CacheService {
     const scopedKey = this.generateKey(key, userId)
     const expiresAt = new Date(Date.now() + ttl * 1000)
 
-    const db = await createDbClient()
-
     // Upsert: insert or update if key exists
     await db
       .insert(cache)
@@ -77,7 +75,6 @@ export class CacheService {
    */
   async get<T = any>(key: string, userId?: string): Promise<T | null> {
     const scopedKey = this.generateKey(key, userId)
-    const db = await createDbClient()
 
     const result = await db
       .select()
@@ -108,7 +105,6 @@ export class CacheService {
    */
   async delete(key: string, userId?: string): Promise<void> {
     const scopedKey = this.generateKey(key, userId)
-    const db = await createDbClient()
 
     await db.delete(cache).where(eq(cache.key, scopedKey))
   }
@@ -128,7 +124,6 @@ export class CacheService {
    * Should be run periodically (e.g., via cron job)
    */
   async clearExpired(): Promise<number> {
-    const db = await createDbClient()
     const now = new Date()
 
     const result = await db.delete(cache).where(lt(cache.expiresAt, now))
@@ -141,7 +136,6 @@ export class CacheService {
    * @param userId - User ID
    */
   async clearUserCache(userId: string): Promise<void> {
-    const db = await createDbClient()
 
     // Delete all entries matching user:{userId}:*
     await db.delete(cache).where(eq(cache.key, `user:${userId}:%`))
