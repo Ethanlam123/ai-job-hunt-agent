@@ -239,9 +239,10 @@ export function InterviewPracticeClient({
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
-      setCurrentAnswer('')
-      setCurrentEvaluation(null)
-      setShowEvaluation(false)
+      const nextQuestion = questions[currentQuestionIndex + 1]
+      setCurrentAnswer(nextQuestion.userAnswer || '')
+      setCurrentEvaluation(nextQuestion.evaluationResult || null)
+      setShowEvaluation(!!nextQuestion.evaluationResult)
       setError(null)
     }
   }
