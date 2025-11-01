@@ -27,7 +27,8 @@
       "Bash(expect push-db.expect:*)",
       "Bash(git branch:*)",
       "Bash(npm run lint:*)",
-      "Bash(npx drizzle-kit:*)"
+      "Bash(npx drizzle-kit:*)",
+      "Bash(test -f:*)"
     ],
     "deny": [],
     "ask": []
