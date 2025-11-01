@@ -100,9 +100,20 @@ export async function generateCoverLetter(params: CoverLetterParams) {
       cvContent = doc.parsed_content
     }
 
+    // Extract fullText from parsed content object (for PDFs)
+    // parsePDF returns: { pageCount, pages, fullText, extractedAt }
+    let cvText: string
+    if (typeof cvContent === 'object' && cvContent.fullText) {
+      cvText = cvContent.fullText
+    } else if (typeof cvContent === 'string') {
+      cvText = cvContent
+    } else {
+      return { error: 'Invalid CV content format' }
+    }
+
     // Generate cover letter using LLM
     const result = await generateCoverLetterWithLLM({
-      cvContent: cvContent,
+      cvContent: cvText,
       jobDescription: params.jobDescription,
       companyName: params.companyName,
       positionTitle: params.positionTitle,
