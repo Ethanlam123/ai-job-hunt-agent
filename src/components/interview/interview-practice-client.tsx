@@ -280,6 +280,25 @@ export function InterviewPracticeClient({
     }
   }
 
+  const handleResetInterview = () => {
+    // Reset all state to start a fresh interview
+    setCurrentStep('setup')
+    setSessionId(null)
+    setQuestions([])
+    setCurrentQuestionIndex(0)
+    setCurrentAnswer('')
+    setCurrentEvaluation(null)
+    setShowEvaluation(false)
+    setProgress({ totalQuestions: 0, answeredQuestions: 0, percentComplete: 0, averageScore: null })
+    setPerformanceAnalysis(null)
+    setError(null)
+    setIsProcessing(false)
+    // Keep CV/JD selections and preferences for convenience
+    // setJdText('')
+    // setCvDocumentId('')
+    // setJdDocumentId('')
+  }
+
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'text-green-600'
     if (score >= 6) return 'text-yellow-600'
@@ -736,7 +755,7 @@ export function InterviewPracticeClient({
               </div>
             )}
 
-            <Button onClick={() => setCurrentStep('setup')} className="w-full">
+            <Button onClick={handleResetInterview} className="w-full">
               Start New Interview Practice
             </Button>
           </CardContent>
