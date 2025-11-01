@@ -57,8 +57,8 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild className="w-full" variant="outline">
-              <Link href="/workflow?type=interview">Start Interview Prep</Link>
+            <Button asChild className="w-full">
+              <Link href="/interview">Start Interview Prep</Link>
             </Button>
           </CardContent>
         </Card>
