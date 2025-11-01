@@ -14,6 +14,12 @@ export default async function DashboardPage() {
   const statsService = createStatsService()
   const stats = user ? await statsService.getUserStats(user.id) : null
 
+  // Debug: Log user ID and stats for troubleshooting
+  if (user) {
+    console.log('[Dashboard] User ID:', user.id)
+    console.log('[Dashboard] Stats:', stats)
+  }
+
   return (
     <div className="space-y-8">
       <div>

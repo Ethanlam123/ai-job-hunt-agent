@@ -28,7 +28,8 @@
       "Bash(git branch:*)",
       "Bash(npm run lint:*)",
       "Bash(npx drizzle-kit:*)",
-      "Bash(test -f:*)"
+      "Bash(test -f:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []
