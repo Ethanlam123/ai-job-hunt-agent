@@ -625,10 +625,10 @@ export function InterviewPracticeClient({
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            ) : (
+            ) : progress.answeredQuestions === progress.totalQuestions ? (
               <Button
                 onClick={handleViewResults}
-                disabled={isProcessing || progress.answeredQuestions === 0}
+                disabled={isProcessing}
               >
                 {isProcessing ? (
                   <>
@@ -642,6 +642,10 @@ export function InterviewPracticeClient({
                   </>
                 )}
               </Button>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Complete all questions to view performance analysis ({progress.answeredQuestions}/{progress.totalQuestions} answered)
+              </div>
             )}
           </div>
         )}
