@@ -20,8 +20,10 @@ export interface InterviewQuestion {
   evaluationCriteria: string[]
   orderIndex: number
   userAnswer?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   evaluationResult?: any
   answeredAt?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any
 }
 
@@ -314,6 +316,7 @@ export class InterviewService {
   /**
    * Map database row to InterviewQuestion interface
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapDatabaseQuestion(row: any): InterviewQuestion {
     return {
       id: row.id,

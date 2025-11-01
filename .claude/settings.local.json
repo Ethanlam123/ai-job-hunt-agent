@@ -18,7 +18,15 @@
       "Bash(git merge:*)",
       "Bash(npm run db:generate:*)",
       "Bash(npm run db:push:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(command -v:*)",
+      "Bash(npx tsx:*)",
+      "Bash(chmod:*)",
+      "Bash(./auto-push.sh)",
+      "Bash(printf:*)",
+      "Bash(expect push-db.expect:*)",
+      "Bash(git branch:*)",
+      "Bash(npm run lint:*)"
     ],
     "deny": [],
     "ask": []

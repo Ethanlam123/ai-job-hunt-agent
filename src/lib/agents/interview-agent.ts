@@ -8,8 +8,11 @@ interface InterviewState {
   sessionId: string
   cvDocumentId: string
   jdDocumentId: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cvContent: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   jdContent: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   questions: any[]
   difficulty: 'beginner' | 'intermediate' | 'advanced'
   error?: string
@@ -18,6 +21,7 @@ interface InterviewState {
 interface AnswerEvaluation {
   questionId: string
   answer: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   evaluation: any
 }
 

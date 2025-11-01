@@ -7,7 +7,9 @@ export class InterviewPrompts {
    * Generate interview questions based on CV and job description
    */
   static generateQuestions(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cvContent: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jdContent: any,
     difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate',
     questionCount: number = 10
@@ -125,6 +127,7 @@ Return ONLY valid JSON, no markdown or additional text.`
   /**
    * Analyze overall interview performance
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static analyzeInterviewPerformance(
     questions: any[],
     answers: any[],

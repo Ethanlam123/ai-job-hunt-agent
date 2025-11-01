@@ -17,7 +17,7 @@ export default async function InterviewPage() {
   }
 
   // Fetch user's CV documents
-  const { data: cvDocuments, error: cvError } = await supabase
+  const { data: cvDocuments } = await supabase
     .from('documents')
     .select('id, original_filename, created_at')
     .eq('user_id', user.id)
@@ -25,7 +25,7 @@ export default async function InterviewPage() {
     .order('created_at', { ascending: false })
 
   // Fetch user's job description documents
-  const { data: jdDocuments, error: jdError } = await supabase
+  const { data: jdDocuments } = await supabase
     .from('documents')
     .select('id, original_filename, created_at')
     .eq('user_id', user.id)

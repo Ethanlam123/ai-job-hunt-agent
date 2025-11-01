@@ -103,11 +103,11 @@ export async function generateInterviewQuestions(input: {
       questionCount: result.questions.length,
       difficulty: result.difficulty,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Generate interview questions error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to generate interview questions',
+      error: error instanceof Error ? error.message : 'Failed to generate interview questions',
     }
   }
 }
@@ -131,11 +131,11 @@ export async function getInterviewQuestions(sessionId: string) {
       success: true,
       questions,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get interview questions error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to fetch interview questions',
+      error: error instanceof Error ? error.message : 'Failed to fetch interview questions',
     }
   }
 }
@@ -163,11 +163,11 @@ export async function getQuestion(questionId: string) {
       success: true,
       question,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get question error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to fetch question',
+      error: error instanceof Error ? error.message : 'Failed to fetch question',
     }
   }
 }
@@ -211,11 +211,11 @@ export async function submitAnswer(input: {
       success: true,
       evaluation,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Submit answer error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to submit answer',
+      error: error instanceof Error ? error.message : 'Failed to submit answer',
     }
   }
 }
@@ -239,11 +239,11 @@ export async function getSessionProgress(sessionId: string) {
       success: true,
       progress,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get session progress error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to fetch session progress',
+      error: error instanceof Error ? error.message : 'Failed to fetch session progress',
     }
   }
 }
@@ -273,11 +273,11 @@ export async function analyzeInterviewPerformance(sessionId: string) {
       success: true,
       performanceAnalysis,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Analyze performance error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to analyze interview performance',
+      error: error instanceof Error ? error.message : 'Failed to analyze interview performance',
     }
   }
 }
@@ -301,11 +301,11 @@ export async function getInterviewHistory() {
       success: true,
       history,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get interview history error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to fetch interview history',
+      error: error instanceof Error ? error.message : 'Failed to fetch interview history',
     }
   }
 }
@@ -329,11 +329,11 @@ export async function getInterviewStatistics() {
       success: true,
       statistics,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get interview statistics error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to fetch interview statistics',
+      error: error instanceof Error ? error.message : 'Failed to fetch interview statistics',
     }
   }
 }
@@ -360,11 +360,11 @@ export async function deleteInterviewSession(sessionId: string) {
     return {
       success: true,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Delete interview session error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to delete interview session',
+      error: error instanceof Error ? error.message : 'Failed to delete interview session',
     }
   }
 }
@@ -388,11 +388,11 @@ export async function getUnansweredQuestions(sessionId: string) {
       success: true,
       questions,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get unanswered questions error:', error)
     return {
       success: false,
-      error: error.message || 'Failed to fetch unanswered questions',
+      error: error instanceof Error ? error.message : 'Failed to fetch unanswered questions',
     }
   }
 }
