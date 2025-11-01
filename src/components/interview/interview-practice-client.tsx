@@ -626,9 +626,21 @@ export function InterviewPracticeClient({
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={handleViewResults} disabled={progress.answeredQuestions === 0}>
-                <BarChart3 className="mr-2 h-4 w-4" />
-                View Performance Analysis
+              <Button
+                onClick={handleViewResults}
+                disabled={isProcessing || progress.answeredQuestions === 0}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing Performance...
+                  </>
+                ) : (
+                  <>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    View Performance Analysis
+                  </>
+                )}
               </Button>
             )}
           </div>
