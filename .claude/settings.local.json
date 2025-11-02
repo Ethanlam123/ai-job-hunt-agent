@@ -30,7 +30,10 @@
       "Bash(npx drizzle-kit:*)",
       "Bash(test -f:*)",
       "Bash(psql:*)",
-      "Bash(npm run db:cleanup:*)"
+      "Bash(npm run db:cleanup:*)",
+      "Bash(npm run db:apply-rls:*)",
+      "Bash(npm run db:fix-rls:*)",
+      "Bash(npm run db:fix-all-rls:*)"
     ],
     "deny": [],
     "ask": []
