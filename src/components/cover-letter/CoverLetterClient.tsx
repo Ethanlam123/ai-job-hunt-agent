@@ -261,7 +261,13 @@ export function CoverLetterClient() {
 
           <Button
             onClick={handleGenerate}
-            disabled={isGenerating || !cvFile || !jobDescription.trim() || !companyName.trim() || !positionTitle.trim()}
+            disabled={
+              isGenerating ||
+              (cvMode === 'existing' ? !selectedCvId : !cvFile) ||
+              !jobDescription.trim() ||
+              !companyName.trim() ||
+              !positionTitle.trim()
+            }
             className="w-full"
             size="lg"
           >
