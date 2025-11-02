@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import type { DocumentType } from '@/lib/types'
+import { DocumentParser } from '@/lib/services/document-parser'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const ALLOWED_FILE_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
@@ -41,10 +42,36 @@ export async function uploadDocument(formData: FormData) {
     const fileExt = file.name.split('.').pop()
     const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`
 
+    // Convert file to buffer for parsing
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    // Parse document content
+    const parser = new DocumentParser()
+    let parsedContent = null
+    try {
+      const parsed = await parser.parseDocument(buffer, fileExt || 'pdf')
+      parsedContent = {
+        fullText: parsed.text,
+        pageCount: parsed.metadata?.pages || 0,
+        wordCount: parsed.metadata?.wordCount || 0,
+        sections: parser.extractCVSections(parsed.text),
+      }
+    } catch (parseError) {
+      console.error('Document parsing failed:', parseError)
+      // Continue with upload even if parsing fails
+      parsedContent = {
+        fullText: 'Parsing failed',
+        pageCount: 0,
+        wordCount: 0,
+        sections: {},
+      }
+    }
+
     // Upload file to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
-      .upload(fileName, file, {
+      .upload(fileName, buffer, {
         contentType: file.type,
         upsert: false,
       })
@@ -53,7 +80,7 @@ export async function uploadDocument(formData: FormData) {
       return { error: `Upload failed: ${uploadError.message}` }
     }
 
-    // Create document record in database
+    // Create document record in database with parsed content
     const { data: document, error: dbError } = await supabase
       .from('documents')
       .insert({
@@ -63,6 +90,7 @@ export async function uploadDocument(formData: FormData) {
         original_filename: file.name,
         file_path: uploadData.path,
         file_format: fileExt,
+        parsed_content: parsedContent,
         metadata: {
           size: file.size,
           mimeType: file.type,
@@ -79,6 +107,7 @@ export async function uploadDocument(formData: FormData) {
 
     revalidatePath('/dashboard')
     revalidatePath('/workflow')
+    revalidatePath('/documents')
 
     return { success: true, document }
   } catch (error: any) {
