@@ -100,13 +100,13 @@ export function DocumentPreviewDialog({ documentId, filename }: DocumentPreviewD
             {content.sections && Object.keys(content.sections).length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-semibold text-sm">Extracted Sections</h3>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {Object.entries(content.sections).map(([section, text]) => (
-                    <div key={section} className="border rounded-lg p-3">
-                      <h4 className="font-medium text-sm capitalize mb-2">{section}</h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3">
+                    <div key={section} className="border rounded-lg p-4">
+                      <h4 className="font-medium text-sm capitalize mb-3 text-foreground">{section}</h4>
+                      <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded p-3 max-h-[300px] overflow-y-auto">
                         {text || 'No content'}
-                      </p>
+                      </div>
                     </div>
                   ))}
                 </div>
