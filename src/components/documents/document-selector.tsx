@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import type { DocumentType } from '@/lib/types'
+import { DocumentPreviewDialog } from './document-preview-dialog'
 
 interface Document {
   id: string
@@ -73,6 +74,8 @@ export function DocumentSelector({
     )
   }
 
+  const selectedDocument = documents.find((doc) => doc.id === selectedDocumentId)
+
   return (
     <div className="space-y-2">
       <Label htmlFor="document-selector">{label}</Label>
@@ -89,6 +92,12 @@ export function DocumentSelector({
             ))}
           </SelectContent>
         </Select>
+        {selectedDocument && (
+          <DocumentPreviewDialog
+            documentId={selectedDocument.id}
+            filename={selectedDocument.original_filename}
+          />
+        )}
         <Button asChild variant="outline" size="icon">
           <Link href="/documents" title="Manage documents">
             <svg

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import type { DocumentType } from '@/lib/types'
+import { DocumentPreviewDialog } from './document-preview-dialog'
 
 interface Document {
   id: string
@@ -167,9 +168,12 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
                     <span>{formatDate(doc.created_at)}</span>
                   </div>
                 </div>
-                <Button variant="destructive" size="sm" onClick={() => handleDelete(doc.id)}>
-                  Delete
-                </Button>
+                <div className="flex gap-2">
+                  <DocumentPreviewDialog documentId={doc.id} filename={doc.original_filename} />
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(doc.id)}>
+                    Delete
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
