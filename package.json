@@ -13,7 +13,8 @@
     "db:studio": "drizzle-kit studio",
     "db:cleanup": "npx tsx scripts/cleanup-database.ts",
     "db:apply-rls": "npx tsx scripts/apply-rls-policies.ts",
-    "db:fix-rls": "npx tsx scripts/fix-rls-documents.ts"
+    "db:fix-rls": "npx tsx scripts/fix-rls-documents.ts",
+    "db:fix-all-rls": "npx tsx scripts/fix-all-rls-policies.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
