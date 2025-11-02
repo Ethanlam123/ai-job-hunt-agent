@@ -11,7 +11,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:cleanup": "npx tsx scripts/cleanup-database.ts"
+    "db:cleanup": "npx tsx scripts/cleanup-database.ts",
+    "db:apply-rls": "npx tsx scripts/apply-rls-policies.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
