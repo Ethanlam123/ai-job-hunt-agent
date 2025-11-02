@@ -144,12 +144,14 @@ function generateBasicInsights(text: string, pageCount: number): string {
 
 /**
  * Upload CV and trigger analysis workflow
+ * Supports both uploading new documents and using existing documents
  */
 export async function uploadAndAnalyzeCV(input: {
   fileName: string
   fileType: string
   fileSize: number
-  fileData: string // base64
+  fileData: string // base64 (empty string if using existing document)
+  documentId?: string // If provided, use existing document instead of uploading
 }) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -159,86 +161,109 @@ export async function uploadAndAnalyzeCV(input: {
   }
 
   let tempFilePath: string | null = null
+  let documentId = input.documentId
 
   try {
-    // Validate file size (10MB limit)
-    const MAX_SIZE = 10 * 1024 * 1024
-    if (input.fileSize > MAX_SIZE) {
-      return { success: false, error: 'File size exceeds 10MB limit' }
-    }
+    // If documentId is provided, use existing document
+    if (documentId) {
+      console.log('Using existing document:', documentId)
 
-    // Validate file type
-    if (input.fileType !== 'application/pdf') {
-      return { success: false, error: 'Only PDF files are supported' }
-    }
+      // Verify document exists and belongs to user
+      const { data: document, error: docError } = await supabase
+        .from('documents')
+        .select('id')
+        .eq('id', documentId)
+        .eq('user_id', user.id)
+        .single()
 
-    // Convert base64 to buffer
-    const buffer = Buffer.from(input.fileData, 'base64')
-
-    // Generate unique file path
-    const fileExt = input.fileName.split('.').pop()
-    const storagePath = `${user.id}/${Date.now()}-${randomUUID()}.${fileExt}`
-
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(storagePath, buffer, {
-        contentType: input.fileType,
-        upsert: false,
-      })
-
-    if (uploadError) {
-      return { success: false, error: `Upload failed: ${uploadError.message}` }
-    }
-
-    // Parse PDF content
-    let parsedContent = null
-    if (input.fileType === 'application/pdf') {
-      const tempFileName = `cv-${randomUUID()}.pdf`
-      tempFilePath = join(tmpdir(), tempFileName)
-      await writeFile(tempFilePath, buffer)
-
-      const loader = new PDFLoader(tempFilePath)
-      const docs = await loader.load()
-
-      parsedContent = {
-        pageCount: docs.length,
-        fullText: docs.map(doc => doc.pageContent).join('\n\n'),
-        pages: docs.map((doc, index) => ({
-          pageNumber: index + 1,
-          content: doc.pageContent,
-        })),
-        extractedAt: new Date().toISOString(),
+      if (docError || !document) {
+        return { success: false, error: 'Document not found or access denied' }
       }
+    } else {
+      // Upload new document
+      console.log('Uploading new document')
+
+      // Validate file size (10MB limit)
+      const MAX_SIZE = 10 * 1024 * 1024
+      if (input.fileSize > MAX_SIZE) {
+        return { success: false, error: 'File size exceeds 10MB limit' }
+      }
+
+      // Validate file type
+      if (input.fileType !== 'application/pdf') {
+        return { success: false, error: 'Only PDF files are supported' }
+      }
+
+      // Convert base64 to buffer
+      const buffer = Buffer.from(input.fileData, 'base64')
+
+      // Generate unique file path
+      const fileExt = input.fileName.split('.').pop()
+      const storagePath = `${user.id}/${Date.now()}-${randomUUID()}.${fileExt}`
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, buffer, {
+          contentType: input.fileType,
+          upsert: false,
+        })
+
+      if (uploadError) {
+        return { success: false, error: `Upload failed: ${uploadError.message}` }
+      }
+
+      // Parse PDF content
+      let parsedContent = null
+      if (input.fileType === 'application/pdf') {
+        const tempFileName = `cv-${randomUUID()}.pdf`
+        tempFilePath = join(tmpdir(), tempFileName)
+        await writeFile(tempFilePath, buffer)
+
+        const loader = new PDFLoader(tempFilePath)
+        const docs = await loader.load()
+
+        parsedContent = {
+          pageCount: docs.length,
+          fullText: docs.map(doc => doc.pageContent).join('\n\n'),
+          pages: docs.map((doc, index) => ({
+            pageNumber: index + 1,
+            content: doc.pageContent,
+          })),
+          extractedAt: new Date().toISOString(),
+        }
+      }
+
+      // Create document record in database
+      const { data: document, error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: user.id,
+          document_type: 'cv',
+          original_filename: input.fileName,
+          file_path: uploadData.path,
+          file_format: fileExt,
+          parsed_content: parsedContent,
+          metadata: {
+            size: input.fileSize,
+            mimeType: input.fileType,
+            uploadedAt: new Date().toISOString(),
+          },
+        })
+        .select()
+        .single()
+
+      if (dbError) {
+        // Clean up uploaded file if database insert fails
+        await supabase.storage.from('documents').remove([storagePath])
+        return { success: false, error: `Failed to create document record: ${dbError.message}` }
+      }
+
+      documentId = document.id
     }
 
-    // Create document record in database
-    const { data: document, error: dbError } = await supabase
-      .from('documents')
-      .insert({
-        user_id: user.id,
-        document_type: 'cv',
-        original_filename: input.fileName,
-        file_path: uploadData.path,
-        file_format: fileExt,
-        parsed_content: parsedContent,
-        metadata: {
-          size: input.fileSize,
-          mimeType: input.fileType,
-          uploadedAt: new Date().toISOString(),
-        },
-      })
-      .select()
-      .single()
-
-    if (dbError) {
-      // Clean up uploaded file if database insert fails
-      await supabase.storage.from('documents').remove([storagePath])
-      return { success: false, error: `Failed to create document record: ${dbError.message}` }
-    }
-
-    // Now trigger the workflow with the documentId
-    return await triggerCVAnalysisWorkflow(document.id)
+    // Now trigger the workflow with the documentId (either existing or newly uploaded)
+    return await triggerCVAnalysisWorkflow(documentId)
   } catch (error: any) {
     console.error('Upload and analyze error:', error)
     return {
