@@ -15,12 +15,12 @@ An AI-powered multi-agent system built with **Next.js 16** that helps job seeker
 - **Stateful**: Persistent conversation and session management
 - **Full-Stack Next.js**: Unified frontend/backend with App Router
 
-### **1.3 MVP Features**
+### **1.3 MVP Features (✅ Implemented)**
 
-1. **CV Analysis & Improvement** - Parse, analyze, and enhance resumes
-2. **Cover Letter Generation** - Create personalized cover letters based on CV and JD
-3. **Interview Preparation** - Generate mock questions and provide feedback
-4. **Skill Gap Analysis** - Identify missing skills and learning roadmap
+1. **✅ CV Analysis & Improvement** - Parse, analyze, and enhance resumes
+2. **✅ Cover Letter Generation** - Create personalized cover letters based on CV and JD
+3. **✅ Interview Preparation** - Generate mock questions and provide feedback
+4. **✅ Skill Gap Analysis** - Identify missing skills and learning roadmap with timeline organization
 
 ---
 
@@ -61,12 +61,12 @@ graph TB
             CVAgent["📄 CV Agent<br/>(Analysis & Improvement)"]
             InterviewAgent["🎤 Interview Agent<br/>(Mock Questions)"]
             CoverLetterAgent["✉️ Cover Letter Agent<br/>(Generation)"]
-            SkillGapAgent["📚 Skill Gap Agent<br/>(Analysis)"]
+            SkillGapAgent["📚 Skill Gap Agent<br/>(Analysis & Timeline Organization)"]
         end
     end
 
     subgraph External["🧠 External Services"]
-        OpenRouter["🤖 OpenRouter API<br/>(GPT-5-nano)"]
+        OpenRouter["🤖 OpenRouter API<br/>(GPT-4o-mini)"]
         OpenAI["🔮 OpenAI API<br/>(Embeddings)"]
     end
 
@@ -306,7 +306,7 @@ graph LR
 - **API Layer**: Next.js Route Handlers (`app/api/*/route.ts`)
 - **Server Actions**: Form actions and mutations (`'use server'`)
 - **Agent Framework**: LangGraph.js + LangChain.js (TypeScript)
-- **LLM Provider**: OpenRouter (openai/gpt-5-nano)
+- **LLM Provider**: OpenRouter (openai/gpt-4o-mini)
 - **Embeddings**: OpenAI text-embedding-3-small
 - **Background Jobs**:
   - Vercel Cron Jobs (scheduled tasks)
@@ -355,6 +355,16 @@ job-hunt-agent/
 │   ├── (dashboard)/                    # Protected routes
 │   │   ├── dashboard/
 │   │   │   └── page.tsx                # Dashboard (Server Component)
+│   │   ├── cv-analysis/
+│   │   │   └── page.tsx                # CV analysis page
+│   │   ├── skill-gap/
+│   │   │   └── page.tsx                # Skill gap analysis page
+│   │   ├── cover-letter/
+│   │   │   └── page.tsx                # Cover letter generation page
+│   │   ├── interview/
+│   │   │   └── page.tsx                # Interview preparation page
+│   │   ├── documents/
+│   │   │   └── page.tsx                # Document management page
 │   │   ├── workflow/
 │   │   │   └── page.tsx                # Workflow page
 │   │   ├── history/
@@ -374,7 +384,8 @@ job-hunt-agent/
 │   │   │   │   ├── analyze/route.ts    # CV analysis endpoint
 │   │   │   │   └── improve/route.ts    # CV improvement endpoint
 │   │   │   ├── interview/route.ts      # Interview agent
-│   │   │   └── cover-letter/route.ts   # Cover letter agent
+│   │   │   ├── cover-letter/route.ts   # Cover letter agent
+│   │   │   └── skill-gap/route.ts      # Skill gap analysis agent
 │   │   ├── sessions/
 │   │   │   ├── route.ts                # Create/list sessions
 │   │   │   └── [id]/route.ts           # Get/update session
@@ -412,6 +423,10 @@ job-hunt-agent/
 │   │   ├── cv-preview.tsx
 │   │   ├── cv-analysis.tsx
 │   │   └── skill-gap-chart.tsx
+│   ├── skill-gap/
+│   │   ├── skill-gap-client.tsx        # Main skill gap interface
+│   │   ├── skill-gap-results.tsx       # Results display component
+│   │   └── skill-gap-progress.tsx      # Progress tracking component
 │   └── layout/
 │       ├── navbar.tsx
 │       ├── sidebar.tsx
@@ -432,6 +447,7 @@ job-hunt-agent/
 │   │   ├── llm-service.ts
 │   │   ├── document-service.ts
 │   │   ├── cache-service.ts
+│   │   ├── skill-gap-service.ts          # Skill gap analysis business logic
 │   │   └── embedding-service.ts
 │   ├── utils/                          # Helper functions
 │   │   ├── document-parser.ts
@@ -454,6 +470,9 @@ job-hunt-agent/
 ├── actions/                            # Server Actions
 │   ├── auth.ts                         # 'use server' auth actions
 │   ├── cv.ts                           # CV-related actions
+│   ├── skill-gap.ts                    # Skill gap analysis actions
+│   ├── cover-letter.ts                 # Cover letter generation actions
+│   ├── interview.ts                    # Interview preparation actions
 │   ├── session.ts                      # Session actions
 │   └── chat.ts                         # Chat actions
 ├── middleware.ts                       # Next.js middleware (auth)
@@ -1159,6 +1178,327 @@ export class CVAgent {
 }
 ```
 
+### **9.2 Skill Gap Agent with LangGraph.js**
+
+```typescript
+// lib/agents/skill-gap-agent.ts
+import { StateGraph, END } from '@langchain/langgraph'
+import { ChatOpenAI } from '@langchain/openai'
+import { SupabaseClient } from '@supabase/supabase-js'
+import { SkillGapPrompts } from '@/lib/prompts/skill-gap-prompts'
+import { DocumentService } from '@/lib/services/document-service'
+import { SkillGapService } from '@/lib/services/skill-gap-service'
+
+interface SkillGapState {
+  userId: string
+  sessionId: string
+  documentId: string
+  jobDescriptionText: string
+  cvContent: any
+  jobRequirements: any
+  gapAnalysis: any
+  error?: string
+}
+
+export class SkillGapAgent {
+  private supabase: SupabaseClient
+  private llm: ChatOpenAI
+  private documentService: DocumentService
+  private skillGapService: SkillGapService
+
+  constructor(supabase: SupabaseClient) {
+    this.supabase = supabase
+    this.llm = new ChatOpenAI({
+      model: 'gpt-4o-mini',
+      configuration: {
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: process.env.OPENROUTER_API_KEY,
+      },
+      temperature: 0.7,
+    })
+    this.documentService = new DocumentService(supabase)
+    this.skillGapService = new SkillGapService(supabase)
+  }
+
+  async analyzeSkillGaps(
+    documentId: string,
+    jobDescriptionText: string,
+    sessionId: string,
+    userId: string
+  ): Promise<SkillGapState> {
+    const state: SkillGapState = {
+      userId,
+      sessionId,
+      documentId,
+      jobDescriptionText,
+      cvContent: null,
+      jobRequirements: null,
+      gapAnalysis: null,
+    }
+
+    try {
+      // Step 1: Parse CV content
+      console.log('Step 1: Parsing CV content...')
+      const parsedState = await this.parseCVNode(state)
+      Object.assign(state, parsedState)
+
+      if (state.error) {
+        await this.saveResultsNode(state)
+        return state
+      }
+
+      // Step 2: Analyze job description
+      console.log('Step 2: Analyzing job description...')
+      const analyzedState = await this.analyzeJobDescriptionNode(state)
+      Object.assign(state, analyzedState)
+
+      if (state.error) {
+        await this.saveResultsNode(state)
+        return state
+      }
+
+      // Step 3: Identify skill gaps
+      console.log('Step 3: Identifying skill gaps...')
+      const gapsState = await this.identifySkillGapsNode(state)
+      Object.assign(state, gapsState)
+
+      if (state.error) {
+        await this.saveResultsNode(state)
+        return state
+      }
+
+      // Step 4: Save results
+      console.log('Step 4: Saving results...')
+      const finalState = await this.saveResultsNode(state)
+      Object.assign(state, finalState)
+
+      console.log('Skill Gap Analysis completed successfully')
+      return state
+    } catch (error) {
+      console.error('Skill Gap Analysis workflow error:', error)
+      state.error = error instanceof Error ? error.message : 'Unknown error'
+      await this.saveResultsNode(state)
+      return state
+    }
+  }
+
+  private async parseCVNode(state: SkillGapState): Promise<Partial<SkillGapState>> {
+    try {
+      const document = await this.documentService.getDocument(
+        state.documentId,
+        state.userId
+      )
+
+      if (!document) {
+        return { error: 'CV document not found' }
+      }
+
+      const cvContent = document.parsed_content || {
+        fullText: 'No parsed content available',
+        pageCount: 0,
+      }
+
+      return { cvContent }
+    } catch (error: any) {
+      console.error('Parse CV node error:', error)
+      return { error: error.message }
+    }
+  }
+
+  private async analyzeJobDescriptionNode(state: SkillGapState): Promise<Partial<SkillGapState>> {
+    try {
+      if (state.error) {
+        return {} // Skip if there's an error
+      }
+
+      const prompt = SkillGapPrompts.extractRequirementsFromJD(state.jobDescriptionText)
+      const response = await this.llm.invoke(prompt)
+
+      let jobRequirements
+      try {
+        const content = typeof response.content === 'string'
+          ? response.content
+          : JSON.stringify(response.content)
+
+        const cleanContent = content
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim()
+
+        jobRequirements = JSON.parse(cleanContent)
+      } catch (parseError) {
+        console.error('Failed to parse job requirements:', parseError)
+        // Fallback job requirements with general skills
+        jobRequirements = {
+          requiredSkills: [
+            {
+              name: 'Communication skills',
+              category: 'soft',
+              importance: 'important',
+              description: 'Professional communication',
+              experienceLevel: 'Not specified'
+            }
+          ],
+          responsibilities: [
+            {
+              title: 'Professional responsibilities',
+              skillsUsed: ['Communication', 'Teamwork'],
+              importance: 'important'
+            }
+          ]
+        }
+      }
+
+      return { jobRequirements }
+    } catch (error: any) {
+      console.error('Analyze job description node error:', error)
+      return { error: error.message }
+    }
+  }
+
+  private async identifySkillGapsNode(state: SkillGapState): Promise<Partial<SkillGapState>> {
+    try {
+      if (state.error) {
+        return {} // Skip if there's an error
+      }
+
+      const prompt = SkillGapPrompts.analyzeSkillGaps(state.cvContent, state.jobRequirements)
+      const response = await this.llm.invoke(prompt)
+
+      let gapAnalysis
+      try {
+        const content = typeof response.content === 'string'
+          ? response.content
+          : JSON.stringify(response.content)
+
+        const cleanContent = content
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim()
+
+        gapAnalysis = JSON.parse(cleanContent)
+      } catch (parseError) {
+        console.error('Failed to parse skill gaps analysis:', parseError)
+        // Fallback gap analysis
+        gapAnalysis = {
+          overallMatch: {
+            score: 50,
+            summary: 'Unable to complete detailed analysis due to limited information',
+            strengths: ['CV uploaded successfully'],
+            criticalGaps: ['Insufficient job description details']
+          },
+          skillGaps: [
+            {
+              skillName: 'Better job description',
+              category: 'domain',
+              importance: 'critical',
+              currentLevel: 'advanced',
+              requiredLevel: 'beginner',
+              gapDescription: 'Need more detailed job requirements',
+              timeline: 'short',
+              learningAdvice: 'Provide specific skills and requirements',
+              reasoning: 'Quality job descriptions enable better analysis'
+            }
+          ]
+        }
+      }
+
+      // Transform skill gaps to match our interface
+      if (gapAnalysis.skillGaps) {
+        gapAnalysis.skillGaps = gapAnalysis.skillGaps.map((gap: any, index: number) => ({
+          sessionId: state.sessionId,
+          userId: state.userId,
+          skillName: gap.skillName,
+          category: gap.category,
+          importance: gap.importance,
+          currentLevel: gap.currentLevel || 'none',
+          requiredLevel: gap.requiredLevel || 'beginner',
+          timeline: gap.timeline || 'medium',
+          learningAdvice: gap.learningAdvice || '',
+          gapDescription: gap.gapDescription || '',
+          reasoning: gap.reasoning || '',
+          status: 'pending',
+          learningResources: gap.learningResources || [],
+          createdAt: new Date().toISOString(),
+          order: index
+        }))
+      }
+
+      return { gapAnalysis }
+    } catch (error: any) {
+      console.error('Identify skill gaps node error:', error)
+      return { error: error.message }
+    }
+  }
+
+  private async saveResultsNode(state: SkillGapState): Promise<Partial<SkillGapState>> {
+    try {
+      if (state.error) {
+        // Save error state to tasks table
+        await this.supabase.from('tasks').insert({
+          session_id: state.sessionId,
+          user_id: state.userId,
+          task_type: 'skill_gap_analysis',
+          status: 'failed',
+          error_message: state.error,
+          metadata: {
+            documentId: state.documentId,
+            jobDescriptionLength: state.jobDescriptionText?.length || 0,
+          },
+        })
+        return {}
+      }
+
+      // Save successful analysis using SkillGapService
+      const saveResult = await this.skillGapService.saveSkillGapAnalysis(
+        state.sessionId,
+        state.userId,
+        state.gapAnalysis
+      )
+
+      if (!saveResult.success) {
+        throw new Error(saveResult.error || 'Failed to save analysis results')
+      }
+
+      console.log('Skill gap analysis saved successfully')
+      return {}
+    } catch (error: any) {
+      console.error('Save results node error:', error)
+      return { error: error.message }
+    }
+  }
+
+  async updateSkillGapStatus(
+    skillGapId: string,
+    userId: string,
+    status: 'pending' | 'in_progress' | 'completed' | 'not_interested',
+    notes?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      return await this.skillGapService.updateSkillGapStatus(skillGapId, userId, status, notes)
+    } catch (error: any) {
+      console.error('Update skill gap status error:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to update skill gap status'
+      }
+    }
+  }
+
+  async getAnalysisResults(sessionId: string, userId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      return await this.skillGapService.getSkillGapAnalysis(sessionId, userId)
+    } catch (error: any) {
+      console.error('Get analysis results error:', error)
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch analysis results'
+      }
+    }
+  }
+}
+```
+
 ---
 
 ## **10. Background Jobs**
@@ -1279,6 +1619,254 @@ export class TaskService {
 
 ---
 
+## **10.2 Skill Gap Analysis Server Action Example**
+
+```typescript
+// actions/skill-gap.ts
+'use server'
+
+import { writeFile, unlink } from "fs/promises"
+import { join } from "path"
+import { tmpdir } from "os"
+import { randomUUID } from "crypto"
+import { createClient } from '@/lib/supabase/server'
+import { SkillGapAgent } from '@/lib/agents/skill-gap-agent'
+import { revalidatePath } from 'next/cache'
+
+interface AnalyzeSkillGapInput {
+  cvDocumentId?: string // If provided, use existing CV
+  cvFileName?: string
+  cvFileType?: string
+  cvFileSize?: number
+  cvFileData?: string // base64 (empty if using existing document)
+  jobDescriptionText: string
+}
+
+export async function analyzeSkillGaps(input: AnalyzeSkillGapInput) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  let tempFilePath: string | null = null
+  let documentId = input.cvDocumentId
+
+  try {
+    // Validate job description
+    if (!input.jobDescriptionText || input.jobDescriptionText.trim().length < 10) {
+      return { success: false, error: 'Job description is required and must be at least 10 characters long' }
+    }
+
+    // Handle CV document (existing or new upload)
+    if (documentId) {
+      // Verify existing document
+      const { data: document, error: docError } = await supabase
+        .from('documents')
+        .select('id, document_type')
+        .eq('id', documentId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (docError || !document || document.document_type !== 'cv') {
+        return { success: false, error: 'CV document not found or invalid' }
+      }
+    } else {
+      // Upload new CV document
+      if (!input.cvFileName || !input.cvFileType || !input.cvFileSize || !input.cvFileData) {
+        return { success: false, error: 'CV file information required' }
+      }
+
+      // Validate file size and type
+      const MAX_SIZE = 10 * 1024 * 1024
+      if (input.cvFileSize > MAX_SIZE) {
+        return { success: false, error: 'CV file size exceeds 10MB limit' }
+      }
+
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+      if (!allowedTypes.includes(input.cvFileType)) {
+        return { success: false, error: 'Only PDF, DOCX, and TXT files are supported' }
+      }
+
+      // Process file upload (similar to document upload pattern)
+      const buffer = Buffer.from(input.cvFileData, 'base64')
+      const fileExt = input.cvFileName.split('.').pop()
+      const storagePath = `${user.id}/${Date.now()}-${randomUUID()}.${fileExt}`
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, buffer, {
+          contentType: input.cvFileType,
+          upsert: false,
+        })
+
+      if (uploadError) {
+        return { success: false, error: `CV upload failed: ${uploadError.message}` }
+      }
+
+      // Parse document content based on type
+      let parsedContent = null
+      if (input.cvFileType === 'application/pdf') {
+        const { PDFLoader } = await import("@langchain/community/document_loaders/fs/pdf")
+        const tempFileName = `cv-${randomUUID()}.pdf`
+        tempFilePath = join(tmpdir(), tempFileName)
+        await writeFile(tempFilePath, buffer)
+
+        const loader = new PDFLoader(tempFilePath)
+        const docs = await loader.load()
+
+        parsedContent = {
+          pageCount: docs.length,
+          fullText: docs.map(doc => doc.pageContent).join('\n\n'),
+          pages: docs.map((doc, index) => ({
+            pageNumber: index + 1,
+            content: doc.pageContent,
+          })),
+          extractedAt: new Date().toISOString(),
+        }
+      } else if (input.cvFileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const { mammoth } = await import('mammoth')
+        const tempFileName = `cv-${randomUUID()}.docx`
+        tempFilePath = join(tmpdir(), tempFileName)
+        await writeFile(tempFilePath, buffer)
+
+        const result = await mammoth.extractRawText({ path: tempFilePath })
+        parsedContent = {
+          pageCount: 1,
+          fullText: result.value,
+          extractedAt: new Date().toISOString(),
+        }
+      } else if (input.cvFileType === 'text/plain') {
+        const textContent = buffer.toString('utf-8')
+        parsedContent = {
+          pageCount: 1,
+          fullText: textContent,
+          extractedAt: new Date().toISOString(),
+        }
+      }
+
+      // Create document record in database
+      const { data: document, error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: user.id,
+          document_type: 'cv',
+          original_filename: input.cvFileName,
+          file_path: uploadData.path,
+          file_format: fileExt,
+          parsed_content: parsedContent,
+          metadata: {
+            size: input.cvFileSize,
+            mimeType: input.cvFileType,
+            uploadedAt: new Date().toISOString(),
+          },
+        })
+        .select()
+        .single()
+
+      if (dbError) {
+        await supabase.storage.from('documents').remove([storagePath])
+        return { success: false, error: `Failed to create CV document record: ${dbError.message}` }
+      }
+
+      documentId = document.id
+    }
+
+    // Create session for skill gap analysis
+    const { data: session, error: sessionError } = await supabase
+      .from('sessions')
+      .insert({
+        user_id: user.id,
+        current_stage: 'skill_gap',
+        state: {
+          cvDocumentId: documentId,
+          jobDescriptionText: input.jobDescriptionText,
+        },
+      })
+      .select()
+      .single()
+
+    if (sessionError) {
+      throw new Error(`Failed to create session: ${sessionError.message}`)
+    }
+
+    // Initialize Skill Gap Agent and run analysis
+    const skillGapAgent = new SkillGapAgent(supabase)
+    const result = await skillGapAgent.analyzeSkillGaps(
+      documentId,
+      input.jobDescriptionText,
+      session.id,
+      user.id
+    )
+
+    // Revalidate paths
+    revalidatePath('/skill-gap')
+    revalidatePath(`/workflow/${session.id}`)
+
+    return {
+      success: !result.error,
+      sessionId: session.id,
+      analysis: result.gapAnalysis,
+      error: result.error,
+    }
+  } catch (error: any) {
+    console.error('Skill Gap Analysis Error:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to analyze skill gaps',
+    }
+  } finally {
+    // Clean up temporary file
+    if (tempFilePath) {
+      try {
+        await unlink(tempFilePath)
+      } catch (cleanupError) {
+        console.error("Failed to clean up temp file:", cleanupError)
+      }
+    }
+  }
+}
+
+export async function updateSkillGapStatus(
+  skillGapId: string,
+  status: 'pending' | 'in_progress' | 'completed' | 'not_interested',
+  notes?: string
+) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  try {
+    const skillGapAgent = new SkillGapAgent(supabase)
+    const result = await skillGapAgent.updateSkillGapStatus(
+      skillGapId,
+      user.id,
+      status,
+      notes
+    )
+
+    revalidatePath('/skill-gap')
+
+    return {
+      success: result.success,
+      error: result.error,
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
+}
+```
+
+---
+
 ## **11. Environment Variables**
 
 ### **11.1 .env.local**
@@ -1292,7 +1880,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key  # For development/admi
 # Database (for Drizzle ORM direct connection - optional)
 DATABASE_URL=your_supabase_postgres_connection_string
 
-# OpenRouter (LLM)
+# OpenRouter (LLM) - Uses GPT-4o-mini model
 OPENROUTER_API_KEY=your_openrouter_api_key
 
 # OpenAI (Embeddings)
@@ -2714,6 +3302,13 @@ npx lint-staged
 
 ---
 
-**Document Version**: 2.0 (Next.js 16)
-**Last Updated**: 2025-10-26
-**Status**: Ready for Implementation
+**Document Version**: 2.1 (Next.js 16)
+**Last Updated**: 2025-11-04
+**Status**: ✅ Implementation Complete - All MVP Features Implemented
+
+**Recent Updates:**
+- ✅ Skill Gap Analysis feature fully implemented with timeline organization
+- ✅ Updated LLM model from GPT-5-nano to GPT-4o-mini via OpenRouter
+- ✅ Added comprehensive status tracking for skill development progress
+- ✅ Implemented graceful handling for legacy analyses with temporary IDs
+- ✅ Added job description quality validation with fallback analysis
