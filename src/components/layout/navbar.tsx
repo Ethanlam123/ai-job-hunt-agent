@@ -22,6 +22,7 @@ export function Navbar({ userEmail }: { userEmail?: string }) {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/documents', label: 'Documents' },
     { href: '/cv-analysis', label: 'CV Analysis' },
+    { href: '/skill-gap', label: 'Skill Gap' },
     { href: '/cover-letter', label: 'Cover Letter' },
     { href: '/interview', label: 'Interview Prep' },
     { href: '/history', label: 'History' },

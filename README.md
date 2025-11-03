@@ -8,7 +8,7 @@ An AI-powered job hunting assistant built with Next.js 16, LangGraph.js, and Sup
 - ✉️ **Cover Letter Generation**: Personalized cover letters from CV + job description
 - 🎯 **Interview Preparation**: Mock questions and answer evaluation
 - 📊 **Document Management**: Upload and manage CVs and job descriptions
-- 🔒 **Privacy-First**: No automatic job applications or data sharing
+- 🔒 **Privacy-First**: No automatic job applications
 - 👤 **Human-in-the-Loop**: All CV changes require explicit user approval
 
 ## Tech Stack

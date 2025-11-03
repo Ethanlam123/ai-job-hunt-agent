@@ -125,8 +125,8 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex items-end">
-            <Button asChild className="w-full" variant="outline">
-              <Link href="/workflow?type=skill-gap">Analyze Skills</Link>
+            <Button asChild className="w-full">
+              <Link href="/skill-gap">Analyze Skills</Link>
             </Button>
           </CardContent>
         </Card>
