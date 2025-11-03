@@ -25,6 +25,16 @@ npm run start        # Start production server
 
 # Code Quality
 npm run lint         # Run ESLint
+
+# Database Management
+npm run db:generate  # Generate Drizzle migrations
+npm run db:migrate   # Run database migrations
+npm run db:push      # Push schema changes to database
+npm run db:studio    # Open Drizzle Studio for database management
+npm run db:cleanup   # Clean database and reset
+npm run db:apply-rls # Apply RLS policies to database
+npm run db:fix-rls   # Fix RLS policies for documents table
+npm run db:fix-all-rls # Fix all RLS policies
 ```
 
 ## Architecture Overview
@@ -53,42 +63,63 @@ npm run lint         # Run ESLint
 - **Auth**: Supabase Auth with cookie-based sessions
 - **ORM**: Drizzle ORM for type-safe database access
 
-### Project Structure (Planned)
+**Document Processing:**
+- **PDF Parsing**: pdf-parse library
+- **DOCX Parsing**: mammoth library
+- **Text Extraction**: Automatic parsing with DocumentParser service
+- **Content Storage**: Parsed content stored in JSONB with sections extraction
+
+### Project Structure (Current Implementation)
 
 ```
 app/
 ├── (auth)/              # Auth route group (login, register)
 ├── (dashboard)/         # Protected routes (dashboard, workflow, history)
+│   ├── cv-analysis/     # CV analysis page
+│   ├── cover-letter/    # Cover letter generation
+│   ├── interview/       # Interview preparation
+│   ├── documents/       # Document management
+│   └── dashboard/       # Main dashboard
 ├── api/                 # Route Handlers
-│   ├── auth/           # Auth callbacks
-│   ├── documents/      # File upload/management
-│   ├── agents/         # Agent endpoints (cv, interview, cover-letter)
-│   ├── sessions/       # Session management
-│   └── chat/           # Chat and SSE streaming
+│   ├── documents/       # File upload/management
+│   └── ...              # Other API endpoints
 ├── layout.tsx          # Root layout
 └── page.tsx            # Home page
 
 components/
 ├── ui/                 # shadcn/ui components
-├── auth/               # Auth forms (Client Components)
-├── chat/               # Chat interface (Client Components)
-├── upload/             # File uploaders (Client Components)
-└── workflow/           # Workflow UI (Client Components)
+├── documents/          # Document-related components
+│   ├── document-selector.tsx     # Document dropdown selector
+│   ├── document-preview-dialog.tsx # Document preview dialog
+│   └── documents-client.tsx      # Document management interface
+├── cv-analysis/        # CV analysis components
+├── cover-letter/       # Cover letter generation components
+├── interview/          # Interview practice components
+└── shared/             # Shared components
 
 lib/
 ├── agents/             # LangGraph agents (orchestrator, cv, interview, etc.)
-├── prompts/            # LLM prompt templates
-├── services/           # Business logic (llm, document, cache, embedding)
-├── db/                 # Database (Supabase client, Drizzle schema, queries)
-├── supabase/           # Supabase utilities (client, server, middleware)
-├── utils/              # Helper functions (parser, validators, etc.)
+├── services/           # Business logic
+│   ├── document-parser.ts         # PDF/DOCX/TXT parsing service
+│   ├── llm-service.ts             # LLM integration service
+│   └── ...                       # Other services
+├── supabase/           # Supabase utilities
+│   ├── server.ts                 # Server-side Supabase client
+│   └── middleware.ts             # Auth middleware
+├── utils/              # Helper functions
 └── types/              # TypeScript types
 
 actions/                # Server Actions ('use server')
-├── auth.ts
-├── cv.ts
-├── session.ts
-└── chat.ts
+├── documents.ts        # Document upload, fetch, delete operations
+├── cv.ts              # CV analysis operations
+├── cover-letter.ts    # Cover letter generation
+└── interview.ts       # Interview practice
+
+scripts/               # Database management scripts
+├── apply-rls-policies.ts        # Apply RLS policies
+├── fix-rls-documents.ts         # Fix document RLS policies
+├── fix-all-rls-policies.ts      # Fix all RLS policies
+└── cleanup-database.ts          # Clean database
 ```
 
 ## Critical Security Requirements
@@ -111,6 +142,29 @@ All cache operations must use user-scoped keys:
 
 RLS policies use regex pattern matching on cache keys to enforce access control at the database level.
 
+### Document Processing Pipeline
+
+All uploaded documents are automatically parsed and processed:
+
+1. **File Upload**: User uploads PDF, DOCX, or TXT files via DocumentUploader
+2. **Parsing**: `DocumentParser` extracts text content and metadata
+   - PDF: Uses `pdf-parse` library
+   - DOCX: Uses `mammoth` library
+   - TXT: Direct text extraction
+3. **Content Storage**: Parsed content stored in `documents.parsed_content` field:
+   ```typescript
+   {
+     fullText: string;           // Complete document text
+     pageCount?: number;         // For PDF files
+     wordCount?: number;         // Word count
+     sections: Record<string, string>; // Extracted sections (for CVs)
+   }
+   ```
+4. **Document Management**:
+   - Documents can be previewed via DocumentPreviewDialog
+   - Can be referenced by ID across all features (CV analysis, cover letters, etc.)
+   - Prevents duplicate uploads when using existing documents
+
 ### Database Schema (Key Tables)
 
 ```typescript
@@ -119,7 +173,7 @@ RLS policies use regex pattern matching on cache keys to enforce access control 
 users               // Managed by Supabase Auth
 sessions            // User workflow sessions with state
 messages            // Chat messages with agent responses
-documents           // Uploaded CVs/JDs with parsed content
+documents           // Uploaded CVs/JDs with parsed content (JSONB)
 cv_embeddings       // Vector embeddings (pgvector, 1536 dimensions)
 job_descriptions    // Job postings with embeddings
 tasks               // Background task status tracking
@@ -276,6 +330,43 @@ if (!success) {
 - **Node.js Runtime**: For agent processing and long-running tasks
 - **Database**: Supabase hosted PostgreSQL
 - **File Storage**: Supabase Storage
+
+## Document Management Pattern
+
+Most features support both "upload new document" and "use existing document" workflows:
+
+```typescript
+// Pattern in Server Actions
+export async function featureWithDocument(
+  formData: FormData | { documentId?: string }
+) {
+  const documentId = formData.get('documentId') as string
+
+  if (documentId) {
+    // Use existing document (fetch from database)
+    const document = await getDocumentById(documentId)
+    // Feature logic here...
+  } else {
+    // Upload new document (create new record)
+    const uploadedDoc = await uploadDocument(formData)
+    // Feature logic here...
+  }
+}
+```
+
+**Components using this pattern:**
+- CV Analysis (`actions/cv.ts`)
+- Cover Letter Generation (`actions/cover-letter.ts`)
+- Interview Preparation (`actions/interview.ts`)
+
+## Testing
+
+The project includes comprehensive testing documentation in `TESTING.md` which covers:
+- Document upload and preview functionality
+- CV analysis workflow (existing vs new documents)
+- Cover letter generation with document reuse
+- Interview preparation with document integration
+- Database RLS policy testing
 
 ## Reference Documentation
 
