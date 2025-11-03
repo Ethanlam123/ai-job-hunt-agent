@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an **AI-powered job hunting agent system** built with **Next.js 16**, using a multi-agent architecture to help job seekers with CV analysis, interview preparation, cover letter generation, and skill gap analysis. The project is in early development stage with only the basic Next.js scaffolding currently implemented.
+This is an **AI-powered job hunting agent system** built with **Next.js 16**, using a multi-agent architecture to help job seekers with CV analysis, interview preparation, cover letter generation, and skill gap analysis. The system is now feature-complete with all core functionality implemented.
 
 **Key Architecture Principles:**
 - **Privacy-first**: No automatic job applications or email sending
@@ -51,7 +51,7 @@ npm run db:fix-all-rls # Fix all RLS policies
 - Next.js Route Handlers (`app/api/*/route.ts`)
 - Server Actions (`'use server'`) for mutations
 - LangGraph.js + LangChain.js for AI agent orchestration
-- OpenRouter (GPT-5-nano) for LLM operations
+- OpenRouter (GPT-4o-mini) for LLM operations
 - OpenAI (text-embedding-3-small) for embeddings
 
 **Data Layer (Supabase Only):**
@@ -76,6 +76,7 @@ app/
 ├── (auth)/              # Auth route group (login, register)
 ├── (dashboard)/         # Protected routes (dashboard, workflow, history)
 │   ├── cv-analysis/     # CV analysis page
+│   ├── skill-gap/       # Skill gap analysis page
 │   ├── cover-letter/    # Cover letter generation
 │   ├── interview/       # Interview preparation
 │   ├── documents/       # Document management
@@ -93,16 +94,20 @@ components/
 │   ├── document-preview-dialog.tsx # Document preview dialog
 │   └── documents-client.tsx      # Document management interface
 ├── cv-analysis/        # CV analysis components
+├── skill-gap/          # Skill gap analysis components
 ├── cover-letter/       # Cover letter generation components
 ├── interview/          # Interview practice components
 └── shared/             # Shared components
 
 lib/
-├── agents/             # LangGraph agents (orchestrator, cv, interview, etc.)
+├── agents/             # LangGraph agents (orchestrator, cv, interview, skill-gap, etc.)
 ├── services/           # Business logic
 │   ├── document-parser.ts         # PDF/DOCX/TXT parsing service
 │   ├── llm-service.ts             # LLM integration service
+│   ├── skill-gap-service.ts       # Skill gap analysis business logic
 │   └── ...                       # Other services
+├── prompts/            # LLM prompt templates
+│   └── skill-gap-prompts.ts       # Skill gap analysis prompts
 ├── supabase/           # Supabase utilities
 │   ├── server.ts                 # Server-side Supabase client
 │   └── middleware.ts             # Auth middleware
@@ -112,6 +117,7 @@ lib/
 actions/                # Server Actions ('use server')
 ├── documents.ts        # Document upload, fetch, delete operations
 ├── cv.ts              # CV analysis operations
+├── skill-gap.ts       # Skill gap analysis operations
 ├── cover-letter.ts    # Cover letter generation
 └── interview.ts       # Interview practice
 
@@ -176,6 +182,7 @@ messages            // Chat messages with agent responses
 documents           // Uploaded CVs/JDs with parsed content (JSONB)
 cv_embeddings       // Vector embeddings (pgvector, 1536 dimensions)
 job_descriptions    // Job postings with embeddings
+skill_gaps          // Skill gap analysis results with status tracking
 tasks               // Background task status tracking
 cache               // JSONB cache with TTL support
 rate_limits         // Request timestamps for rate limiting
@@ -185,6 +192,7 @@ rate_limits         // Request timestamps for rate limiting
 - Cache: Users access only `user:{userId}:*` keys or `public:*` keys
 - Tasks: Users access only tasks linked to their sessions
 - Documents: Users access only their own documents
+- Skill Gaps: Users access only skill gaps from their own analyses
 
 ## AI Agent Architecture
 
@@ -196,7 +204,7 @@ The system uses specialized agents coordinated by an orchestrator:
 2. **CV Agent**: Parses, analyzes CVs, generates improvements with human approval
 3. **Interview Agent**: Generates mock interview questions, provides feedback
 4. **Cover Letter Agent**: Creates personalized cover letters from CV + JD
-5. **Skill Gap Agent**: Identifies missing skills, creates learning roadmap
+5. **Skill Gap Agent**: Identifies missing skills, creates learning roadmap with timeline organization (short/medium/long term)
 
 **Agent Communication:**
 - Agents communicate via LangGraph state channels
@@ -234,7 +242,7 @@ SUPABASE_SERVICE_ROLE_KEY=  # For development/admin tasks only - NEVER use in pr
 # Database (optional, for Drizzle ORM migrations)
 DATABASE_URL=
 
-# OpenRouter (LLM)
+# OpenRouter (LLM) - Uses GPT-4o-mini model
 OPENROUTER_API_KEY=
 
 # OpenAI (Embeddings)
@@ -356,14 +364,42 @@ export async function featureWithDocument(
 
 **Components using this pattern:**
 - CV Analysis (`actions/cv.ts`)
+- Skill Gap Analysis (`actions/skill-gap.ts`)
 - Cover Letter Generation (`actions/cover-letter.ts`)
 - Interview Preparation (`actions/interview.ts`)
+
+## Skill Gap Analysis Feature
+
+The most recently implemented feature provides comprehensive skill gap analysis:
+
+**Key Capabilities:**
+- **AI-Powered Analysis**: Compares CV skills against job requirements using LLM
+- **Dynamic Skill Categorization**: Automatically categorizes skills as technical, soft, or domain-specific
+- **Timeline Organization**: Organizes skill gaps by learning timeframe (short: 0-3 months, medium: 3-6 months, long: 6+ months)
+- **Interactive Progress Tracking**: Users can update skill status (pending, in_progress, completed, not_interested)
+- **Document Integration**: Supports both existing CV selection and new document upload
+- **Quality Validation**: Validates job description quality and provides fallback analysis for insufficient information
+
+**Implementation Architecture:**
+- Sequential agent workflow with 3 nodes: CV parsing → Job analysis → Skill gap identification
+- Status tracking using PostgreSQL JSONB field (compatible with existing schema)
+- Graceful handling of legacy analyses with temporary IDs
+- Real-time job description quality scoring with user guidance
+
+**Files:**
+- `src/lib/agents/skill-gap-agent.ts` - Sequential workflow agent
+- `src/lib/services/skill-gap-service.ts` - Business logic and database operations
+- `src/lib/prompts/skill-gap-prompts.ts` - LLM prompt templates
+- `src/actions/skill-gap.ts` - Server actions
+- `src/components/skill-gap/` - UI components
+- `src/app/(dashboard)/skill-gap/page.tsx` - Feature page
 
 ## Testing
 
 The project includes comprehensive testing documentation in `TESTING.md` which covers:
 - Document upload and preview functionality
 - CV analysis workflow (existing vs new documents)
+- Skill gap analysis with timeline organization and status tracking
 - Cover letter generation with document reuse
 - Interview preparation with document integration
 - Database RLS policy testing
