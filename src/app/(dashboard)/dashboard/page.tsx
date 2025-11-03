@@ -133,20 +133,6 @@ export default async function DashboardPage() {
 
         <Card className="flex flex-col">
           <CardHeader>
-            <CardTitle>Session History</CardTitle>
-            <CardDescription>
-              View your past sessions and download results
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 flex items-end">
-            <Button asChild className="w-full" variant="outline">
-              <Link href="/history">View History</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="flex flex-col">
-          <CardHeader>
             <CardTitle>Profile Settings</CardTitle>
             <CardDescription>
               Manage your account and preferences

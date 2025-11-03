@@ -25,7 +25,6 @@ export function Navbar({ userEmail }: { userEmail?: string }) {
     { href: '/skill-gap', label: 'Skill Gap' },
     { href: '/cover-letter', label: 'Cover Letter' },
     { href: '/interview', label: 'Interview Prep' },
-    { href: '/history', label: 'History' },
   ]
 
   return (
