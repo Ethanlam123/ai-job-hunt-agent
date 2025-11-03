@@ -51,7 +51,7 @@ npm run db:fix-all-rls # Fix all RLS policies
 - Next.js Route Handlers (`app/api/*/route.ts`)
 - Server Actions (`'use server'`) for mutations
 - LangGraph.js + LangChain.js for AI agent orchestration
-- OpenRouter (GPT-4o-mini) for LLM operations
+- OpenRouter (GPT-5-nano) for LLM operations
 - OpenAI (text-embedding-3-small) for embeddings
 
 **Data Layer (Supabase Only):**
@@ -242,7 +242,7 @@ SUPABASE_SERVICE_ROLE_KEY=  # For development/admin tasks only - NEVER use in pr
 # Database (optional, for Drizzle ORM migrations)
 DATABASE_URL=
 
-# OpenRouter (LLM) - Uses GPT-4o-mini model
+# OpenRouter (LLM) - Uses GPT-5-nano model
 OPENROUTER_API_KEY=
 
 # OpenAI (Embeddings)

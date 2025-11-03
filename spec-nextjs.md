@@ -66,7 +66,7 @@ graph TB
     end
 
     subgraph External["🧠 External Services"]
-        OpenRouter["🤖 OpenRouter API<br/>(GPT-4o-mini)"]
+        OpenRouter["🤖 OpenRouter API<br/>(GPT-5-nano)"]
         OpenAI["🔮 OpenAI API<br/>(Embeddings)"]
     end
 
@@ -306,7 +306,7 @@ graph LR
 - **API Layer**: Next.js Route Handlers (`app/api/*/route.ts`)
 - **Server Actions**: Form actions and mutations (`'use server'`)
 - **Agent Framework**: LangGraph.js + LangChain.js (TypeScript)
-- **LLM Provider**: OpenRouter (openai/gpt-4o-mini)
+- **LLM Provider**: OpenRouter (openai/gpt-5-nano)
 - **Embeddings**: OpenAI text-embedding-3-small
 - **Background Jobs**:
   - Vercel Cron Jobs (scheduled tasks)
@@ -1209,7 +1209,7 @@ export class SkillGapAgent {
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase
     this.llm = new ChatOpenAI({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-nano',
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',
         apiKey: process.env.OPENROUTER_API_KEY,
@@ -1880,7 +1880,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key  # For development/admi
 # Database (for Drizzle ORM direct connection - optional)
 DATABASE_URL=your_supabase_postgres_connection_string
 
-# OpenRouter (LLM) - Uses GPT-4o-mini model
+# OpenRouter (LLM) - Uses GPT-5-nano model
 OPENROUTER_API_KEY=your_openrouter_api_key
 
 # OpenAI (Embeddings)
@@ -3308,7 +3308,7 @@ npx lint-staged
 
 **Recent Updates:**
 - ✅ Skill Gap Analysis feature fully implemented with timeline organization
-- ✅ Updated LLM model from GPT-5-nano to GPT-4o-mini via OpenRouter
+- ✅ Confirmed LLM model as GPT-5-nano via OpenRouter
 - ✅ Added comprehensive status tracking for skill development progress
 - ✅ Implemented graceful handling for legacy analyses with temporary IDs
 - ✅ Added job description quality validation with fallback analysis
