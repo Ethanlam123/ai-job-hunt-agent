@@ -2,13 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { signout } from '@/actions/auth'
 import { toast } from 'sonner'
+import { Menu, X } from 'lucide-react'
 
 export function Navbar({ userEmail }: { userEmail?: string }) {
   const pathname = usePathname()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   async function handleSignOut() {
     try {
@@ -34,6 +37,7 @@ export function Navbar({ userEmail }: { userEmail?: string }) {
           <Link href="/dashboard" className="text-xl font-bold">
             Job Hunt Agent
           </Link>
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
             {navItems.map((item) => (
               <Link
@@ -50,16 +54,32 @@ export function Navbar({ userEmail }: { userEmail?: string }) {
             ))}
           </div>
         </div>
+
+        {/* Right side items */}
         <div className="flex items-center gap-4">
           {userEmail && (
             <>
-              <Avatar>
+              {/* Mobile menu button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="md:hidden"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+
+              <Avatar className="hidden sm:block">
                 <AvatarFallback>
                   {userEmail.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <form action={handleSignOut}>
-                <Button variant="outline" type="submit">
+                <Button variant="outline" size="sm" type="submit">
                   Sign out
                 </Button>
               </form>
@@ -67,6 +87,28 @@ export function Navbar({ userEmail }: { userEmail?: string }) {
           )}
         </div>
       </div>
+
+      {/* Mobile Navigation */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t bg-background">
+          <div className="container mx-auto px-4 py-4 space-y-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`block px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary hover:bg-accent ${
+                  pathname === item.href
+                    ? 'text-foreground bg-accent'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
