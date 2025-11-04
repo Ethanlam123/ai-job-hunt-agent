@@ -39,6 +39,11 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
   const [jdText, setJdText] = useState('')
   const [inputTab, setInputTab] = useState<'file' | 'text'>('file')
 
+  // JD metadata fields
+  const [companyName, setCompanyName] = useState('')
+  const [positionName, setPositionName] = useState('')
+  const [hiringManagerName, setHiringManagerName] = useState('')
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -51,15 +56,37 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
     // Reset to file tab when switching away from JD
     if (value !== 'jd') {
       setInputTab('file')
+      // Clear JD metadata when switching away from JD
+      setCompanyName('')
+      setPositionName('')
+      setHiringManagerName('')
+      setJdText('')
     }
   }
 
   const handleUpload = async () => {
     // Validation based on document type and input method
-    if (documentType === 'jd' && inputTab === 'text') {
-      if (!jdText.trim()) {
-        toast.error('Please enter job description text')
+    if (documentType === 'jd') {
+      // Validate JD metadata fields
+      if (!companyName.trim()) {
+        toast.error('Please enter the company name')
         return
+      }
+      if (!positionName.trim()) {
+        toast.error('Please enter the position name')
+        return
+      }
+
+      if (inputTab === 'text') {
+        if (!jdText.trim()) {
+          toast.error('Please enter job description text')
+          return
+        }
+      } else {
+        if (!selectedFile) {
+          toast.error('Please select a file to upload')
+          return
+        }
       }
     } else {
       if (!selectedFile) {
@@ -71,9 +98,21 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
     setIsUploading(true)
     const formData = new FormData()
 
-    if (documentType === 'jd' && inputTab === 'text') {
-      formData.append('jdText', jdText.trim())
-      formData.append('documentType', documentType)
+    if (documentType === 'jd') {
+      // Add JD metadata
+      formData.append('companyName', companyName.trim())
+      formData.append('positionName', positionName.trim())
+      if (hiringManagerName.trim()) {
+        formData.append('hiringManagerName', hiringManagerName.trim())
+      }
+
+      if (inputTab === 'text') {
+        formData.append('jdText', jdText.trim())
+        formData.append('documentType', documentType)
+      } else {
+        formData.append('file', selectedFile)
+        formData.append('documentType', documentType)
+      }
     } else {
       formData.append('file', selectedFile)
       formData.append('documentType', documentType)
@@ -88,6 +127,10 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
         toast.success('Document uploaded successfully!')
         setDocuments((prev) => [result.document, ...prev])
         setSelectedFile(null)
+        // Clear JD-specific fields
+        setCompanyName('')
+        setPositionName('')
+        setHiringManagerName('')
         setJdText('')
         // Reset file input
         const fileInput = document.getElementById('file-upload') as HTMLInputElement
@@ -154,34 +197,72 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
           </div>
 
           {documentType === 'jd' ? (
-            <Tabs value={inputTab} onValueChange={(value) => setInputTab(value as 'file' | 'text')} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="file">Upload File</TabsTrigger>
-                <TabsTrigger value="text">Enter Text</TabsTrigger>
-              </TabsList>
-              <TabsContent value="file" className="space-y-2">
-                <Label htmlFor="file-upload">File (PDF, DOCX, TXT)</Label>
-                <Input
-                  id="file-upload"
-                  type="file"
-                  accept=".pdf,.docx,.txt"
-                  onChange={handleFileChange}
-                  disabled={isUploading}
-                />
-              </TabsContent>
-              <TabsContent value="text" className="space-y-2">
-                <Label htmlFor="jd-text">Job Description Text</Label>
-                <Textarea
-                  id="jd-text"
-                  placeholder="Paste or type the job description here..."
-                  value={jdText}
-                  onChange={(e) => setJdText(e.target.value)}
-                  disabled={isUploading}
-                  rows={8}
-                  className="min-h-[200px]"
-                />
-              </TabsContent>
-            </Tabs>
+            <>
+              {/* JD Metadata Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/20">
+                <div className="space-y-2">
+                  <Label htmlFor="company-name">Company Name *</Label>
+                  <Input
+                    id="company-name"
+                    placeholder="e.g., Google, Microsoft, Startup Inc."
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    disabled={isUploading}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="position-name">Position Name *</Label>
+                  <Input
+                    id="position-name"
+                    placeholder="e.g., Senior Software Engineer, Product Manager"
+                    value={positionName}
+                    onChange={(e) => setPositionName(e.target.value)}
+                    disabled={isUploading}
+                    required
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="hiring-manager-name">Hiring Manager Name (Optional)</Label>
+                  <Input
+                    id="hiring-manager-name"
+                    placeholder="e.g., John Smith, Sarah Johnson"
+                    value={hiringManagerName}
+                    onChange={(e) => setHiringManagerName(e.target.value)}
+                    disabled={isUploading}
+                  />
+                </div>
+              </div>
+
+              <Tabs value={inputTab} onValueChange={(value) => setInputTab(value as 'file' | 'text')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="file">Upload File</TabsTrigger>
+                  <TabsTrigger value="text">Enter Text</TabsTrigger>
+                </TabsList>
+                <TabsContent value="file" className="space-y-2">
+                  <Label htmlFor="file-upload">File (PDF, DOCX, TXT)</Label>
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".pdf,.docx,.txt"
+                    onChange={handleFileChange}
+                    disabled={isUploading}
+                  />
+                </TabsContent>
+                <TabsContent value="text" className="space-y-2">
+                  <Label htmlFor="jd-text">Job Description Text</Label>
+                  <Textarea
+                    id="jd-text"
+                    placeholder="Paste or type the job description here..."
+                    value={jdText}
+                    onChange={(e) => setJdText(e.target.value)}
+                    disabled={isUploading}
+                    rows={8}
+                    className="min-h-[200px]"
+                  />
+                </TabsContent>
+              </Tabs>
+            </>
           ) : (
             <div className="space-y-2">
               <Label htmlFor="file-upload">File (PDF, DOCX, TXT)</Label>
@@ -197,7 +278,13 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
         </div>
         <Button
           onClick={handleUpload}
-          disabled={isUploading || (!selectedFile && !(documentType === 'jd' && inputTab === 'text' && jdText.trim()))}
+          disabled={isUploading || (
+            documentType === 'jd'
+              ? (!companyName.trim() || !positionName.trim() ||
+                  (inputTab === 'text' && !jdText.trim()) ||
+                  (inputTab === 'file' && !selectedFile))
+              : !selectedFile
+          )}
         >
           {isUploading ? 'Uploading...' : 'Upload Document'}
         </Button>
@@ -220,6 +307,31 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
               >
                 <div className="flex-1 space-y-1">
                   <p className="font-medium">{doc.original_filename}</p>
+
+                  {/* Show JD metadata if available */}
+                  {doc.document_type === 'jd' && doc.metadata && (
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      {doc.metadata.companyName && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Company:</span>
+                          <span>{doc.metadata.companyName}</span>
+                        </div>
+                      )}
+                      {doc.metadata.positionName && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Position:</span>
+                          <span>{doc.metadata.positionName}</span>
+                        </div>
+                      )}
+                      {doc.metadata.hiringManagerName && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Hiring Manager:</span>
+                          <span>{doc.metadata.hiringManagerName}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex gap-4 text-sm text-muted-foreground">
                     <span className="capitalize">{doc.document_type?.replace('_', ' ')}</span>
                     <span>•</span>

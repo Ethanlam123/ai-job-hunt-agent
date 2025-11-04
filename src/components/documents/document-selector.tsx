@@ -21,6 +21,7 @@ interface Document {
   document_type: string
   file_format: string
   created_at: string
+  metadata?: any
 }
 
 interface DocumentSelectorProps {
@@ -87,7 +88,22 @@ export function DocumentSelector({
           <SelectContent>
             {documents.map((doc) => (
               <SelectItem key={doc.id} value={doc.id}>
-                {doc.original_filename} ({new Date(doc.created_at).toLocaleDateString()})
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">{doc.original_filename}</span>
+                  {doc.document_type === 'jd' && doc.metadata && (
+                    <span className="text-xs text-muted-foreground">
+                      {doc.metadata.companyName && doc.metadata.positionName
+                        ? `${doc.metadata.companyName} - ${doc.metadata.positionName}`
+                        : new Date(doc.created_at).toLocaleDateString()
+                      }
+                    </span>
+                  )}
+                  {doc.document_type !== 'jd' && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(doc.created_at).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
               </SelectItem>
             ))}
           </SelectContent>

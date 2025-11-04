@@ -24,10 +24,20 @@ export async function uploadDocument(formData: FormData) {
   const documentType = formData.get('documentType') as DocumentType
   const sessionId = formData.get('sessionId') as string | null
 
+  // JD metadata fields
+  const companyName = formData.get('companyName') as string
+  const positionName = formData.get('positionName') as string
+  const hiringManagerName = formData.get('hiringManagerName') as string | null
+
   // Handle text input for Job Descriptions
   if (documentType === 'jd' && jdText) {
     if (!jdText.trim()) {
       return { error: 'Job description text cannot be empty' }
+    }
+
+    // Validate required JD metadata
+    if (!companyName?.trim() || !positionName?.trim()) {
+      return { error: 'Company name and position name are required for job descriptions' }
     }
 
     try {
@@ -39,20 +49,32 @@ export async function uploadDocument(formData: FormData) {
         sections: {},
       }
 
+      // Create enhanced filename with company and position
+      const filename = `${companyName.trim()} - ${positionName.trim()} - ${new Date().toLocaleDateString()}`
+
+      const metadata: any = {
+        source: 'text_input',
+        wordCount: parsedContent.wordCount,
+        companyName: companyName.trim(),
+        positionName: positionName.trim(),
+      }
+
+      // Add hiring manager if provided
+      if (hiringManagerName?.trim()) {
+        metadata.hiringManagerName = hiringManagerName.trim()
+      }
+
       const { data: document, error: dbError } = await supabase
         .from('documents')
         .insert({
           user_id: user.id,
           session_id: sessionId,
           document_type: documentType,
-          original_filename: `Job Description - ${new Date().toLocaleDateString()}`,
+          original_filename: filename,
           file_path: null, // No file for text input
           file_format: 'txt',
           parsed_content: parsedContent,
-          metadata: {
-            source: 'text_input',
-            wordCount: parsedContent.wordCount,
-          },
+          metadata,
         })
         .select()
         .single()
@@ -69,6 +91,11 @@ export async function uploadDocument(formData: FormData) {
     } catch (error: any) {
       return { error: error.message || 'An unexpected error occurred' }
     }
+  }
+
+  // Validate JD metadata for file uploads
+  if (documentType === 'jd' && (!companyName?.trim() || !positionName?.trim())) {
+    return { error: 'Company name and position name are required for job descriptions' }
   }
 
   // Handle file upload
@@ -129,6 +156,21 @@ export async function uploadDocument(formData: FormData) {
       return { error: `Upload failed: ${uploadError.message}` }
     }
 
+    // Create enhanced metadata
+    const metadata: any = {
+      size: file.size,
+      mimeType: file.type,
+    }
+
+    // Add JD metadata if applicable
+    if (documentType === 'jd') {
+      metadata.companyName = companyName.trim()
+      metadata.positionName = positionName.trim()
+      if (hiringManagerName?.trim()) {
+        metadata.hiringManagerName = hiringManagerName.trim()
+      }
+    }
+
     // Create document record in database with parsed content
     const { data: document, error: dbError } = await supabase
       .from('documents')
@@ -136,14 +178,13 @@ export async function uploadDocument(formData: FormData) {
         user_id: user.id,
         session_id: sessionId,
         document_type: documentType,
-        original_filename: file.name,
+        original_filename: documentType === 'jd'
+          ? `${companyName.trim()} - ${positionName.trim()} - ${file.name}`
+          : file.name,
         file_path: uploadData.path,
         file_format: fileExt,
         parsed_content: parsedContent,
-        metadata: {
-          size: file.size,
-          mimeType: file.type,
-        },
+        metadata,
       })
       .select()
       .single()
