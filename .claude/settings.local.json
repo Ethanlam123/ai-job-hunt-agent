@@ -36,7 +36,11 @@
       "Bash(npm run db:fix-all-rls:*)",
       "Bash(lsof:*)",
       "Bash(xargs ps:*)",
-      "Bash(git revert HEAD --no-edit)"
+      "Bash(git revert HEAD --no-edit)",
+      "Skill(using-superpowers)",
+      "Skill(brainstorming)",
+      "Bash(find:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
