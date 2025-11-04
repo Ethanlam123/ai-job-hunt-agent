@@ -20,9 +20,58 @@ export async function uploadDocument(formData: FormData) {
   }
 
   const file = formData.get('file') as File
+  const jdText = formData.get('jdText') as string
   const documentType = formData.get('documentType') as DocumentType
   const sessionId = formData.get('sessionId') as string | null
 
+  // Handle text input for Job Descriptions
+  if (documentType === 'jd' && jdText) {
+    if (!jdText.trim()) {
+      return { error: 'Job description text cannot be empty' }
+    }
+
+    try {
+      // Create document record for text-based JD
+      const parsedContent = {
+        fullText: jdText.trim(),
+        pageCount: 0,
+        wordCount: jdText.trim().split(/\s+/).length,
+        sections: {},
+      }
+
+      const { data: document, error: dbError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: user.id,
+          session_id: sessionId,
+          document_type: documentType,
+          original_filename: `Job Description - ${new Date().toLocaleDateString()}`,
+          file_path: null, // No file for text input
+          file_format: 'txt',
+          parsed_content: parsedContent,
+          metadata: {
+            source: 'text_input',
+            wordCount: parsedContent.wordCount,
+          },
+        })
+        .select()
+        .single()
+
+      if (dbError) {
+        return { error: `Failed to create document record: ${dbError.message}` }
+      }
+
+      revalidatePath('/dashboard')
+      revalidatePath('/workflow')
+      revalidatePath('/documents')
+
+      return { success: true, document }
+    } catch (error: any) {
+      return { error: error.message || 'An unexpected error occurred' }
+    }
+  }
+
+  // Handle file upload
   if (!file) {
     return { error: 'No file provided' }
   }

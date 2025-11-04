@@ -433,7 +433,7 @@ export function CVAnalysisClient() {
                   </h3>
                   <ul className="space-y-2">
                     {analysis.strengths.map((strength, index) => (
-                      <li key={index} className="text-sm p-3 bg-green-50 border border-green-200 rounded-md">
+                      <li key={index} className="text-sm p-3 bg-green-500/10 border border-green-500/20 dark:bg-green-500/20 dark:border-green-500/30 text-green-800 dark:text-green-200 rounded-md">
                         {strength}
                       </li>
                     ))}
@@ -450,7 +450,7 @@ export function CVAnalysisClient() {
                   </h3>
                   <ul className="space-y-2">
                     {analysis.weaknesses.map((weakness, index) => (
-                      <li key={index} className="text-sm p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                      <li key={index} className="text-sm p-3 bg-yellow-500/10 border border-yellow-500/20 dark:bg-yellow-500/20 dark:border-yellow-500/30 text-yellow-800 dark:text-yellow-200 rounded-md">
                         {weakness}
                       </li>
                     ))}
@@ -464,7 +464,7 @@ export function CVAnalysisClient() {
                   <h3 className="text-sm font-medium mb-2">Key Recommendations</h3>
                   <ul className="space-y-2">
                     {analysis.recommendations.map((recommendation, index) => (
-                      <li key={index} className="text-sm p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <li key={index} className="text-sm p-3 bg-blue-500/10 border border-blue-500/20 dark:bg-blue-500/20 dark:border-blue-500/30 text-blue-800 dark:text-blue-200 rounded-md">
                         {recommendation}
                       </li>
                     ))}

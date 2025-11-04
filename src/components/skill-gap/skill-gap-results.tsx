@@ -89,12 +89,12 @@ export function SkillGapResults({ analysis, organizedGaps, onStatusUpdate, isTem
   // Get level color
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'expert': return 'bg-purple-100 text-purple-800';
-      case 'advanced': return 'bg-blue-100 text-blue-800';
-      case 'intermediate': return 'bg-green-100 text-green-800';
-      case 'beginner': return 'bg-yellow-100 text-yellow-800';
-      case 'none': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'expert': return 'bg-purple-500/20 text-purple-300 dark:bg-purple-500/30 dark:text-purple-200 border border-purple-500/30';
+      case 'advanced': return 'bg-blue-500/20 text-blue-300 dark:bg-blue-500/30 dark:text-blue-200 border border-blue-500/30';
+      case 'intermediate': return 'bg-green-500/20 text-green-300 dark:bg-green-500/30 dark:text-green-200 border border-green-500/30';
+      case 'beginner': return 'bg-yellow-500/20 text-yellow-300 dark:bg-yellow-500/30 dark:text-yellow-200 border border-yellow-500/30';
+      case 'none': return 'bg-red-500/20 text-red-300 dark:bg-red-500/30 dark:text-red-200 border border-red-500/30';
+      default: return 'bg-gray-500/20 text-gray-300 dark:bg-gray-500/30 dark:text-gray-200 border border-gray-500/30';
     }
   };
 

@@ -5,6 +5,7 @@ import { uploadDocument, deleteDocument } from '@/actions/documents'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -12,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import type { DocumentType } from '@/lib/types'
 import { DocumentPreviewDialog } from './document-preview-dialog'
@@ -34,6 +36,8 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [documentType, setDocumentType] = useState<DocumentType>('cv')
+  const [jdText, setJdText] = useState('')
+  const [inputTab, setInputTab] = useState<'file' | 'text'>('file')
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -42,16 +46,38 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
     }
   }
 
+  const handleDocumentTypeChange = (value: DocumentType) => {
+    setDocumentType(value)
+    // Reset to file tab when switching away from JD
+    if (value !== 'jd') {
+      setInputTab('file')
+    }
+  }
+
   const handleUpload = async () => {
-    if (!selectedFile) {
-      toast.error('Please select a file to upload')
-      return
+    // Validation based on document type and input method
+    if (documentType === 'jd' && inputTab === 'text') {
+      if (!jdText.trim()) {
+        toast.error('Please enter job description text')
+        return
+      }
+    } else {
+      if (!selectedFile) {
+        toast.error('Please select a file to upload')
+        return
+      }
     }
 
     setIsUploading(true)
     const formData = new FormData()
-    formData.append('file', selectedFile)
-    formData.append('documentType', documentType)
+
+    if (documentType === 'jd' && inputTab === 'text') {
+      formData.append('jdText', jdText.trim())
+      formData.append('documentType', documentType)
+    } else {
+      formData.append('file', selectedFile)
+      formData.append('documentType', documentType)
+    }
 
     try {
       const result = await uploadDocument(formData)
@@ -62,6 +88,7 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
         toast.success('Document uploaded successfully!')
         setDocuments((prev) => [result.document, ...prev])
         setSelectedFile(null)
+        setJdText('')
         // Reset file input
         const fileInput = document.getElementById('file-upload') as HTMLInputElement
         if (fileInput) fileInput.value = ''
@@ -111,20 +138,10 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
       {/* Upload Section */}
       <div className="border rounded-lg p-4 space-y-4">
         <h3 className="font-semibold">Upload New Document</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="file-upload">File (PDF, DOCX, TXT)</Label>
-            <Input
-              id="file-upload"
-              type="file"
-              accept=".pdf,.docx,.txt"
-              onChange={handleFileChange}
-              disabled={isUploading}
-            />
-          </div>
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="document-type">Document Type</Label>
-            <Select value={documentType} onValueChange={(value) => setDocumentType(value as DocumentType)}>
+            <Select value={documentType} onValueChange={handleDocumentTypeChange}>
               <SelectTrigger id="document-type">
                 <SelectValue />
               </SelectTrigger>
@@ -135,8 +152,53 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {documentType === 'jd' ? (
+            <Tabs value={inputTab} onValueChange={(value) => setInputTab(value as 'file' | 'text')} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="file">Upload File</TabsTrigger>
+                <TabsTrigger value="text">Enter Text</TabsTrigger>
+              </TabsList>
+              <TabsContent value="file" className="space-y-2">
+                <Label htmlFor="file-upload">File (PDF, DOCX, TXT)</Label>
+                <Input
+                  id="file-upload"
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  onChange={handleFileChange}
+                  disabled={isUploading}
+                />
+              </TabsContent>
+              <TabsContent value="text" className="space-y-2">
+                <Label htmlFor="jd-text">Job Description Text</Label>
+                <Textarea
+                  id="jd-text"
+                  placeholder="Paste or type the job description here..."
+                  value={jdText}
+                  onChange={(e) => setJdText(e.target.value)}
+                  disabled={isUploading}
+                  rows={8}
+                  className="min-h-[200px]"
+                />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="file-upload">File (PDF, DOCX, TXT)</Label>
+              <Input
+                id="file-upload"
+                type="file"
+                accept=".pdf,.docx,.txt"
+                onChange={handleFileChange}
+                disabled={isUploading}
+              />
+            </div>
+          )}
         </div>
-        <Button onClick={handleUpload} disabled={isUploading || !selectedFile}>
+        <Button
+          onClick={handleUpload}
+          disabled={isUploading || (!selectedFile && !(documentType === 'jd' && inputTab === 'text' && jdText.trim()))}
+        >
           {isUploading ? 'Uploading...' : 'Upload Document'}
         </Button>
       </div>
