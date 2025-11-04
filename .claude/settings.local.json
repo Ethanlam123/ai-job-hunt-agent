@@ -42,7 +42,9 @@
       "Bash(find:*)",
       "Bash(rm:*)",
       "Bash(npx eslint:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git restore:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
