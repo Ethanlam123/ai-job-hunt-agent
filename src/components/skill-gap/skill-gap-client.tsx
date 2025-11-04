@@ -17,7 +17,6 @@ import {
   analyzeSkillGaps,
   getSkillGapResults,
   getSkillGapsByTimeline,
-  updateSkillGapStatus,
   getUserCVDocuments,
   validateJobDescription
 } from "@/actions/skill-gap";
@@ -182,50 +181,8 @@ export function SkillGapClient() {
     }
   }, [selectedDocumentId, selectedJdDocumentId, jobDescription, jdInputTab]);
 
-  // Handle skill gap status update
-  const handleStatusUpdate = useCallback(async (
-    skillGapId: string,
-    status: 'pending' | 'in_progress' | 'completed' | 'not_interested',
-    notes?: string
-  ) => {
-    try {
-      const result = await updateSkillGapStatus(skillGapId, status, notes);
-
-      if (result.success) {
-        // Update local state
-        if (analysis) {
-          const updatedAnalysis = { ...analysis };
-          const gapIndex = updatedAnalysis.skillGaps.findIndex(gap => gap.id === skillGapId);
-          if (gapIndex !== -1) {
-            updatedAnalysis.skillGaps[gapIndex].status = status;
-            setAnalysis(updatedAnalysis);
-          }
-        }
-
-        // Refresh organized gaps
-        if (sessionId) {
-          const organizedResult = await getSkillGapsByTimeline(sessionId);
-          if (organizedResult.success) {
-            setOrganizedGaps(organizedResult.data);
-          }
-        }
-
-        setSuccess(`Skill gap status updated to ${status}`);
-      } else {
-        setError(result.error || "Failed to update skill gap status");
-      }
-    } catch (error) {
-      console.error('Update status error:', error);
-      setError("Failed to update skill gap status");
-    }
-    clearMessages();
-  }, [analysis, sessionId]);
-
-  // Check if a skill gap has a temporary ID (from old analysis)
-  const isTemporaryId = useCallback((skillGapId: string) => {
-    return skillGapId.startsWith('gap-') || skillGapId.startsWith('temp-');
-  }, []);
-
+  
+  
   // Handle form submission
   const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -402,8 +359,6 @@ export function SkillGapClient() {
             <SkillGapResults
               analysis={analysis}
               organizedGaps={organizedGaps}
-              onStatusUpdate={handleStatusUpdate}
-              isTemporaryId={isTemporaryId}
             />
           )}
         </TabsContent>
@@ -435,8 +390,7 @@ export function SkillGapClient() {
                         <div className="grid gap-4">
                           {organizedGaps.short.map((gap) => (
                             <Card key={gap.id} className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
+                              <div>
                                   <div className="flex items-center gap-2 mb-2">
                                     <h4 className="font-medium">{gap.skillName}</h4>
                                     <Badge variant={gap.importance === 'critical' ? 'destructive' : 'secondary'}>
@@ -447,15 +401,6 @@ export function SkillGapClient() {
                                   <p className="text-sm text-gray-600 mb-2">{gap.learningAdvice}</p>
                                   <p className="text-xs text-gray-500">{gap.reasoning}</p>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleStatusUpdate(gap.id, 'in_progress')}
-                                  className="ml-2"
-                                >
-                                  <BookOpen className="h-4 w-4" />
-                                </Button>
-                              </div>
                             </Card>
                           ))}
                         </div>
@@ -475,8 +420,7 @@ export function SkillGapClient() {
                         <div className="grid gap-4">
                           {organizedGaps.medium.map((gap) => (
                             <Card key={gap.id} className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
+                              <div>
                                   <div className="flex items-center gap-2 mb-2">
                                     <h4 className="font-medium">{gap.skillName}</h4>
                                     <Badge variant={gap.importance === 'critical' ? 'destructive' : 'secondary'}>
@@ -487,15 +431,6 @@ export function SkillGapClient() {
                                   <p className="text-sm text-gray-600 mb-2">{gap.learningAdvice}</p>
                                   <p className="text-xs text-gray-500">{gap.reasoning}</p>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleStatusUpdate(gap.id, 'pending')}
-                                  className="ml-2"
-                                >
-                                  <Target className="h-4 w-4" />
-                                </Button>
-                              </div>
                             </Card>
                           ))}
                         </div>
@@ -515,8 +450,7 @@ export function SkillGapClient() {
                         <div className="grid gap-4">
                           {organizedGaps.long.map((gap) => (
                             <Card key={gap.id} className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
+                              <div>
                                   <div className="flex items-center gap-2 mb-2">
                                     <h4 className="font-medium">{gap.skillName}</h4>
                                     <Badge variant={gap.importance === 'critical' ? 'destructive' : 'secondary'}>
@@ -527,15 +461,6 @@ export function SkillGapClient() {
                                   <p className="text-sm text-gray-600 mb-2">{gap.learningAdvice}</p>
                                   <p className="text-xs text-gray-500">{gap.reasoning}</p>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleStatusUpdate(gap.id, 'pending')}
-                                  className="ml-2"
-                                >
-                                  <Target className="h-4 w-4" />
-                                </Button>
-                              </div>
                             </Card>
                           ))}
                         </div>

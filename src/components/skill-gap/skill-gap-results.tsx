@@ -52,11 +52,9 @@ interface SkillGapResultsProps {
     medium: SkillGap[];
     long: SkillGap[];
   };
-  onStatusUpdate: (skillGapId: string, status: 'pending' | 'in_progress' | 'completed' | 'not_interested', notes?: string) => void;
-  isTemporaryId?: (skillGapId: string) => boolean;
 }
 
-export function SkillGapResults({ analysis, organizedGaps, onStatusUpdate, isTemporaryId }: SkillGapResultsProps) {
+export function SkillGapResults({ analysis, organizedGaps }: SkillGapResultsProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Get color for match score
@@ -254,18 +252,6 @@ export function SkillGapResults({ analysis, organizedGaps, onStatusUpdate, isTem
                     <Badge variant="outline">{gap.category}</Badge>
                     {getTimelineIcon(gap.timeline)}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Status:</span>
-                    <Badge
-                      variant={
-                        gap.status === 'completed' ? 'default' :
-                        gap.status === 'in_progress' ? 'secondary' :
-                        gap.status === 'not_interested' ? 'outline' : 'outline'
-                      }
-                    >
-                      {gap.status.replace('_', ' ')}
-                    </Badge>
-                  </div>
                 </div>
 
                 {/* Current vs Required Level */}
@@ -298,76 +284,6 @@ export function SkillGapResults({ analysis, organizedGaps, onStatusUpdate, isTem
 
                 {/* Reasoning */}
                 <p className="text-xs text-gray-500 mb-4">{gap.reasoning}</p>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  {isTemporaryId?.(gap.id) ? (
-                    <Alert className="border-yellow-200 bg-yellow-50">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription className="text-sm">
-                        This analysis uses temporary IDs. Run a new analysis to enable status tracking.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <>
-                      {gap.status === 'pending' && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => onStatusUpdate(gap.id, 'in_progress')}
-                          >
-                            <BookOpen className="h-4 w-4 mr-1" />
-                            Start Learning
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onStatusUpdate(gap.id, 'not_interested')}
-                          >
-                            Not Interested
-                          </Button>
-                        </>
-                      )}
-                      {gap.status === 'in_progress' && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => onStatusUpdate(gap.id, 'completed')}
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-1" />
-                            Mark Complete
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onStatusUpdate(gap.id, 'pending')}
-                          >
-                            Pause
-                          </Button>
-                        </>
-                      )}
-                      {gap.status === 'completed' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onStatusUpdate(gap.id, 'in_progress')}
-                        >
-                          <Target className="h-4 w-4 mr-1" />
-                          Continue Learning
-                        </Button>
-                      )}
-                      {gap.status === 'not_interested' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onStatusUpdate(gap.id, 'pending')}
-                        >
-                          Reconsider
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
               </Card>
             ))}
           </div>
