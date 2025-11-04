@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FileText, Upload, Loader2, Download, Edit2, Sparkles } from 'lucide-react'
-import { generateCoverLetter } from '@/actions/cover-letter'
+import { generateCoverLetter, getUserJDDocuments } from '@/actions/cover-letter'
 import { getDocumentById } from '@/actions/documents'
 import { DocumentSelector } from '@/components/documents/document-selector'
 
@@ -18,6 +18,8 @@ export function CoverLetterClient() {
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null)
   const [cvMode, setCvMode] = useState<'existing' | 'new'>('existing')
   const [jobDescription, setJobDescription] = useState('')
+  const [selectedJdId, setSelectedJdId] = useState<string | null>(null)
+  const [jdMode, setJdMode] = useState<'existing' | 'text'>('text')
   const [companyName, setCompanyName] = useState('')
   const [positionTitle, setPositionTitle] = useState('')
   const [hiringManagerName, setHiringManagerName] = useState('')
@@ -44,6 +46,19 @@ export function CoverLetterClient() {
     }
   }
 
+  const handleJdDocumentSelect = (documentId: string | null) => {
+    setSelectedJdId(documentId || '')
+    // Clear text input when selecting a document
+    setJobDescription('')
+    setCompanyName('')
+    setPositionTitle('')
+    setHiringManagerName('')
+    // Reset to existing JD tab when selecting document
+    if (documentId) {
+      setJdMode('existing')
+    }
+  }
+
   const handleGenerate = async () => {
     // Validate CV selection
     if (cvMode === 'new' && !cvFile) {
@@ -54,11 +69,19 @@ export function CoverLetterClient() {
       setError('Please select an existing CV')
       return
     }
-    if (!jobDescription.trim()) {
+
+    // Validate job description source
+    if (jdMode === 'text' && !jobDescription.trim()) {
       setError('Please provide a job description')
       return
     }
-    if (!companyName.trim() || !positionTitle.trim()) {
+    if (jdMode === 'existing' && !selectedJdId) {
+      setError('Please select an existing job description')
+      return
+    }
+
+    // Validate company and position (required if not using JD document)
+    if (jdMode === 'text' && (!companyName.trim() || !positionTitle.trim())) {
       setError('Please provide company name and position title')
       return
     }
@@ -101,10 +124,11 @@ export function CoverLetterClient() {
 
       const result = await generateCoverLetter({
         ...fileData,
-        jobDescription,
-        companyName,
-        positionTitle,
-        hiringManagerName
+        jobDescription: jdMode === 'text' ? jobDescription : '',
+        jdDocumentId: jdMode === 'existing' ? selectedJdId || undefined : undefined,
+        companyName: companyName || undefined,
+        positionTitle: positionTitle || undefined,
+        hiringManagerName: hiringManagerName || undefined
       })
 
       if (result.error) {
@@ -208,48 +232,76 @@ export function CoverLetterClient() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company Name *</Label>
-                  <Input
-                    id="company"
-                    placeholder="e.g., Anthropic"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="position">Position Title *</Label>
-                  <Input
-                    id="position"
-                    placeholder="e.g., Senior Software Engineer"
-                    value={positionTitle}
-                    onChange={(e) => setPositionTitle(e.target.value)}
-                  />
-                </div>
-              </div>
+              <Tabs value={jdMode} onValueChange={(value) => setJdMode(value as 'existing' | 'text')}>
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="existing">Use Existing JD</TabsTrigger>
+                  <TabsTrigger value="text">Enter Details</TabsTrigger>
+                </TabsList>
 
-              <div className="space-y-2">
-                <Label htmlFor="hiring-manager">Hiring Manager Name (Optional)</Label>
-                <Input
-                  id="hiring-manager"
-                  placeholder="e.g., Jane Smith"
-                  value={hiringManagerName}
-                  onChange={(e) => setHiringManagerName(e.target.value)}
-                />
-              </div>
+                <TabsContent value="existing" className="space-y-4">
+                  <DocumentSelector
+                    documentType="jd"
+                    onSelect={handleJdDocumentSelect}
+                    selectedDocumentId={selectedJdId}
+                    label="Select Job Description"
+                    placeholder="Choose a job description"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Company name, position, and hiring manager will be automatically filled from the selected job description.
+                  </p>
+                </TabsContent>
 
-              <div className="space-y-2">
-                <Label htmlFor="job-description">Job Description *</Label>
-                <Textarea
-                  id="job-description"
-                  placeholder="Paste the full job description here..."
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  rows={10}
-                  className="resize-none"
-                />
-              </div>
+                <TabsContent value="text" className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="company">Company Name *</Label>
+                      <Input
+                        id="company"
+                        placeholder="e.g., Anthropic"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="position">Position Title *</Label>
+                      <Input
+                        id="position"
+                        placeholder="e.g., Senior Software Engineer"
+                        value={positionTitle}
+                        onChange={(e) => setPositionTitle(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="hiring-manager">Hiring Manager Name (Optional)</Label>
+                    <Input
+                      id="hiring-manager"
+                      placeholder="e.g., Jane Smith"
+                      value={hiringManagerName}
+                      onChange={(e) => setHiringManagerName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="job-description">Job Description *</Label>
+                    <Textarea
+                      id="job-description"
+                      placeholder="Paste the full job description here..."
+                      value={jobDescription}
+                      onChange={(e) => {
+                        setJobDescription(e.target.value)
+                        // Clear selected JD when typing
+                        if (selectedJdId) {
+                          setSelectedJdId('')
+                        }
+                      }}
+                      rows={10}
+                      className="resize-none"
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
@@ -264,9 +316,8 @@ export function CoverLetterClient() {
             disabled={
               isGenerating ||
               (cvMode === 'existing' ? !selectedCvId : !cvFile) ||
-              !jobDescription.trim() ||
-              !companyName.trim() ||
-              !positionTitle.trim()
+              (jdMode === 'existing' ? !selectedJdId : !jobDescription.trim()) ||
+              (jdMode === 'text' && (!companyName.trim() || !positionTitle.trim()))
             }
             className="w-full"
             size="lg"

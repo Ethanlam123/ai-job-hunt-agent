@@ -11,8 +11,9 @@ interface CoverLetterParams {
   fileData: string // base64 encoded (empty if using existing document)
   documentId?: string // If provided, use existing document instead of uploading
   jobDescription: string
-  companyName: string
-  positionTitle: string
+  jdDocumentId?: string // If provided, use existing JD document instead of text
+  companyName?: string // Optional if using JD document
+  positionTitle?: string // Optional if using JD document
   hiringManagerName?: string
 }
 
@@ -30,8 +31,9 @@ export async function generateCoverLetter(params: CoverLetterParams) {
       return { error: 'CV file or document ID is required' }
     }
 
-    if (!params.jobDescription || !params.companyName || !params.positionTitle) {
-      return { error: 'Missing required fields (job description, company name, or position title)' }
+    // Validate job description source
+    if (!params.jdDocumentId && !params.jobDescription?.trim()) {
+      return { error: 'Job description text or JD document ID is required' }
     }
 
     // Create a session for this cover letter generation
@@ -44,7 +46,8 @@ export async function generateCoverLetter(params: CoverLetterParams) {
           workflowType: 'cover_letter',
           status: 'processing',
           companyName: params.companyName,
-          positionTitle: params.positionTitle
+          positionTitle: params.positionTitle,
+          jdDocumentId: params.jdDocumentId
         }
       })
       .select()
@@ -133,13 +136,63 @@ export async function generateCoverLetter(params: CoverLetterParams) {
       return { error: 'Invalid CV content format' }
     }
 
+    // Handle job description source
+    let jobDescriptionText = params.jobDescription
+    let companyName = params.companyName || ''
+    let positionTitle = params.positionTitle || ''
+    let hiringManagerName = params.hiringManagerName || ''
+
+    if (params.jdDocumentId) {
+      // Use existing JD document
+      console.log('Using existing JD document:', params.jdDocumentId)
+
+      // Verify JD document exists and belongs to user
+      const { data: jdDocument, error: jdDocError } = await supabase
+        .from('documents')
+        .select('id, document_type, parsed_content, metadata')
+        .eq('id', params.jdDocumentId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (jdDocError || !jdDocument) {
+        return { error: 'Job description document not found or access denied' }
+      }
+
+      if (jdDocument.document_type !== 'jd') {
+        return { error: 'Selected document is not a job description' }
+      }
+
+      // Extract job description text from document
+      if (jdDocument.parsed_content?.fullText) {
+        jobDescriptionText = jdDocument.parsed_content.fullText
+      } else {
+        return { error: 'Job description document has no content' }
+      }
+
+      // Extract metadata from JD document
+      if (jdDocument.metadata) {
+        companyName = jdDocument.metadata.companyName || companyName
+        positionTitle = jdDocument.metadata.positionName || positionTitle
+        hiringManagerName = jdDocument.metadata.hiringManagerName || hiringManagerName
+      }
+    }
+
+    // Validate required fields after JD processing
+    if (!jobDescriptionText?.trim()) {
+      return { error: 'Job description is required' }
+    }
+
+    if (!companyName?.trim() || !positionTitle?.trim()) {
+      return { error: 'Company name and position title are required' }
+    }
+
     // Generate cover letter using LLM
     const result = await generateCoverLetterWithLLM({
       cvContent: cvText,
-      jobDescription: params.jobDescription,
-      companyName: params.companyName,
-      positionTitle: params.positionTitle,
-      hiringManagerName: params.hiringManagerName || undefined
+      jobDescription: jobDescriptionText,
+      companyName: companyName,
+      positionTitle: positionTitle,
+      hiringManagerName: hiringManagerName || undefined
     })
 
     // Save the cover letter to the database
@@ -152,10 +205,11 @@ export async function generateCoverLetter(params: CoverLetterParams) {
         content: result.coverLetter,
         version: '1',
         metadata: {
-          companyName: params.companyName,
-          positionTitle: params.positionTitle,
-          jobDescription: params.jobDescription,
-          hiringManagerName: params.hiringManagerName,
+          companyName: companyName,
+          positionTitle: positionTitle,
+          jobDescription: jobDescriptionText,
+          hiringManagerName: hiringManagerName,
+          jdDocumentId: params.jdDocumentId,
           generatedAt: result.metadata.generatedAt
         }
       })
@@ -253,6 +307,43 @@ export async function getCoverLetter(id: string) {
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Failed to fetch cover letter'
+    }
+  }
+}
+
+/**
+ * Get user's JD documents for selection
+ */
+export async function getUserJDDocuments() {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized', documents: [] }
+  }
+
+  try {
+    const { data: documents, error } = await supabase
+      .from('documents')
+      .select('id, original_filename, created_at, metadata')
+      .eq('user_id', user.id)
+      .eq('document_type', 'jd')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to fetch JD documents: ${error.message}`)
+    }
+
+    return {
+      success: true,
+      documents: documents || [],
+      error: null,
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+      documents: [],
     }
   }
 }
