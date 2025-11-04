@@ -268,6 +268,81 @@ export async function getDocumentById(documentId: string) {
   }
 }
 
+export async function renameDocument(documentId: string, newName: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: 'Unauthorized' }
+  }
+
+  // Validate new name
+  const trimmedName = newName.trim()
+  if (!trimmedName) {
+    return { error: 'Document name cannot be empty' }
+  }
+
+  if (trimmedName.length > 100) {
+    return { error: 'Document name must be 100 characters or less' }
+  }
+
+  try {
+    // Get document to verify ownership and get document type
+    const { data: document, error: fetchError } = await supabase
+      .from('documents')
+      .select('original_filename, document_type, user_id')
+      .eq('id', documentId)
+      .single()
+
+    if (fetchError || !document) {
+      return { error: 'Document not found' }
+    }
+
+    if (document.user_id !== user.id) {
+      return { error: 'Unauthorized to rename this document' }
+    }
+
+    // Check for duplicate names within the same document type
+    const { data: existingDoc, error: duplicateError } = await supabase
+      .from('documents')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('document_type', document.document_type)
+      .eq('original_filename', trimmedName)
+      .neq('id', documentId) // Exclude current document from duplicate check
+      .single()
+
+    if (duplicateError && duplicateError.code !== 'PGRST116') { // PGRST116 means no rows returned
+      return { error: 'Error checking for duplicate names' }
+    }
+
+    if (existingDoc) {
+      return { error: 'A document with this name already exists for this document type' }
+    }
+
+    // Update document name
+    const { error: updateError } = await supabase
+      .from('documents')
+      .update({ original_filename: trimmedName })
+      .eq('id', documentId)
+
+    if (updateError) {
+      return { error: `Failed to rename document: ${updateError.message}` }
+    }
+
+    revalidatePath('/dashboard')
+    revalidatePath('/workflow')
+    revalidatePath('/documents')
+
+    return { success: true, newName: trimmedName }
+  } catch (error: any) {
+    return { error: error.message || 'An unexpected error occurred' }
+  }
+}
+
 export async function deleteDocument(documentId: string) {
   const supabase = await createClient()
   const {

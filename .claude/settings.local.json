@@ -40,7 +40,9 @@
       "Skill(using-superpowers)",
       "Skill(brainstorming)",
       "Bash(find:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

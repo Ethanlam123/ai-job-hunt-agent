@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { uploadDocument, deleteDocument } from '@/actions/documents'
+import { useState, useRef, useEffect } from 'react'
+import { uploadDocument, deleteDocument, renameDocument } from '@/actions/documents'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,6 +31,107 @@ interface DocumentsClientProps {
   initialDocuments: Document[]
 }
 
+// Inline editable document name component
+function EditableDocumentName({
+  document,
+  onRename
+}: {
+  document: Document
+  onRename: (documentId: string, newName: string) => void
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(document.original_filename)
+  const [error, setError] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isEditing])
+
+  const handleSave = async () => {
+    const trimmedValue = editValue.trim()
+
+    if (!trimmedValue) {
+      setError('Document name cannot be empty')
+      return
+    }
+
+    if (trimmedValue === document.original_filename) {
+      // No change, just exit editing mode
+      setIsEditing(false)
+      return
+    }
+
+    if (trimmedValue.length > 100) {
+      setError('Document name must be 100 characters or less')
+      return
+    }
+
+    setError('')
+
+    const result = await renameDocument(document.id, trimmedValue)
+
+    if (result.error) {
+      setError(result.error)
+    } else {
+      onRename(document.id, trimmedValue)
+      setIsEditing(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setEditValue(document.original_filename)
+    setError('')
+    setIsEditing(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSave()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      handleCancel()
+    }
+  }
+
+  if (isEditing) {
+    return (
+      <div className="space-y-1">
+        <Input
+          ref={inputRef}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          className="text-base"
+          maxLength={100}
+        />
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="cursor-pointer hover:text-primary transition-colors"
+      onClick={() => {
+        setEditValue(document.original_filename)
+        setError('')
+        setIsEditing(true)
+      }}
+      title="Click to rename"
+    >
+      {document.original_filename}
+    </div>
+  )
+}
+
 export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
   const [documents, setDocuments] = useState<Document[]>(initialDocuments)
   const [isUploading, setIsUploading] = useState(false)
@@ -43,6 +144,14 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
   const [companyName, setCompanyName] = useState('')
   const [positionName, setPositionName] = useState('')
   const [hiringManagerName, setHiringManagerName] = useState('')
+
+  const handleDocumentRename = (documentId: string, newName: string) => {
+    setDocuments((prev) =>
+      prev.map((doc) =>
+        doc.id === documentId ? { ...doc, original_filename: newName } : doc
+      )
+    )
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -306,7 +415,12 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
               >
                 <div className="flex-1 space-y-1">
-                  <p className="font-medium">{doc.original_filename}</p>
+                  <div className="font-medium">
+                    <EditableDocumentName
+                      document={doc}
+                      onRename={handleDocumentRename}
+                    />
+                  </div>
 
                   {/* Show JD metadata if available */}
                   {doc.document_type === 'jd' && doc.metadata && (
