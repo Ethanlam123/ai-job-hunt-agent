@@ -29,6 +29,27 @@ export async function uploadDocument(formData: FormData) {
   const positionName = formData.get('positionName') as string
   const hiringManagerName = formData.get('hiringManagerName') as string | null
 
+  // Function to check for duplicate document names
+  const checkDuplicateName = async (filename: string) => {
+    const { data: existingDoc, error: duplicateError } = await supabase
+      .from('documents')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('document_type', documentType)
+      .eq('original_filename', filename)
+      .single()
+
+    if (duplicateError && duplicateError.code !== 'PGRST116') { // PGRST116 means no rows returned
+      return { error: `Error checking for duplicate names: ${duplicateError.message}` }
+    }
+
+    if (existingDoc) {
+      return { error: `A document with this name already exists for this document type` }
+    }
+
+    return { success: true }
+  }
+
   // Handle text input for Job Descriptions
   if (documentType === 'jd' && jdText) {
     if (!jdText.trim()) {
@@ -51,6 +72,12 @@ export async function uploadDocument(formData: FormData) {
 
       // Create enhanced filename with company and position
       const filename = `${companyName.trim()} - ${positionName.trim()} - ${new Date().toLocaleDateString()}`
+
+      // Check for duplicate names
+      const duplicateCheck = await checkDuplicateName(filename)
+      if (duplicateCheck.error) {
+        return duplicateCheck
+      }
 
       const metadata: any = {
         source: 'text_input',
@@ -162,6 +189,19 @@ export async function uploadDocument(formData: FormData) {
       mimeType: file.type,
     }
 
+    // Determine filename and check for duplicates
+    const filename = documentType === 'jd'
+      ? `${companyName.trim()} - ${positionName.trim()} - ${file.name}`
+      : file.name
+
+    // Check for duplicate names
+    const duplicateCheck = await checkDuplicateName(filename)
+    if (duplicateCheck.error) {
+      // Clean up uploaded file if duplicate found
+      await supabase.storage.from('documents').remove([fileName])
+      return duplicateCheck
+    }
+
     // Add JD metadata if applicable
     if (documentType === 'jd') {
       metadata.companyName = companyName.trim()
@@ -178,9 +218,7 @@ export async function uploadDocument(formData: FormData) {
         user_id: user.id,
         session_id: sessionId,
         document_type: documentType,
-        original_filename: documentType === 'jd'
-          ? `${companyName.trim()} - ${positionName.trim()} - ${file.name}`
-          : file.name,
+        original_filename: filename,
         file_path: uploadData.path,
         file_format: fileExt,
         parsed_content: parsedContent,
