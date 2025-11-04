@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { signout } from '@/actions/auth'
 import { toast } from 'sonner'
 import { Menu, X } from 'lucide-react'
@@ -57,6 +58,11 @@ export function Navbar({ userEmail }: { userEmail?: string }) {
 
         {/* Right side items */}
         <div className="flex items-center gap-4">
+          <ThemeToggle
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0"
+          />
           {userEmail && (
             <>
               {/* Mobile menu button */}
