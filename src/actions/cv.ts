@@ -161,7 +161,7 @@ export async function uploadAndAnalyzeCV(input: {
   }
 
   let tempFilePath: string | null = null
-  let documentId = input.documentId
+  let documentId: string | undefined = input.documentId
 
   try {
     // If documentId is provided, use existing document
@@ -263,6 +263,9 @@ export async function uploadAndAnalyzeCV(input: {
     }
 
     // Now trigger the workflow with the documentId (either existing or newly uploaded)
+    if (!documentId) {
+      return { success: false, error: 'Document ID is required' }
+    }
     return await triggerCVAnalysisWorkflow(documentId)
   } catch (error: any) {
     console.error('Upload and analyze error:', error)

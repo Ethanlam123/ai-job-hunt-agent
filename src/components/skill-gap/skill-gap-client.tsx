@@ -165,7 +165,7 @@ export function SkillGapClient() {
         // Fetch organized results
         if (result.sessionId) {
           const organizedResult = await getSkillGapsByTimeline(result.sessionId);
-          if (organizedResult.success) {
+          if (organizedResult.success && organizedResult.data) {
             setOrganizedGaps(organizedResult.data);
           }
         }

@@ -219,11 +219,15 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
         formData.append('jdText', jdText.trim())
         formData.append('documentType', documentType)
       } else {
-        formData.append('file', selectedFile)
+        if (selectedFile) {
+          formData.append('file', selectedFile)
+        }
         formData.append('documentType', documentType)
       }
     } else {
-      formData.append('file', selectedFile)
+      if (selectedFile) {
+        formData.append('file', selectedFile)
+      }
       formData.append('documentType', documentType)
     }
 

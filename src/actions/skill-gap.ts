@@ -38,7 +38,7 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
   }
 
   let tempFilePath: string | null = null
-  let documentId = input.cvDocumentId
+  let documentId: string | undefined = input.cvDocumentId
   let jdDocumentId = input.jdDocumentId
   let jobDescriptionText = input.jobDescriptionText
 
@@ -157,12 +157,12 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
           extractedAt: new Date().toISOString(),
         }
       } else if (input.cvFileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        const { mammoth } = await import('mammoth')
+        const mammoth = await import('mammoth')
         const tempFileName = `cv-${randomUUID()}.docx`
         tempFilePath = join(tmpdir(), tempFileName)
         await writeFile(tempFilePath, buffer)
 
-        const result = await mammoth.extractRawText({ path: tempFilePath })
+        const result = await mammoth.default.extractRawText({ path: tempFilePath })
         parsedContent = {
           pageCount: 1, // DOCX doesn't have pages in the same way
           fullText: result.value,
@@ -228,6 +228,9 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
     const skillGapAgent = new SkillGapAgent(supabase)
 
     // Run skill gap analysis workflow
+    if (!documentId) {
+      return { success: false, error: 'CV document ID is required' }
+    }
     const result = await skillGapAgent.analyzeSkillGaps(
       documentId,
       jobDescriptionText,
@@ -309,8 +312,8 @@ export async function getSkillGapsByTimeline(sessionId: string) {
 
     return {
       success: result.success,
-      data: result.data,
-      error: result.error,
+      data: 'data' in result ? result.data : null,
+      error: 'error' in result ? result.error : undefined,
     }
   } catch (error: any) {
     return {
@@ -376,8 +379,8 @@ export async function getSkillGapStats() {
 
     return {
       success: result.success,
-      stats: result.data,
-      error: result.error,
+      stats: 'data' in result ? result.data : null,
+      error: 'error' in result ? result.error : undefined,
     }
   } catch (error: any) {
     return {

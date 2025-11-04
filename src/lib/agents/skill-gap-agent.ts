@@ -11,7 +11,7 @@ interface SkillGapState {
   jobDescriptionText: string
   cvContent: any
   jobRequirements: any
-  gapAnalysis: SkillGapAnalysis
+  gapAnalysis: SkillGapAnalysis | null
   error?: string
 }
 
@@ -370,6 +370,9 @@ export class SkillGapAgent {
       }
 
       // Save successful analysis using SkillGapService
+      if (!state.gapAnalysis) {
+        throw new Error('Gap analysis is null, cannot save results')
+      }
       const saveResult = await this.skillGapService.saveSkillGapAnalysis(
         state.sessionId,
         state.userId,
