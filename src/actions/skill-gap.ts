@@ -15,6 +15,7 @@ interface AnalyzeSkillGapInput {
   cvFileSize?: number
   cvFileData?: string // base64 (empty if using existing document)
   jobDescriptionText: string
+  jdDocumentId?: string // If provided, use existing JD document
 }
 
 interface AnalyzeSkillGapOutput {
@@ -38,11 +39,42 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
 
   let tempFilePath: string | null = null
   let documentId = input.cvDocumentId
+  let jdDocumentId = input.jdDocumentId
+  let jobDescriptionText = input.jobDescriptionText
 
   try {
-    // Validate job description
-    if (!input.jobDescriptionText || input.jobDescriptionText.trim().length < 10) {
-      return { success: false, error: 'Job description is required and must be at least 10 characters long' }
+    // Handle job description source
+    if (jdDocumentId) {
+      // Use existing JD document
+      console.log('Using existing JD document:', jdDocumentId)
+
+      // Verify JD document exists and belongs to user
+      const { data: jdDocument, error: jdDocError } = await supabase
+        .from('documents')
+        .select('id, document_type, parsed_content')
+        .eq('id', jdDocumentId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (jdDocError || !jdDocument) {
+        return { success: false, error: 'Job description document not found or access denied' }
+      }
+
+      if (jdDocument.document_type !== 'jd') {
+        return { success: false, error: 'Selected document is not a job description' }
+      }
+
+      // Extract job description text from document
+      if (jdDocument.parsed_content?.fullText) {
+        jobDescriptionText = jdDocument.parsed_content.fullText
+      } else {
+        return { success: false, error: 'Job description document has no content' }
+      }
+    } else {
+      // Use provided job description text
+      if (!jobDescriptionText || jobDescriptionText.trim().length < 10) {
+        return { success: false, error: 'Job description is required and must be at least 10 characters long' }
+      }
     }
 
     // Handle CV document
@@ -181,7 +213,8 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
         current_stage: 'skill_gap',
         state: {
           cvDocumentId: documentId,
-          jobDescriptionText: input.jobDescriptionText,
+          jdDocumentId: jdDocumentId,
+          jobDescriptionText: jobDescriptionText,
         },
       })
       .select()
@@ -197,7 +230,7 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
     // Run skill gap analysis workflow
     const result = await skillGapAgent.analyzeSkillGaps(
       documentId,
-      input.jobDescriptionText,
+      jobDescriptionText,
       session.id,
       user.id
     )
@@ -376,6 +409,43 @@ export async function getUserCVDocuments() {
 
     if (error) {
       throw new Error(`Failed to fetch CV documents: ${error.message}`)
+    }
+
+    return {
+      success: true,
+      documents: documents || [],
+      error: null,
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message,
+      documents: [],
+    }
+  }
+}
+
+/**
+ * Get user's JD documents for selection
+ */
+export async function getUserJDDocuments() {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized', documents: [] }
+  }
+
+  try {
+    const { data: documents, error } = await supabase
+      .from('documents')
+      .select('id, original_filename, created_at, metadata')
+      .eq('user_id', user.id)
+      .eq('document_type', 'jd')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to fetch JD documents: ${error.message}`)
     }
 
     return {

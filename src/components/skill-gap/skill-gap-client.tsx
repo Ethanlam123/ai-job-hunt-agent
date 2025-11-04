@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import {
   Loader2, Upload, FileText, CheckCircle2, AlertCircle,
   ThumbsUp, BarChart3, Clock, Target, BookOpen, TrendingUp,
-  AlertTriangle, Info, CheckSquare, Square, XCircle
+  AlertTriangle, Info, CheckSquare, Square, XCircle, Type
 } from "lucide-react";
 import {
   analyzeSkillGaps,
@@ -66,15 +66,18 @@ export function SkillGapClient() {
     short: SkillGap[];
     medium: SkillGap[];
     long: SkillGap[];
-  } | null>(null);
+  } | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   // Form states
   const [selectedDocumentId, setSelectedDocumentId] = useState<string>("");
+  const [selectedJdDocumentId, setSelectedJdDocumentId] = useState<string>("");
   const [jobDescription, setJobDescription] = useState("");
+  const [jdInputTab, setJdInputTab] = useState<'file' | 'text'>('file');
   const [jobDescriptionValidation, setJobDescriptionValidation] = useState<any>(null);
 
+  
   // Clear messages after 5 seconds
   const clearMessages = useCallback(() => {
     setTimeout(() => {
@@ -100,6 +103,18 @@ export function SkillGapClient() {
     validateJobDescriptionText(value);
   };
 
+  const handleJdDocumentSelect = (documentId: string | null) => {
+    setSelectedJdDocumentId(documentId || '');
+    // Clear text input when selecting a document
+    setJobDescription('');
+    setJobDescriptionValidation(null);
+    // Reset to file tab when selecting document
+    if (documentId) {
+      setJdInputTab('file');
+    }
+  };
+
+  
   // Handle skill gap analysis
   const handleAnalyzeSkillGaps = useCallback(async (formData?: FormData) => {
     setIsLoading(true);
@@ -123,13 +138,23 @@ export function SkillGapClient() {
         cvFileSize = cvFile.size;
       }
 
+      // Determine job description source
+      let jobDescriptionText = jobDescription.trim();
+      let jdDocumentId = selectedJdDocumentId || undefined;
+
+      // If using selected JD document, prioritize it over text input
+      if (selectedJdDocumentId && jdInputTab === 'file') {
+        jobDescriptionText = ''; // Let backend fetch from document
+      }
+
       const result = await analyzeSkillGaps({
         cvDocumentId: selectedDocumentId || undefined,
         cvFileName: cvFileName || undefined,
         cvFileType: cvFileType || undefined,
         cvFileSize: cvFileSize || undefined,
         cvFileData: cvFileData || undefined,
-        jobDescriptionText: jobDescription.trim(),
+        jobDescriptionText: jobDescriptionText,
+        jdDocumentId: jdDocumentId,
       });
 
       if (result.success) {
@@ -155,7 +180,7 @@ export function SkillGapClient() {
       setIsLoading(false);
       clearMessages();
     }
-  }, [selectedDocumentId, jobDescription]);
+  }, [selectedDocumentId, selectedJdDocumentId, jobDescription, jdInputTab]);
 
   // Handle skill gap status update
   const handleStatusUpdate = useCallback(async (
@@ -266,8 +291,7 @@ export function SkillGapClient() {
                   <DocumentSelector
                     documentType="cv"
                     selectedDocumentId={selectedDocumentId}
-                    onSelect={setSelectedDocumentId}
-                    onFileUpload={() => {}} // Handled by form submission
+                    onSelect={(documentId) => setSelectedDocumentId(documentId || '')}
                   />
                 </div>
 
@@ -276,14 +300,45 @@ export function SkillGapClient() {
                   <Label htmlFor="jobDescription" className="text-base font-medium">
                     Job Description
                   </Label>
-                  <Textarea
-                    id="jobDescription"
-                    placeholder="Paste the job description here. Include requirements, responsibilities, and qualifications for the best analysis..."
-                    value={jobDescription}
-                    onChange={(e) => handleJobDescriptionChange(e.target.value)}
-                    rows={8}
-                    className="min-h-[200px]"
-                  />
+
+                  <Tabs value={jdInputTab} onValueChange={(value) => setJdInputTab(value as 'file' | 'text')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="file" className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Use Existing JD
+                      </TabsTrigger>
+                      <TabsTrigger value="text" className="flex items-center gap-2">
+                        <Type className="h-4 w-4" />
+                        Enter Text
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="file" className="space-y-3 mt-3">
+                      <DocumentSelector
+                        documentType="jd"
+                        selectedDocumentId={selectedJdDocumentId}
+                        onSelect={handleJdDocumentSelect}
+                        placeholder="Select a job description..."
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="text" className="space-y-3 mt-3">
+                      <Textarea
+                        id="jobDescription"
+                        placeholder="Paste the job description here. Include requirements, responsibilities, and qualifications for the best analysis..."
+                        value={jobDescription}
+                        onChange={(e) => {
+                          handleJobDescriptionChange(e.target.value);
+                          // Clear selected document when typing
+                          if (selectedJdDocumentId) {
+                            setSelectedJdDocumentId('');
+                          }
+                        }}
+                        rows={8}
+                        className="min-h-[200px]"
+                      />
+                    </TabsContent>
+                  </Tabs>
 
                   {/* Job Description Validation */}
                   {jobDescriptionValidation && (
@@ -321,7 +376,7 @@ export function SkillGapClient() {
                 {/* Submit Button */}
                 <Button
                   type="submit"
-                  disabled={isLoading || !jobDescription.trim() || (!selectedDocumentId && !jobDescription)}
+                  disabled={isLoading || (jdInputTab === 'text' && !jobDescription.trim()) || (jdInputTab === 'file' && !selectedJdDocumentId)}
                   className="w-full"
                 >
                   {isLoading ? (
