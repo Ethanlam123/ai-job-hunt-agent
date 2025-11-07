@@ -58,7 +58,7 @@ export const cvEmbeddings = pgTable('cv_embeddings', {
   userId: uuid('user_id').notNull(),
   sectionType: varchar('section_type', { length: 50 }), // 'experience' | 'education' | 'skills' | etc.
   content: text('content'),
-  embedding: vector('embedding', { dimensions: 1536 }), // OpenAI text-embedding-3-small
+  embedding: vector('embedding', { dimensions: 1536 }), // OpenRouter embeddings (1536 dimensions)
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow(),
 })

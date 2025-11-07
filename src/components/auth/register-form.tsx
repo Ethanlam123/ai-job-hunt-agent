@@ -21,8 +21,19 @@ export function RegisterForm() {
 
       if (result?.error) {
         toast.error(result.error)
-      } else {
-        toast.success('Account created successfully!')
+      } else if (result?.success) {
+        toast.success(result.success)
+        // Handle redirect if provided
+        if (result.redirect) {
+          setTimeout(() => {
+            router.push(result.redirect)
+          }, 2000)
+        } else {
+          // Redirect to login page for email confirmation
+          setTimeout(() => {
+            router.push('/login')
+          }, 3000)
+        }
       }
     } catch (error) {
       toast.error('An unexpected error occurred')

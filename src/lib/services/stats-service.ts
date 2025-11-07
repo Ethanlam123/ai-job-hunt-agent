@@ -4,9 +4,7 @@
  * Provides user statistics and metrics for dashboard display
  */
 
-import { db } from '@/lib/db'
-import { sessions, documents, coverLetters, interviewQuestions } from '@/lib/db/schema'
-import { eq, and, isNotNull, sql } from 'drizzle-orm'
+import { createClient } from '@/lib/supabase/server'
 
 export interface UserStats {
   totalSessions: number
@@ -23,53 +21,96 @@ export class StatsService {
    * @returns User statistics
    */
   async getUserStats(userId: string): Promise<UserStats> {
+    const supabase = await createClient()
 
-    // Get total sessions
-    const sessionsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(sessions)
-      .where(eq(sessions.userId, userId))
+    try {
+      // Get total sessions
+      const { data: sessionsData, error: sessionsError } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('user_id', userId)
 
-    const totalSessions = Number(sessionsResult[0]?.count || 0)
+      if (sessionsError) {
+        console.error('Error fetching sessions:', sessionsError)
+        throw sessionsError
+      }
 
-    // Get completed sessions
-    const completedSessionsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(sessions)
-      .where(and(eq(sessions.userId, userId), isNotNull(sessions.completedAt)))
+      const totalSessions = sessionsData?.length || 0
 
-    const completedSessions = Number(completedSessionsResult[0]?.count || 0)
+      // Get completed sessions
+      const { data: completedSessionsData, error: completedSessionsError } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('user_id', userId)
+        .not('completed_at', 'is', null)
 
-    // Get CVs analyzed (documents with type 'cv')
-    const cvsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(documents)
-      .where(and(eq(documents.userId, userId), eq(documents.documentType, 'cv')))
+      if (completedSessionsError) {
+        console.error('Error fetching completed sessions:', completedSessionsError)
+        throw completedSessionsError
+      }
 
-    const cvsAnalyzed = Number(cvsResult[0]?.count || 0)
+      const completedSessions = completedSessionsData?.length || 0
 
-    // Get cover letters generated
-    const coverLettersResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(coverLetters)
-      .where(eq(coverLetters.userId, userId))
+      // Get CVs analyzed (documents with type 'cv')
+      const { data: cvsData, error: cvsError } = await supabase
+        .from('documents')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('document_type', 'cv')
 
-    const coverLettersCount = Number(coverLettersResult[0]?.count || 0)
+      if (cvsError) {
+        console.error('Error fetching CVs:', cvsError)
+        throw cvsError
+      }
 
-    // Get mock interviews (count distinct sessions with interview questions)
-    const interviewsResult = await db
-      .select({ count: sql<number>`count(DISTINCT ${interviewQuestions.sessionId})` })
-      .from(interviewQuestions)
-      .where(eq(interviewQuestions.userId, userId))
+      const cvsAnalyzed = cvsData?.length || 0
 
-    const mockInterviews = Number(interviewsResult[0]?.count || 0)
+      // Get cover letters generated
+      const { data: coverLettersData, error: coverLettersError } = await supabase
+        .from('cover_letters')
+        .select('id')
+        .eq('user_id', userId)
 
-    return {
-      totalSessions,
-      cvsAnalyzed,
-      coverLetters: coverLettersCount,
-      mockInterviews,
-      completedSessions,
+      if (coverLettersError) {
+        console.error('Error fetching cover letters:', coverLettersError)
+        throw coverLettersError
+      }
+
+      const coverLettersCount = coverLettersData?.length || 0
+
+      // Get mock interviews (count distinct sessions with interview questions)
+      const { data: interviewData, error: interviewError } = await supabase
+        .from('interview_questions')
+        .select('session_id')
+        .eq('user_id', userId)
+
+      if (interviewError) {
+        console.error('Error fetching interviews:', interviewError)
+        throw interviewError
+      }
+
+      // Count unique sessions
+      const uniqueSessions = new Set(interviewData?.map(q => q.session_id) || [])
+      const mockInterviews = uniqueSessions.size
+
+      return {
+        totalSessions,
+        cvsAnalyzed,
+        coverLetters: coverLettersCount,
+        mockInterviews,
+        completedSessions,
+      }
+
+    } catch (error) {
+      console.error('StatsService.getUserStats error:', error)
+      // Return default stats on error
+      return {
+        totalSessions: 0,
+        cvsAnalyzed: 0,
+        coverLetters: 0,
+        mockInterviews: 0,
+        completedSessions: 0,
+      }
     }
   }
 
@@ -79,15 +120,27 @@ export class StatsService {
    * @param limit - Number of recent items to fetch
    */
   async getRecentActivity(userId: string, limit: number = 5) {
+    const supabase = await createClient()
 
-    const recentSessions = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.userId, userId))
-      .orderBy(sessions.createdAt)
-      .limit(limit)
+    try {
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
 
-    return recentSessions
+      if (error) {
+        console.error('Error fetching recent activity:', error)
+        throw error
+      }
+
+      return data || []
+
+    } catch (error) {
+      console.error('StatsService.getRecentActivity error:', error)
+      return []
+    }
   }
 
   /**
@@ -95,25 +148,33 @@ export class StatsService {
    * @param userId - User ID
    */
   async getDocumentStats(userId: string) {
+    const supabase = await createClient()
 
-    const stats = await db
-      .select({
-        documentType: documents.documentType,
-        count: sql<number>`count(*)`,
-      })
-      .from(documents)
-      .where(eq(documents.userId, userId))
-      .groupBy(documents.documentType)
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('document_type')
+        .eq('user_id', userId)
 
-    return stats.reduce(
-      (acc, stat) => {
-        if (stat.documentType) {
-          acc[stat.documentType] = Number(stat.count)
-        }
-        return acc
-      },
-      {} as Record<string, number>
-    )
+      if (error) {
+        console.error('Error fetching document stats:', error)
+        throw error
+      }
+
+      return (data || []).reduce(
+        (acc, doc) => {
+          if (doc.document_type) {
+            acc[doc.document_type] = (acc[doc.document_type] || 0) + 1
+          }
+          return acc
+        },
+        {} as Record<string, number>
+      )
+
+    } catch (error) {
+      console.error('StatsService.getDocumentStats error:', error)
+      return {}
+    }
   }
 
   /**
@@ -121,27 +182,49 @@ export class StatsService {
    * @param userId - User ID
    */
   async getInterviewStats(userId: string) {
+    const supabase = await createClient()
 
-    // Total questions
-    const totalQuestionsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(interviewQuestions)
-      .where(eq(interviewQuestions.userId, userId))
+    try {
+      // Total questions
+      const { data: totalQuestionsData, error: totalError } = await supabase
+        .from('interview_questions')
+        .select('id')
+        .eq('user_id', userId)
 
-    const totalQuestions = Number(totalQuestionsResult[0]?.count || 0)
+      if (totalError) {
+        console.error('Error fetching total questions:', totalError)
+        throw totalError
+      }
 
-    // Answered questions
-    const answeredQuestionsResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(interviewQuestions)
-      .where(and(eq(interviewQuestions.userId, userId), isNotNull(interviewQuestions.userAnswer)))
+      const totalQuestions = totalQuestionsData?.length || 0
 
-    const answeredQuestions = Number(answeredQuestionsResult[0]?.count || 0)
+      // Answered questions
+      const { data: answeredQuestionsData, error: answeredError } = await supabase
+        .from('interview_questions')
+        .select('id')
+        .eq('user_id', userId)
+        .not('user_answer', 'is', null)
 
-    return {
-      totalQuestions,
-      answeredQuestions,
-      completionRate: totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0,
+      if (answeredError) {
+        console.error('Error fetching answered questions:', answeredError)
+        throw answeredError
+      }
+
+      const answeredQuestions = answeredQuestionsData?.length || 0
+
+      return {
+        totalQuestions,
+        answeredQuestions,
+        completionRate: totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0,
+      }
+
+    } catch (error) {
+      console.error('StatsService.getInterviewStats error:', error)
+      return {
+        totalQuestions: 0,
+        answeredQuestions: 0,
+        completionRate: 0,
+      }
     }
   }
 }
