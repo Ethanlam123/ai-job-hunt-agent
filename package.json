@@ -14,7 +14,10 @@
     "db:cleanup": "npx tsx scripts/cleanup-database.ts",
     "db:apply-rls": "npx tsx scripts/apply-rls-policies.ts",
     "db:fix-rls": "npx tsx scripts/fix-rls-documents.ts",
-    "db:fix-all-rls": "npx tsx scripts/fix-all-rls-policies.ts"
+    "db:fix-all-rls": "npx tsx scripts/fix-all-rls-policies.ts",
+    "docs:generate": "npx tsx docs/scripts/documentation-generator.ts",
+    "docs:coverage": "npx tsx docs/scripts/docs-coverage-checker.ts",
+    "docs:build": "npm run docs:generate && npm run docs:coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
