@@ -56,7 +56,15 @@
       "Bash(node:*)",
       "Bash(openspec list:*)",
       "Bash(openspec validate:*)",
-      "Bash(openspec show:*)"
+      "Bash(openspec show:*)",
+      "Bash(git count-objects:*)",
+      "Bash(git config:*)",
+      "Bash(git gc:*)",
+      "Bash(git repack:*)",
+      "Bash(ssh:*)",
+      "Skill(security-scanning:sast-configuration)",
+      "mcp__plugin_episodic-memory_episodic-memory__search",
+      "Bash(npx ts-node:*)"
     ],
     "deny": [],
     "ask": []

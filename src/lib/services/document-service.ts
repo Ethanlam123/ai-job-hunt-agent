@@ -10,6 +10,9 @@ const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
   'text/plain',
+  'text/markdown',
+  'text/x-markdown',
+  'text/md',
 ]
 
 export type DocumentType = 'cv' | 'jd' | 'cover_letter'

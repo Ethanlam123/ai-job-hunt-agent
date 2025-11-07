@@ -3,93 +3,156 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { validateAuthFormData } from '@/lib/utils/validation'
+import { checkAuthRateLimit } from '@/lib/services/rate-limit-service'
+import { getClientIpServer } from '@/lib/utils/server-utils'
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  handleError,
+  ERROR_CODES,
+  type StandardResponse
+} from '@/lib/utils/error-response'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+  // Get client IP for rate limiting
+  const clientIp = await getClientIpServer()
+
+  // Check rate limiting for login attempts
+  const rateLimitResult = await checkAuthRateLimit('LOGIN', clientIp)
+  if (!rateLimitResult.success) {
+    return createErrorResponse(
+      ERROR_CODES.RATE_LIMIT_EXCEEDED,
+      'Too many login attempts. Please try again later.',
+      [{
+        message: `Rate limit exceeded. Try again after ${Math.ceil((rateLimitResult.reset.getTime() - Date.now()) / 1000)} seconds`,
+        code: 'RATE_LIMIT_RETRY_AFTER'
+      }]
+    )
   }
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  // Validate and sanitize input
+  const validation = validateAuthFormData(formData)
 
-  if (error) {
-    return { error: error.message }
+  if (!validation.isValid) {
+    return createErrorResponse(
+      ERROR_CODES.INVALID_INPUT_FORMAT,
+      'Validation failed',
+      validation.errors.map(message => ({ message }))
+    )
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: validation.data.email,
+      password: validation.data.password,
+    })
+
+    if (error) {
+      return handleError(error)
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/dashboard')
+
+  } catch (error) {
+    return handleError(error)
+  }
 }
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()
 
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-  const confirmPassword = formData.get('confirm-password') as string
+  // Get client IP for rate limiting
+  const clientIp = await getClientIpServer()
 
-  // Validate input
-  if (!email || !password || !confirmPassword) {
-    return { error: 'All fields are required' }
+  // Check rate limiting for signup attempts
+  const rateLimitResult = await checkAuthRateLimit('SIGNUP', clientIp)
+  if (!rateLimitResult.success) {
+    return createErrorResponse(
+      ERROR_CODES.RATE_LIMIT_EXCEEDED,
+      'Too many signup attempts. Please try again later.',
+      [{
+        message: `Rate limit exceeded. Try again after ${Math.ceil((rateLimitResult.reset.getTime() - Date.now()) / 1000)} seconds`,
+        code: 'RATE_LIMIT_RETRY_AFTER'
+      }]
+    )
   }
 
-  if (password.length < 6) {
-    return { error: 'Password must be at least 6 characters long' }
-  }
+  // Validate and sanitize input
+  const validation = validateAuthFormData(formData)
 
-  if (password !== confirmPassword) {
-    return { error: 'Passwords do not match' }
+  if (!validation.isValid) {
+    return createErrorResponse(
+      ERROR_CODES.INVALID_INPUT_FORMAT,
+      'Validation failed',
+      validation.errors.map(message => ({ message }))
+    )
   }
 
   try {
-    const data = {
-      email,
-      password,
-    }
-
     const { data: signUpData, error } = await supabase.auth.signUp({
-      ...data,
+      email: validation.data.email,
+      password: validation.data.password,
       options: {
         emailRedirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/callback`
       }
     })
 
     if (error) {
-      console.error('Sign-up error:', error)
-      return { error: error.message }
+      return handleError(error)
     }
 
-    console.log('Sign-up success:', signUpData)
+    // Log success without sensitive user data in production
+    if (process.env.NODE_ENV === 'production') {
+      console.log('New user registration successful')
+    } else {
+      console.log('Sign-up success:', signUpData)
+    }
 
     // Check if user needs email confirmation
     if (signUpData.user && !signUpData.user.email_confirmed_at) {
       revalidatePath('/', 'layout')
-      return { success: 'Account created successfully! Please check your email to verify your account.' }
+      return createSuccessResponse(
+        { email: validation.data.email },
+        'Account created successfully! Please check your email to verify your account.'
+      )
     } else if (signUpData.user && signUpData.user.email_confirmed_at) {
       // User is automatically confirmed, redirect to dashboard
       revalidatePath('/', 'layout')
-      return { success: 'Account created successfully! Redirecting to dashboard...', redirect: '/dashboard' }
+      return createSuccessResponse(
+        { redirect: '/dashboard' },
+        'Account created successfully! Redirecting to dashboard...'
+      )
     } else {
       revalidatePath('/', 'layout')
-      return { success: 'Account created successfully! Please check your email to verify your account.' }
+      return createSuccessResponse(
+        { email: validation.data.email },
+        'Account created successfully! Please check your email to verify your account.'
+      )
     }
 
-  } catch (err) {
-    console.error('Unexpected sign-up error:', err)
-    return { error: 'An unexpected error occurred during sign-up' }
+  } catch (error) {
+    return handleError(error)
   }
 }
 
 export async function signout() {
   const supabase = await createClient()
 
-  const { error } = await supabase.auth.signOut()
+  try {
+    const { error } = await supabase.auth.signOut()
 
-  if (error) {
-    return { error: error.message }
+    if (error) {
+      return handleError(error)
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/login')
+
+  } catch (error) {
+    return handleError(error)
   }
-
-  revalidatePath('/', 'layout')
-  redirect('/login')
 }

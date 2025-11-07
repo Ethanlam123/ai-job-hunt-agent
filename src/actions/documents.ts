@@ -6,7 +6,14 @@ import type { DocumentType } from '@/lib/types'
 import { DocumentParser } from '@/lib/services/document-parser'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-const ALLOWED_FILE_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+const ALLOWED_FILE_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'text/markdown',
+  'text/x-markdown',
+  'text/md'
+]
 
 export async function uploadDocument(formData: FormData) {
   const supabase = await createClient()
@@ -137,7 +144,9 @@ export async function uploadDocument(formData: FormData) {
 
   // Validate file type
   if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-    return { error: 'Invalid file type. Only PDF, DOCX, and TXT files are allowed' }
+    return {
+      error: `Invalid file type "${file.type}". Allowed file types are: PDF, DOCX, TXT, and Markdown files (.md)`
+    }
   }
 
   try {

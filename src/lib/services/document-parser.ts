@@ -1,7 +1,7 @@
 /**
  * Document Parsing Service
  *
- * Extracts text content from PDF and DOCX files using LangChain document loaders.
+ * Extracts text content from PDF, DOCX, TXT, and Markdown files using LangChain document loaders.
  * This service is used to parse uploaded CVs and job descriptions for AI analysis.
  */
 
@@ -37,6 +37,9 @@ export class DocumentParser {
         return this.parseDOCX(buffer)
       case 'txt':
         return this.parseTXT(buffer)
+      case 'md':
+      case 'markdown':
+        return this.parseMarkdown(buffer)
       default:
         throw new Error(`Unsupported file format: ${ext}`)
     }
@@ -143,6 +146,34 @@ export class DocumentParser {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       throw new Error(`TXT parsing failed: ${message}`)
+    }
+  }
+
+  /**
+   * Parse Markdown file (text/markdown - no loader needed)
+   */
+  private async parseMarkdown(buffer: Buffer): Promise<ParsedDocument> {
+    try {
+      const text = buffer.toString('utf-8')
+
+      // Create a Document object for consistency with other loaders
+      const document = new Document({
+        pageContent: text,
+        metadata: {
+          source: 'markdown-file',
+        },
+      })
+
+      return {
+        text,
+        documents: [document],
+        metadata: {
+          wordCount: this.countWords(text),
+        },
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Markdown parsing failed: ${message}`)
     }
   }
 

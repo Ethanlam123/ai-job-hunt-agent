@@ -1,6 +1,6 @@
 ## Context
 
-The code review revealed several critical security vulnerabilities and performance issues that need immediate attention. The current authentication system lacks proper input validation, has information disclosure issues in error logging, and suffers from N+1 query patterns that will impact performance at scale.
+The code review revealed several critical security vulnerabilities and performance issues that need immediate attention. The current authentication system lacks proper input validation, has information disclosure issues in error logging, suffers from N+1 query patterns that will impact performance at scale, and has a missing storage infrastructure causing "Bucket not found" errors for file uploads.
 
 ## Goals / Non-Goals
 
@@ -10,6 +10,8 @@ The code review revealed several critical security vulnerabilities and performan
 - Achieve 80% test coverage for authentication and stats services
 - Implement proper rate limiting to prevent abuse
 - Create maintainable, testable code architecture
+- Establish complete storage infrastructure for file uploads
+- Enable Markdown file support for CV generation functionality
 
 **Non-Goals:**
 - Complete rewrite of existing authentication system
@@ -43,6 +45,22 @@ The code review revealed several critical security vulnerabilities and performan
   - Materialized views (over-engineering for current scale)
   - Database connection pooling (helps but doesn't fix N+1 issue)
 
+**Decision 4: MCP-Driven Storage Setup**
+- **What**: Use Supabase MCP to create and configure storage infrastructure
+- **Why**: Direct database access through MCP enables precise infrastructure setup
+- **Alternatives considered**:
+  - Manual dashboard setup (prone to human error)
+  - External migration scripts (additional complexity)
+  - Delayed setup (blocks core functionality)
+
+**Decision 5: Extended File Type Support**
+- **What**: Add Markdown file support alongside existing PDF/DOCX/TXT support
+- **Why**: Enables CV generation workflow with proper file type handling
+- **Alternatives considered**:
+  - Force all generated files to PDF (complex conversion)
+  - Use plain text only (loses formatting)
+  - No file saving functionality (breaks user workflow)
+
 ## Risks / Trade-offs
 
 **Risk**: Breaking existing authentication flows during security fixes
@@ -68,13 +86,19 @@ The code review revealed several critical security vulnerabilities and performan
 3. Implement dependency injection pattern
 4. Performance test and validate improvements
 
-**Phase 3: Testing and Documentation (Days 5-7)**
+**Phase 3: Storage Infrastructure Setup (Days 4-5)**
+1. Use Supabase MCP to create documents storage bucket
+2. Configure RLS policies for secure file access
+3. Add Markdown file support throughout application
+4. Create verification and monitoring scripts
+
+**Phase 4: Testing and Documentation (Days 5-7)**
 1. Create comprehensive test suite
 2. Add API documentation
 3. Security testing and validation
 4. Final deployment and monitoring
 
-**Rollback Plan**: Each phase can be independently rolled back by reverting the specific commits. Database schema changes are backward compatible.
+**Rollback Plan**: Each phase can be independently rolled back by reverting the specific commits. Database schema changes are backward compatible. Storage bucket configuration can be modified without breaking existing functionality.
 
 ## Open Questions
 
