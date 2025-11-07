@@ -44,6 +44,13 @@ npm run start        # Start production server
 
 # Code Quality
 npm run lint         # Run ESLint
+npm run lint:strict  # Run ESLint with strict rules
+npm run format       # Format code with Prettier
+npm run type-check   # Run TypeScript type checking
+npm run test         # Run test suite
+npm run test:e2e     # Run end-to-end tests
+npm run test:integration # Run integration tests
+npm run test:security # Run security tests
 
 # Database Management
 npm run db:generate  # Generate Drizzle migrations
@@ -124,14 +131,28 @@ lib/
 │   ├── document-parser.ts         # PDF/DOCX/TXT parsing service
 │   ├── llm-service.ts             # LLM integration service
 │   ├── skill-gap-service.ts       # Skill gap analysis business logic
+│   ├── database-service.ts        # Enhanced database service with connection pooling
+│   ├── vector-search-service.ts   # Optimized vector search with caching
 │   └── ...                       # Other services
+├── config/             # Configuration management
+│   ├── app-config.ts              # Centralized app configuration
+│   └── database.ts                # Database configuration and connection settings
+├── repositories/       # Repository pattern for data access
+│   ├── base.repository.ts         # Base repository with CRUD operations
+│   ├── user.repository.ts         # User-specific repository
+│   └── document.repository.ts     # Document-specific repository
 ├── prompts/            # LLM prompt templates
 │   └── skill-gap-prompts.ts       # Skill gap analysis prompts
 ├── supabase/           # Supabase utilities
 │   ├── server.ts                 # Server-side Supabase client
 │   └── middleware.ts             # Auth middleware
 ├── utils/              # Helper functions
-└── types/              # TypeScript types
+│   ├── error-handler.ts           # Centralized error handling
+│   └── logger.ts                  # Environment-aware logging
+├── types/              # TypeScript types
+│   └── database.ts                # Database type definitions
+└── api/                # API documentation utilities
+    └── documentation.ts           # JSDoc-based API documentation
 
 actions/                # Server Actions ('use server')
 ├── documents.ts        # Document upload, fetch, delete operations
@@ -144,7 +165,72 @@ scripts/               # Database management scripts
 ├── apply-rls-policies.ts        # Apply RLS policies
 ├── fix-rls-documents.ts         # Fix document RLS policies
 ├── fix-all-rls-policies.ts      # Fix all RLS policies
-└── cleanup-database.ts          # Clean database
+├── cleanup-database.ts          # Clean database
+├── test-storage-upload.js       # Storage upload diagnostic script
+└── setup-storage-bucket.sql     # Storage bucket setup SQL
+```
+
+## Code Quality and Development Standards
+
+### Strict Configuration
+
+The project uses strict TypeScript and ESLint configuration for maximum code quality:
+
+- **TypeScript**: `tsconfig.strict.json` with strict null checks, no implicit any, and comprehensive type safety
+- **ESLint**: `.eslintrc.strict.json` with security rules, performance optimization, and code consistency
+- **Prettier**: `.prettierrc.strict.json` with consistent formatting standards
+
+### Repository Pattern
+
+Data access is implemented through the repository pattern for separation of concerns:
+
+```typescript
+// Example: Using the document repository
+import { DocumentRepository } from '@/lib/repositories/document.repository'
+
+const documentRepo = new DocumentRepository(supabase)
+const documents = await documentRepo.findByUserId(userId)
+```
+
+### Error Handling
+
+Centralized error handling provides consistent error responses:
+
+```typescript
+import { ErrorHandler, ApplicationError } from '@/lib/utils/error-handler'
+
+const error = new ApplicationError(
+  'Document upload failed',
+  'UPLOAD_ERROR',
+  { fileName, fileSize }
+)
+```
+
+### Testing Strategy
+
+Comprehensive test coverage includes:
+
+- **Integration Tests**: Database operations, connection pooling, transactions
+- **E2E Tests**: Complete user workflows (registration, document upload, CV analysis)
+- **Security Tests**: Authentication bypass prevention, data leakage detection
+- **Unit Tests**: Individual service and repository methods
+
+### Configuration Management
+
+All application constants and magic numbers are centralized in `src/lib/config/app-config.ts`:
+
+```typescript
+export const APP_CONFIG = {
+  FILE_UPLOAD: {
+    MAX_SIZE_MB: 10,
+    ALLOWED_TYPES: ['application/pdf', 'text/plain'],
+  },
+  CACHE: {
+    DEFAULT_TTL: 3600,
+    USER_PREFIX: 'user:',
+  },
+  // ... other configurations
+}
 ```
 
 ## Critical Security Requirements
@@ -276,6 +362,9 @@ LANGCHAIN_API_KEY=
 TAVILY_API_KEY=  # For web search
 ```
 
+**Configuration Management:**
+Most application settings are centralized in `src/lib/config/app-config.ts` rather than scattered throughout the codebase. Use environment variables only for external service credentials and deployment-specific settings.
+
 **Note:** `.env.example` incorrectly includes `UPSTASH_REDIS_*` and `INNGEST_*` variables. These should be removed as they are not used in the final architecture (we use PostgreSQL for caching and background jobs).
 
 ## Implementation Guidelines
@@ -288,6 +377,35 @@ TAVILY_API_KEY=  # For web search
 - Browser-only APIs
 
 Mark Client Components with `'use client'` directive at the top of the file.
+
+### Enhanced Database Service
+
+For complex database operations, use the enhanced database service with connection pooling:
+
+```typescript
+import { EnhancedDatabaseService } from '@/lib/services/database-service'
+
+const dbService = new EnhancedDatabaseService(supabase)
+
+// Use connection pooling for better performance
+const result = await dbService.query('SELECT * FROM documents WHERE user_id = $1', [userId])
+
+// Batch operations for improved performance
+const documents = await dbService.batchInsert(docsArray)
+```
+
+### Vector Search Service
+
+Use the optimized vector search service for embedding operations:
+
+```typescript
+import { VectorSearchService } from '@/lib/services/vector-search-service'
+
+const vectorService = new VectorSearchService(supabase)
+
+// Generate and search embeddings with caching
+const results = await vectorService.findSimilarDocuments(queryEmbedding, userId)
+```
 
 ### Server Actions Pattern
 
@@ -415,13 +533,46 @@ The most recently implemented feature provides comprehensive skill gap analysis:
 
 ## Testing
 
-The project includes comprehensive testing documentation in `TESTING.md` which covers:
-- Document upload and preview functionality
+The project includes a comprehensive test suite covering all critical functionality:
+
+### Test Categories
+
+- **Integration Tests** (`src/__tests__/integration/`): Database operations, connection pooling, transactions, and vector search
+- **E2E Tests** (`src/__tests__/e2e/`): Complete user workflows including registration, document upload, CV analysis, and skill gap analysis
+- **Security Tests** (`src/__tests__/security/`): Authentication bypass prevention, data leakage detection, and input validation
+
+### Running Tests
+
+```bash
+npm run test              # Run all tests
+npm run test:e2e          # Run end-to-end tests only
+npm run test:integration  # Run integration tests only
+npm run test:security     # Run security tests only
+```
+
+### Test Coverage Areas
+
+- Document upload and preview functionality with proper error handling
 - CV analysis workflow (existing vs new documents)
 - Skill gap analysis with timeline organization and status tracking
 - Cover letter generation with document reuse
 - Interview preparation with document integration
-- Database RLS policy testing
+- Database RLS policy testing and security validation
+- Storage upload authentication and permission handling
+
+### Storage Upload Testing
+
+Use the diagnostic script to troubleshoot file upload issues:
+
+```bash
+node scripts/test-storage-upload.js
+```
+
+This script tests:
+- Bucket existence and configuration
+- RLS policy enforcement
+- File path structure validation
+- Authentication requirements
 
 ## Reference Documentation
 

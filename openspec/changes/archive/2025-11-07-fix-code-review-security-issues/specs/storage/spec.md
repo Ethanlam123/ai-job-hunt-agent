@@ -1,5 +1,39 @@
 # Storage Infrastructure Specification
 
+## ADDED Requirements
+
+### Requirement: Enhanced File Upload Error Handling
+The system SHALL provide specific error messages for file upload authentication failures and guide users to resolve issues.
+
+#### Scenario: 403 Forbidden error handling
+- **WHEN** an unauthenticated user attempts to upload a file
+- **THEN** the system SHALL return "Authentication required. Please log in to upload documents."
+
+#### Scenario: RLS policy violation handling
+- **WHEN** a file upload violates Row Level Security policies
+- **THEN** the system SHALL return "Upload failed: Authentication required. Please log in again to upload files."
+
+#### Scenario: Permission denied handling
+- **WHEN** a user lacks proper permissions for file upload
+- **THEN** the system SHALL return "Upload failed: Permission denied. Please ensure you are logged in and try again."
+
+## MODIFIED Requirements
+
+### Requirement: Storage Upload Diagnostic Tool
+The system SHALL provide a comprehensive diagnostic tool for troubleshooting file upload issues.
+
+#### Scenario: Storage bucket verification
+- **WHEN** a developer runs the diagnostic script
+- **THEN** the system SHALL verify bucket existence, RLS policies, and authentication requirements
+
+#### Scenario: File path structure validation
+- **WHEN** diagnosing upload issues
+- **THEN** the system SHALL validate that file paths follow the `userId/filename.ext` format
+
+#### Scenario: Error code guidance
+- **WHEN** displaying upload errors
+- **THEN** the system SHALL provide specific guidance for each error type (403, RLS violations, etc.)
+
 ## Overview
 
 This specification covers the implementation of Supabase Storage infrastructure to support file uploads in the AI Job Hunt Agent system. The storage system enables users to upload CVs, job descriptions, and generated documents with proper security and access controls.

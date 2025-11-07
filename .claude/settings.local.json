@@ -64,7 +64,9 @@
       "Bash(ssh:*)",
       "Skill(security-scanning:sast-configuration)",
       "mcp__plugin_episodic-memory_episodic-memory__search",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "mcp__supabase__list_migrations",
+      "Bash(openspec archive:*)"
     ],
     "deny": [],
     "ask": []
