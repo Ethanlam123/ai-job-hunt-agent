@@ -52,17 +52,42 @@ export function JobDescriptionSelector({
     try {
       const result = await getUserDocuments()
       if (result.success && result.documents) {
+        console.log('All documents loaded:', result.documents.map(doc => ({
+          id: doc.id,
+          type: doc.document_type,
+          filename: doc.original_filename
+        })))
+
         // Filter for job descriptions from all features
-        const jobDescriptions = result.documents.filter(doc =>
-          doc.document_type === 'job_description' ||
-          doc.original_filename.toLowerCase().includes('job') ||
-          doc.original_filename.toLowerCase().includes('position') ||
-          doc.original_filename.toLowerCase().includes('role') ||
-          // Also include documents from other features that might be job descriptions
-          doc.document_type === 'cover_letter_jd' ||
-          doc.document_type === 'interview_jd' ||
-          doc.document_type === 'skill_gap_jd'
-        )
+        const jobDescriptions = result.documents.filter(doc => {
+          const filename = doc.original_filename.toLowerCase();
+          const docType = doc.document_type;
+
+          // Debug logging for each document
+          console.log(`Filtering document: ${doc.original_filename} (type: ${docType})`);
+
+          // Check if it's a job description by multiple criteria
+          const isJobDescType = docType === 'jd' || docType === 'job_description';
+          const isJobDescFilename = filename.includes('job') ||
+                                   filename.includes('position') ||
+                                   filename.includes('role') ||
+                                   filename.includes('description') ||
+                                   filename.includes('posting') ||
+                                   filename.includes('opportunity');
+          const isFromOtherFeature = docType === 'cover_letter_jd' ||
+                                    docType === 'interview_jd' ||
+                                    docType === 'skill_gap_jd';
+
+          const isJobDescription = isJobDescType || isJobDescFilename || isFromOtherFeature;
+
+          if (isJobDescription) {
+            console.log(`✅ Found job description: ${doc.original_filename}`);
+          }
+
+          return isJobDescription;
+        })
+
+        console.log(`Total job descriptions found: ${jobDescriptions.length}`);
         setDocuments(jobDescriptions)
       }
     } catch (error) {
@@ -82,8 +107,11 @@ export function JobDescriptionSelector({
   }
 
   const getDocumentSource = (doc: Document) => {
+    const filename = doc.original_filename.toLowerCase();
+
     switch (doc.document_type) {
       case 'job_description':
+      case 'jd':
         return 'Direct upload'
       case 'cover_letter_jd':
         return 'From cover letters'
@@ -92,7 +120,11 @@ export function JobDescriptionSelector({
       case 'skill_gap_jd':
         return 'From skill analysis'
       default:
-        return 'Other'
+        // Try to infer from filename
+        if (filename.includes('job') || filename.includes('position') || filename.includes('role')) {
+          return 'Job description file'
+        }
+        return 'Document'
     }
   }
 
