@@ -23,8 +23,18 @@ export async function uploadDocument(formData: FormData) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return { error: 'Unauthorized' }
+    console.error('Authentication error:', { authError, user })
+    return {
+      error: 'Authentication required. Please log in to upload documents.',
+      code: 'AUTH_REQUIRED'
+    }
   }
+
+  console.log('Upload attempt:', {
+    userId: user.id,
+    formDataKeys: Array.from(formData.keys()),
+    userAuthenticated: true,
+  })
 
   const file = formData.get('file') as File
   const jdText = formData.get('jdText') as string
@@ -186,10 +196,38 @@ export async function uploadDocument(formData: FormData) {
       .upload(fileName, buffer, {
         contentType: file.type,
         upsert: false,
+        cacheControl: '3600',
+        metadata: {
+          uploadedBy: 'server-action',
+          userId: user.id,
+          originalName: file.name,
+        },
       })
 
     if (uploadError) {
-      return { error: `Upload failed: ${uploadError.message}` }
+      console.error('Storage upload error:', {
+        error: uploadError,
+        fileName,
+        fileSize: file.size,
+        mimeType: file.type,
+        userId: user.id,
+        bucketId: 'documents',
+      })
+
+      // Provide more specific error messages based on error type
+      if (uploadError.message?.includes('Forbidden') || uploadError.message?.includes('403')) {
+        return { error: 'Upload failed: Permission denied. Please ensure you are logged in and try again.' }
+      } else if (uploadError.message?.includes('row-level security policy')) {
+        return { error: 'Upload failed: Authentication required. Please log in again to upload files.' }
+      } else if (uploadError.message?.includes('Bucket not found')) {
+        return { error: 'Upload failed: Storage system is not properly configured. Please contact support.' }
+      } else if (uploadError.message?.includes('File too large')) {
+        return { error: `Upload failed: File is too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.` }
+      } else if (uploadError.message?.includes('Invalid file type')) {
+        return { error: `Upload failed: File type "${file.type}" is not supported. Allowed types: PDF, DOCX, TXT, and Markdown.` }
+      } else {
+        return { error: `Upload failed: ${uploadError.message}` }
+      }
     }
 
     // Create enhanced metadata

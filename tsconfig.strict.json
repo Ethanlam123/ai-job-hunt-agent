@@ -1,0 +1,134 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /**
+     * Type Checking Options
+     */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+
+    /**
+     * Additional Type Safety
+     */
+    "noImplicitAnyStrict": true,
+    "useUnknownInCatchVariables": true,
+    "noImplicitAnyForCatchParameters": true,
+    "noImplicitAnyGeneric": true,
+    "noImplicitAnyForArguments": true,
+    "strictBuiltinIteratorReturn": true,
+    "strictGenericChecks": true,
+    "strictNullOutputGenerics": true,
+
+    /**
+     * Module Resolution
+     */
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "moduleSynthes": true,
+    "resolveJsonModule": true,
+
+    /**
+     * Emit Options
+     */
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "removeComments": false,
+    "importHelpers": false,
+
+    /**
+     * Advanced Options
+     */
+    "skipLibCheck": false,
+    "skipDefaultLibCheck": false,
+    "assumeChangesOnlyAffectDirectDependencies": false,
+    "disableSourceOfProjectReferenceRedirect": false,
+    "disableSolutionSearching": false,
+    "disableReferencedProjectLoad": false,
+
+    /**
+     * Language and Environment
+     */
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "preserve",
+    "allowJs": false,
+    "checkJs": false,
+
+    /**
+     * Output Formatting
+     */
+    "pretty": true,
+    "newLine": "lf",
+    "stripInternal": false,
+    "emitBOM": false,
+    "charset": "utf8",
+
+    /**
+     * Completeness
+     */
+    "maxNodeModuleJsDepth": 2,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/actions/*": ["./src/actions/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/config/*": ["./src/config/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/store/*": ["./src/store/*"],
+      "@/assets/*": ["./src/assets/*"],
+      "@/styles/*": ["./src/styles/*"],
+      "@/tests/*": ["./src/__tests__/*"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "types/**/*",
+    "__tests__/**/*",
+    "scripts/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out",
+    "dist",
+    "build",
+    "coverage",
+    ".cache",
+    ".turbo",
+    ".vercel",
+    "**/*.d.ts.map",
+    "**/*.js.map",
+    "**/*.min.js",
+    "**/*.bundle.js",
+    "public",
+    ".env.local",
+    ".env.*.local"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
+}
