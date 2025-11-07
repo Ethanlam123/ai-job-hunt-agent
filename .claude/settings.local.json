@@ -68,7 +68,9 @@
       "mcp__supabase__list_migrations",
       "Bash(openspec archive:*)",
       "Bash(git rm:*)",
-      "Bash(openspec:*)"
+      "Bash(openspec:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run)"
     ],
     "deny": [],
     "ask": []

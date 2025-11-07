@@ -7,9 +7,21 @@ interface CVState {
   userId: string
   sessionId: string
   documentId: string
+  jobDescriptionId?: string
   cvContent: any
-  analysis: any
-  improvements: any[]
+  jobDescriptionContent?: any
+  analysis: {
+    general: any
+    jobSpecific?: any
+  }
+  improvements: {
+    general: any[]
+    jobSpecific: any[]
+  }
+  scores: {
+    overall: number
+    jobFit?: number
+  }
   approvalStatus: 'pending' | 'approved' | 'rejected'
   error?: string
 }
@@ -38,14 +50,25 @@ export class CVAgent {
   /**
    * Main CV analysis workflow - sequential execution
    */
-  async analyzeCV(documentId: string, sessionId: string, userId: string): Promise<CVState> {
+  async analyzeCV(documentId: string, sessionId: string, userId: string, jobDescriptionId?: string): Promise<CVState> {
     const state: CVState = {
       userId,
       sessionId,
       documentId,
+      jobDescriptionId,
       cvContent: null,
-      analysis: null,
-      improvements: [],
+      analysis: {
+        general: null,
+        jobSpecific: undefined,
+      },
+      improvements: {
+        general: [],
+        jobSpecific: [],
+      },
+      scores: {
+        overall: 0,
+        jobFit: undefined,
+      },
       approvalStatus: 'pending',
     }
 
@@ -60,6 +83,18 @@ export class CVAgent {
         return state
       }
 
+      // Step 1.5: Parse Job Description (if provided)
+      if (state.jobDescriptionId) {
+        console.log('Step 1.5: Parsing Job Description...')
+        const jdParsedState = await this.parseJobDescriptionNode(state)
+        Object.assign(state, jdParsedState)
+
+        if (state.error) {
+          await this.saveResultsNode(state)
+          return state
+        }
+      }
+
       // Step 2: Analyze structure
       console.log('Step 2: Analyzing structure...')
       const analyzedState = await this.analyzeStructureNode(state)
@@ -70,6 +105,18 @@ export class CVAgent {
         return state
       }
 
+      // Step 2.5: Analyze job requirements (if job description provided)
+      if (state.jobDescriptionContent) {
+        console.log('Step 2.5: Analyzing job requirements...')
+        const jobAnalyzedState = await this.analyzeJobRequirementsNode(state)
+        Object.assign(state, jobAnalyzedState)
+
+        if (state.error) {
+          await this.saveResultsNode(state)
+          return state
+        }
+      }
+
       // Step 3: Identify improvements
       console.log('Step 3: Identifying improvements...')
       const improvementsState = await this.identifyImprovementsNode(state)
@@ -78,6 +125,30 @@ export class CVAgent {
       if (state.error) {
         await this.saveResultsNode(state)
         return state
+      }
+
+      // Step 3.5: Generate job-specific improvements (if job description provided)
+      if (state.jobDescriptionContent) {
+        console.log('Step 3.5: Generating job-specific improvements...')
+        const jobImprovementsState = await this.generateJobSpecificImprovementsNode(state)
+        Object.assign(state, jobImprovementsState)
+
+        if (state.error) {
+          await this.saveResultsNode(state)
+          return state
+        }
+      }
+
+      // Step 3.75: Calculate job-fit score (if job description provided)
+      if (state.jobDescriptionContent) {
+        console.log('Step 3.75: Calculating job-fit score...')
+        const scoreState = await this.calculateJobFitScoreNode(state)
+        Object.assign(state, scoreState)
+
+        if (state.error) {
+          await this.saveResultsNode(state)
+          return state
+        }
       }
 
       // Step 4: Save results
@@ -120,6 +191,39 @@ export class CVAgent {
       }
     } catch (error: any) {
       console.error('Parse CV node error:', error)
+      return { error: error.message }
+    }
+  }
+
+  /**
+   * Node 1.5: Parse Job Description from database
+   */
+  private async parseJobDescriptionNode(state: CVState): Promise<Partial<CVState>> {
+    try {
+      if (!state.jobDescriptionId) {
+        return {}
+      }
+
+      const document = await this.documentService.getDocument(
+        state.jobDescriptionId,
+        state.userId
+      )
+
+      if (!document) {
+        return { error: 'Job description document not found' }
+      }
+
+      // Use parsed_content from database
+      const jobDescriptionContent = document.parsed_content || {
+        fullText: 'No parsed content available',
+        pageCount: 0,
+      }
+
+      return {
+        jobDescriptionContent,
+      }
+    } catch (error: any) {
+      console.error('Parse job description node error:', error)
       return { error: error.message }
     }
   }
@@ -172,7 +276,12 @@ export class CVAgent {
       }
 
       return {
-        analysis,
+        analysis: {
+          general: analysis,
+        },
+        scores: {
+          overall: analysis.overallScore || 0,
+        },
       }
     } catch (error: any) {
       console.error('Analyze structure node error:', error)
@@ -189,7 +298,7 @@ export class CVAgent {
         return {} // Skip if there's an error
       }
 
-      const prompt = CVPrompts.identifyImprovements(state.cvContent, state.analysis)
+      const prompt = CVPrompts.identifyImprovements(state.cvContent, state.analysis.general)
       console.log('Identify Improvements - Sending prompt to LLM...')
       const response = await this.llm.invoke(prompt)
       console.log('Identify Improvements - LLM raw response:', response)
@@ -232,12 +341,308 @@ export class CVAgent {
       }
 
       return {
-        improvements: improvementsData.improvements || [],
+        improvements: {
+          general: improvementsData.improvements || [],
+          jobSpecific: [],
+        },
       }
     } catch (error: any) {
       console.error('Identify improvements node error:', error)
       return { error: error.message }
     }
+  }
+
+  /**
+   * Node 2.5: Analyze job requirements using LLM
+   */
+  private async analyzeJobRequirementsNode(state: CVState): Promise<Partial<CVState>> {
+    try {
+      if (state.error || !state.jobDescriptionContent) {
+        return {} // Skip if there's an error or no job description
+      }
+
+      const prompt = this.analyzeJobRequirementsPrompt(state.jobDescriptionContent)
+      console.log('Analyze Job Requirements - Sending prompt to LLM...')
+      const response = await this.llm.invoke(prompt)
+      console.log('Analyze Job Requirements - LLM raw response:', response)
+
+      // Parse LLM response
+      let jobAnalysis
+      try {
+        const content = typeof response.content === 'string'
+          ? response.content
+          : JSON.stringify(response.content)
+
+        console.log('Analyze Job Requirements - Response content:', content)
+
+        const cleanContent = content
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim()
+
+        console.log('Analyze Job Requirements - Cleaned content:', cleanContent)
+
+        jobAnalysis = JSON.parse(cleanContent)
+        console.log('Analyze Job Requirements - Parsed successfully:', jobAnalysis)
+      } catch (parseError) {
+        console.error('Failed to parse job requirements analysis:', parseError)
+        // Fallback job analysis
+        jobAnalysis = {
+          requiredSkills: [],
+          experienceLevel: 'Not specified',
+          keyResponsibilities: [],
+          mustHaveQualifications: [],
+          niceToHaveQualifications: [],
+        }
+        console.log('Using fallback job analysis data')
+      }
+
+      return {
+        analysis: {
+          ...state.analysis,
+          jobSpecific: jobAnalysis,
+        },
+      }
+    } catch (error: any) {
+      console.error('Analyze job requirements node error:', error)
+      return { error: error.message }
+    }
+  }
+
+  /**
+   * Node 3.5: Generate job-specific improvements using LLM
+   */
+  private async generateJobSpecificImprovementsNode(state: CVState): Promise<Partial<CVState>> {
+    try {
+      if (state.error || !state.jobDescriptionContent || !state.analysis.jobSpecific) {
+        return {} // Skip if there's an error, no job description, or no job analysis
+      }
+
+      const prompt = this.generateJobSpecificImprovementsPrompt(state.cvContent, state.analysis.jobSpecific)
+      console.log('Generate Job-Specific Improvements - Sending prompt to LLM...')
+      const response = await this.llm.invoke(prompt)
+      console.log('Generate Job-Specific Improvements - LLM raw response:', response)
+
+      // Parse LLM response
+      let jobImprovementsData
+      try {
+        const content = typeof response.content === 'string'
+          ? response.content
+          : JSON.stringify(response.content)
+
+        console.log('Generate Job-Specific Improvements - Response content:', content)
+
+        const cleanContent = content
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim()
+
+        console.log('Generate Job-Specific Improvements - Cleaned content:', cleanContent)
+
+        jobImprovementsData = JSON.parse(cleanContent)
+        console.log('Generate Job-Specific Improvements - Parsed successfully:', jobImprovementsData)
+      } catch (parseError) {
+        console.error('Failed to parse job-specific improvements:', parseError)
+        // Fallback job improvements
+        jobImprovementsData = {
+          improvements: [
+            {
+              id: 'job-fallback-1',
+              type: 'edit',
+              section: 'skills',
+              priority: 'high',
+              title: 'Add job-specific keywords',
+              description: 'Include keywords from the job description',
+              reasoning: 'Keywords help with applicant tracking systems',
+              jobContext: 'Matches job requirements',
+            },
+          ],
+        }
+        console.log('Using fallback job improvements data')
+      }
+
+      return {
+        improvements: {
+          ...state.improvements,
+          jobSpecific: jobImprovementsData.improvements || [],
+        },
+      }
+    } catch (error: any) {
+      console.error('Generate job-specific improvements node error:', error)
+      return { error: error.message }
+    }
+  }
+
+  /**
+   * Node 3.75: Calculate job-fit score using LLM
+   */
+  private async calculateJobFitScoreNode(state: CVState): Promise<Partial<CVState>> {
+    try {
+      if (state.error || !state.jobDescriptionContent || !state.analysis.jobSpecific) {
+        return {} // Skip if there's an error, no job description, or no job analysis
+      }
+
+      const prompt = this.calculateJobFitScorePrompt(state.cvContent, state.analysis.jobSpecific)
+      console.log('Calculate Job-Fit Score - Sending prompt to LLM...')
+      const response = await this.llm.invoke(prompt)
+      console.log('Calculate Job-Fit Score - LLM raw response:', response)
+
+      // Parse LLM response
+      let scoreData
+      try {
+        const content = typeof response.content === 'string'
+          ? response.content
+          : JSON.stringify(response.content)
+
+        console.log('Calculate Job-Fit Score - Response content:', content)
+
+        const cleanContent = content
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim()
+
+        console.log('Calculate Job-Fit Score - Cleaned content:', cleanContent)
+
+        scoreData = JSON.parse(cleanContent)
+        console.log('Calculate Job-Fit Score - Parsed successfully:', scoreData)
+      } catch (parseError) {
+        console.error('Failed to parse job-fit score:', parseError)
+        // Fallback score calculation
+        scoreData = {
+          jobFitScore: 50,
+          keywordMatch: 50,
+          experienceAlignment: 50,
+          skillsCoverage: 50,
+          overallCompatibility: 50,
+        }
+        console.log('Using fallback job-fit score data')
+      }
+
+      return {
+        scores: {
+          ...state.scores,
+          jobFit: scoreData.jobFitScore || 50,
+        },
+      }
+    } catch (error: any) {
+      console.error('Calculate job-fit score node error:', error)
+      return { error: error.message }
+    }
+  }
+
+  /**
+   * Helper: Generate job requirements analysis prompt
+   */
+  private analyzeJobRequirementsPrompt(jobContent: any): string {
+    return `
+Analyze this job description and extract the following information in JSON format:
+
+{
+  "requiredSkills": ["skill1", "skill2", ...],
+  "experienceLevel": "entry/mid/senior/executive",
+  "keyResponsibilities": ["responsibility1", "responsibility2", ...],
+  "mustHaveQualifications": ["qualification1", "qualification2", ...],
+  "niceToHaveQualifications": ["qualification1", "qualification2", ...],
+  "companyCulture": ["culture1", "culture2", ...],
+  "technicalSkills": ["tech1", "tech2", ...],
+  "softSkills": ["soft1", "soft2", ...]
+}
+
+Job Description:
+${jobContent.fullText || jobContent}
+
+Provide only valid JSON as your response.
+`
+  }
+
+  /**
+   * Helper: Generate job-specific improvements prompt
+   */
+  private generateJobSpecificImprovementsPrompt(cvContent: any, jobRequirements: any): string {
+    return `
+Compare this CV against the job requirements and suggest specific improvements to make the CV more tailored to this position. Provide suggestions in JSON format:
+
+{
+  "improvements": [
+    {
+      "id": "unique-id",
+      "type": "edit|add|remove",
+      "section": "summary|experience|skills|education",
+      "priority": "high|medium|low",
+      "title": "Brief improvement title",
+      "description": "Detailed description of the improvement",
+      "reasoning": "Why this improvement matters for this job",
+      "jobContext": "Specific connection to job requirements",
+      "suggestedText": "Optional: suggested text to add/modify"
+    }
+  ]
+}
+
+CV Content:
+${cvContent.fullText || cvContent}
+
+Job Requirements:
+${JSON.stringify(jobRequirements, null, 2)}
+
+Focus on:
+1. Missing keywords from the job description
+2. Experience that should be rehighlighted
+3. Skills that need more emphasis
+4. Achievements that align with job responsibilities
+5. Summary statement optimization
+
+Provide only valid JSON as your response.
+`
+  }
+
+  /**
+   * Helper: Generate job-fit score calculation prompt
+   */
+  private calculateJobFitScorePrompt(cvContent: any, jobRequirements: any): string {
+    return `
+Calculate a job-fit score (0-100) for this CV against the job requirements. Provide detailed scoring breakdown in JSON format:
+
+{
+  "jobFitScore": 85,
+  "keywordMatch": 90,
+  "experienceAlignment": 80,
+  "skillsCoverage": 85,
+  "overallCompatibility": 85,
+  "missingKeywords": ["keyword1", "keyword2"],
+  "highlightedExperience": ["experience1", "experience2"],
+  "scoreBreakdown": {
+    "keywordMatch": {
+      "score": 90,
+      "matched": ["skill1", "skill2"],
+      "missing": ["skill3"]
+    },
+    "experienceAlignment": {
+      "score": 80,
+      "aligned": ["experience1"],
+      "gaps": ["experience2"]
+    },
+    "skillsCoverage": {
+      "score": 85,
+      "covered": ["skill1", "skill2"],
+      "missing": ["skill3"]
+    }
+  }
+}
+
+Scoring criteria:
+- Keyword matching: 40% - How well CV matches job description keywords
+- Experience alignment: 30% - How well CV experience matches job requirements
+- Skills coverage: 20% - How many required skills are present in CV
+- Overall compatibility: 10% - General fit for the role
+
+CV Content:
+${cvContent.fullText || cvContent}
+
+Job Requirements:
+${JSON.stringify(jobRequirements, null, 2)}
+
+Provide only valid JSON as your response.
+`
   }
 
   /**
@@ -260,6 +665,22 @@ export class CVAgent {
         return {}
       }
 
+      // Update session with job description and analysis type
+      const analysisType = state.jobDescriptionId ? 'job_enhanced' : 'general'
+      await this.supabase
+        .from('sessions')
+        .update({
+          job_description_id: state.jobDescriptionId || null,
+          analysis_type: analysisType,
+          state: {
+            ...state,
+            documentId: state.documentId,
+            jobDescriptionId: state.jobDescriptionId,
+          },
+        })
+        .eq('id', state.sessionId)
+        .eq('user_id', state.userId)
+
       // Save successful analysis to tasks table
       const { error: taskError } = await this.supabase.from('tasks').insert({
         session_id: state.sessionId,
@@ -269,10 +690,15 @@ export class CVAgent {
         result: {
           analysis: state.analysis,
           improvements: state.improvements,
+          scores: state.scores,
           documentId: state.documentId,
+          jobDescriptionId: state.jobDescriptionId,
+          analysisType,
         },
         metadata: {
           documentId: state.documentId,
+          jobDescriptionId: state.jobDescriptionId,
+          analysisType,
           timestamp: new Date().toISOString(),
         },
       })
@@ -282,15 +708,26 @@ export class CVAgent {
       }
 
       // Create approval records for each improvement
-      if (state.improvements && state.improvements.length > 0) {
-        const approvalRecords = state.improvements.map((improvement) => ({
+      const allImprovements = [
+        ...(state.improvements.general || []).map(imp => ({ ...imp, improvementType: 'general' })),
+        ...(state.improvements.jobSpecific || []).map(imp => ({ ...imp, improvementType: 'job_specific' }))
+      ]
+
+      if (allImprovements.length > 0) {
+        const approvalRecords = allImprovements.map((improvement, index) => ({
           session_id: state.sessionId,
           user_id: state.userId,
           document_id: state.documentId,
           change_type: improvement.type || 'edit',
           original_content: { text: improvement.originalContent || null },
-          proposed_content: improvement,
+          proposed_content: {
+            ...improvement,
+            improvementType: improvement.improvementType,
+            jobContext: improvement.jobContext || null,
+          },
           status: 'pending',
+          priority: improvement.priority || 'medium',
+          sort_order: improvement.improvementType === 'job_specific' ? index : index + 1000, // Job-specific first
         }))
 
         const { error: approvalError } = await this.supabase

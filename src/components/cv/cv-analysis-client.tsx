@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Upload, FileText, CheckCircle2, AlertCircle, ThumbsUp, ThumbsDown, Sparkles, BarChart3 } from "lucide-react";
+import { Loader2, Upload, FileText, CheckCircle2, AlertCircle, ThumbsUp, ThumbsDown, Sparkles, BarChart3, BriefcaseIcon, ArrowRightIcon } from "lucide-react";
 import {
   uploadAndAnalyzeCV,
   getAnalysisResults,
@@ -16,6 +16,7 @@ import {
 } from "@/actions/cv";
 import { getDocumentById } from "@/actions/documents";
 import { DocumentSelector } from "@/components/documents/document-selector";
+import { JobDescriptionSelector } from "@/components/documents/job-description-selector";
 import { ApprovalSummary } from "./approval-summary";
 
 interface AnalysisData {
@@ -86,6 +87,31 @@ export function CVAnalysisClient() {
   const [processingApprovals, setProcessingApprovals] = useState<Set<string>>(new Set());
   const [summary, setSummary] = useState<ApprovalSummaryData | null>(null);
 
+  // New state for job description
+  const [selectedJobDescriptionId, setSelectedJobDescriptionId] = useState<string | null>(null);
+  const [includeJobDescription, setIncludeJobDescription] = useState<boolean>(false);
+  const [scores, setScores] = useState<{ overall: number; jobFit?: number } | null>(null);
+
+  // State for tab interface
+  const [activeResultsTab, setActiveResultsTab] = useState<'general' | 'jobSpecific' | 'combined'>('combined');
+
+  // Separate improvements by type
+  const generalImprovements = improvements.filter(imp => !imp.improvementType || imp.improvementType === 'general');
+  const jobSpecificImprovements = improvements.filter(imp => imp.improvementType === 'job_specific');
+
+  // Filter improvements based on active tab
+  const getFilteredImprovements = () => {
+    switch (activeResultsTab) {
+      case 'general':
+        return generalImprovements;
+      case 'jobSpecific':
+        return jobSpecificImprovements;
+      case 'combined':
+      default:
+        return improvements;
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && selectedFile.type === "application/pdf") {
@@ -147,7 +173,10 @@ export function CVAnalysisClient() {
       }
 
       // Upload and trigger the full CV analysis workflow
-      const workflowResult = await uploadAndAnalyzeCV(fileData);
+      const workflowResult = await uploadAndAnalyzeCV({
+        ...fileData,
+        jobDescriptionId: includeJobDescription ? selectedJobDescriptionId : undefined,
+      });
 
       if (!workflowResult.success) {
         throw new Error(workflowResult.error || 'Workflow failed');
@@ -161,8 +190,19 @@ export function CVAnalysisClient() {
       // Try to use data from workflow result first (it's already available)
       if (workflowResult.analysis) {
         console.log('Using analysis from workflow result');
-        setAnalysis(workflowResult.analysis);
-        setImprovements(workflowResult.improvements || []);
+        // Handle new structure - get general analysis
+        const generalAnalysis = workflowResult.analysis?.general || workflowResult.analysis;
+        setAnalysis(generalAnalysis);
+
+        // Combine improvements from general and job-specific
+        const allImprovements = [
+          ...(workflowResult.improvements?.general || []),
+          ...(workflowResult.improvements?.jobSpecific || [])
+        ];
+        setImprovements(allImprovements);
+
+        // Set scores
+        setScores(workflowResult.scores || { overall: 0 });
       } else {
         // Fallback: Fetch the analysis results from database
         console.log('Fetching analysis results from database...');
@@ -171,8 +211,21 @@ export function CVAnalysisClient() {
 
         if (analysisResponse.success && analysisResponse.results?.result) {
           console.log('Setting analysis:', analysisResponse.results.result.analysis);
-          setAnalysis(analysisResponse.results.result.analysis);
-          setImprovements(analysisResponse.results.result.improvements || []);
+          const result = analysisResponse.results.result;
+
+          // Handle new structure
+          const generalAnalysis = result.analysis?.general || result.analysis;
+          setAnalysis(generalAnalysis);
+
+          // Combine improvements
+          const allImprovements = [
+            ...(result.improvements?.general || []),
+            ...(result.improvements?.jobSpecific || [])
+          ];
+          setImprovements(allImprovements);
+
+          // Set scores
+          setScores(result.scores || { overall: 0 });
         } else {
           console.warn('No analysis results found or invalid structure:', analysisResponse);
           throw new Error('Failed to retrieve analysis results');
@@ -318,20 +371,76 @@ export function CVAnalysisClient() {
               </TabsContent>
             </Tabs>
 
+            {/* Job Description Selection - Optional */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <BriefcaseIcon className="w-5 h-5 text-muted-foreground" />
+                  <h3 className="text-sm font-medium">Job Description (Optional)</h3>
+                  <Badge variant="secondary" className="text-xs">
+                    Enhanced Analysis
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIncludeJobDescription(!includeJobDescription)}
+                  className="text-xs"
+                >
+                  {includeJobDescription ? 'Remove' : 'Add'}
+                </Button>
+              </div>
+
+              {includeJobDescription ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Add a job description to get tailored improvements and a job-fit score
+                  </p>
+                  <JobDescriptionSelector
+                    onSelect={setSelectedJobDescriptionId}
+                    selectedDocumentId={selectedJobDescriptionId}
+                    label="Job Description"
+                    placeholder="Select a job description for enhanced analysis"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <ArrowRightIcon className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      Add a job description for tailored improvements
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIncludeJobDescription(true)}
+                  >
+                    Add Job Description
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <Button
               onClick={handleAnalyze}
-              disabled={(uploadMode === 'new' && !file) || (uploadMode === 'existing' && !selectedDocumentId) || isProcessing}
+              disabled={
+                (uploadMode === 'new' && !file) ||
+                (uploadMode === 'existing' && !selectedDocumentId) ||
+                (includeJobDescription && !selectedJobDescriptionId) ||
+                isProcessing
+              }
               className="w-full"
             >
               {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing CV with AI...
+                  {includeJobDescription ? 'Analyzing CV with Job Context...' : 'Analyzing CV with AI...'}
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Analyze CV
+                  {includeJobDescription ? 'Analyze CV + Job Fit' : 'Analyze CV'}
                 </>
               )}
             </Button>
@@ -353,9 +462,14 @@ export function CVAnalysisClient() {
             <div className="flex flex-col items-center justify-center space-y-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
               <div className="text-center space-y-2">
-                <h3 className="text-lg font-semibold">Analyzing Your CV</h3>
+                <h3 className="text-lg font-semibold">
+                  {includeJobDescription ? 'Analyzing CV with Job Context' : 'Analyzing Your CV'}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Our AI is reviewing your CV and generating personalized improvement suggestions...
+                  {includeJobDescription
+                    ? 'Our AI is reviewing your CV against the job requirements and generating tailored improvements...'
+                    : 'Our AI is reviewing your CV and generating personalized improvement suggestions...'
+                  }
                 </p>
               </div>
             </div>
@@ -392,37 +506,122 @@ export function CVAnalysisClient() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Overall Score */}
-              <div className="flex items-center gap-4 p-4 bg-muted rounded-md">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Overall Score</p>
-                  <p className="text-4xl font-bold">{analysis.overallScore}/100</p>
+              {/* Scores - Comparison View */}
+              {scores?.jobFit !== undefined ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {/* CV Quality Score */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400">CV Quality Score</p>
+                      <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{scores.overall}/100</p>
+                    </div>
+                    <div className="w-20 h-20 mx-auto mt-2">
+                      <svg className="w-full h-full" viewBox="0 0 100 100">
+                        <circle
+                          className="text-blue-200 dark:text-blue-800 stroke-current"
+                          strokeWidth="8"
+                          cx="50"
+                          cy="50"
+                          r="36"
+                          fill="transparent"
+                        />
+                        <circle
+                          className="text-blue-600 dark:text-blue-400 stroke-current"
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          cx="50"
+                          cy="50"
+                          r="36"
+                          fill="transparent"
+                          strokeDasharray={`${2 * Math.PI * 36}`}
+                          strokeDashoffset={`${2 * Math.PI * 36 * (1 - scores.overall / 100)}`}
+                          transform="rotate(-90 50 50)"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Job Fit Score */}
+                  <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-md border border-green-200 dark:border-green-800">
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-green-600 dark:text-green-400">Job Fit Score</p>
+                      <p className="text-3xl font-bold text-green-700 dark:text-green-300">{scores.jobFit}/100</p>
+                    </div>
+                    <div className="w-20 h-20 mx-auto mt-2">
+                      <svg className="w-full h-full" viewBox="0 0 100 100">
+                        <circle
+                          className="text-green-200 dark:text-green-800 stroke-current"
+                          strokeWidth="8"
+                          cx="50"
+                          cy="50"
+                          r="36"
+                          fill="transparent"
+                        />
+                        <circle
+                          className="text-green-600 dark:text-green-400 stroke-current"
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          cx="50"
+                          cy="50"
+                          r="36"
+                          fill="transparent"
+                          strokeDasharray={`${2 * Math.PI * 36}`}
+                          strokeDashoffset={`${2 * Math.PI * 36 * (1 - scores.jobFit / 100)}`}
+                          transform="rotate(-90 50 50)"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-24 h-24">
-                  <svg className="w-full h-full" viewBox="0 0 100 100">
-                    <circle
-                      className="text-muted stroke-current"
-                      strokeWidth="10"
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="transparent"
-                    />
-                    <circle
-                      className="text-primary stroke-current"
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="transparent"
-                      strokeDasharray={`${2 * Math.PI * 40}`}
-                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - analysis.overallScore / 100)}`}
-                      transform="rotate(-90 50 50)"
-                    />
-                  </svg>
+              ) : (
+                /* Single Score View */
+                <div className="flex items-center gap-4 p-4 bg-muted rounded-md">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground">Overall Score</p>
+                    <p className="text-4xl font-bold">{analysis.overallScore}/100</p>
+                  </div>
+                  <div className="w-24 h-24">
+                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                      <circle
+                        className="text-muted stroke-current"
+                        strokeWidth="10"
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                      />
+                      <circle
+                        className="text-primary stroke-current"
+                        strokeWidth="10"
+                        strokeLinecap="round"
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="transparent"
+                        strokeDasharray={`${2 * Math.PI * 40}`}
+                        strokeDashoffset={`${2 * Math.PI * 40 * (1 - analysis.overallScore / 100)}`}
+                        transform="rotate(-90 50 50)"
+                      />
+                    </svg>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Job Fit Explanation */}
+              {scores?.jobFit !== undefined && (
+                <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-md border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BriefcaseIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <h4 className="font-medium text-green-800 dark:text-green-200">Job Match Analysis</h4>
+                  </div>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    Your CV has been analyzed against the specific job requirements. The job-fit score indicates how well your CV matches the position's requirements, including keywords, experience alignment, and skills coverage.
+                  </p>
+                  <div className="mt-3 text-xs text-green-600 dark:text-green-400">
+                    💡 Look for job-specific improvements in the suggestions below to optimize your CV for this position.
+                  </div>
+                </div>
+              )}
 
               {/* Strengths */}
               {analysis.strengths && analysis.strengths.length > 0 && (
@@ -472,25 +671,194 @@ export function CVAnalysisClient() {
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="space-y-2">
-                {approvals.length > 0 ? (
-                  <Button
-                    onClick={() => setCurrentStep('approvals')}
-                    className="w-full"
-                  >
-                    Review {approvals.length} Improvement{approvals.length > 1 ? 's' : ''}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleViewSummary}
-                    className="w-full"
-                  >
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    View Approval Summary
-                  </Button>
-                )}
-              </div>
+              {/* Results Interface - Tab System */}
+              {jobSpecificImprovements.length > 0 ? (
+                <div className="space-y-4">
+                  {/* Tab Navigation */}
+                  <Tabs value={activeResultsTab} onValueChange={(value) => setActiveResultsTab(value as any)}>
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="general" className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        General ({generalImprovements.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="jobSpecific" className="flex items-center gap-2">
+                        <BriefcaseIcon className="w-4 h-4" />
+                        Job-Specific ({jobSpecificImprovements.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="combined" className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" />
+                        Combined ({improvements.length})
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Tab Content */}
+                    <TabsContent value="general" className="space-y-4 mt-4">
+                      <div className="text-sm text-muted-foreground">
+                        General CV improvements focusing on structure, formatting, and overall presentation.
+                      </div>
+                      <div className="space-y-3">
+                        {generalImprovements.map((improvement, index) => (
+                          <Card key={index} className="border-l-4 border-l-blue-500">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-sm">{improvement.title}</h4>
+                                  <p className="text-xs text-muted-foreground mt-1">Section: {improvement.section}</p>
+                                  <p className="text-sm mt-2">{improvement.description}</p>
+                                </div>
+                                <Badge className={getPriorityColor(improvement.priority)}>
+                                  {improvement.priority}
+                                </Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                        {generalImprovements.length === 0 && (
+                          <p className="text-center text-muted-foreground py-4">No general improvements available</p>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="jobSpecific" className="space-y-4 mt-4">
+                      <div className="text-sm text-muted-foreground">
+                        Job-specific improvements tailored to the selected job description to maximize your match.
+                      </div>
+                      <div className="space-y-3">
+                        {jobSpecificImprovements.map((improvement, index) => (
+                          <Card key={index} className="border-l-4 border-l-green-500">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-sm">{improvement.title}</h4>
+                                  <p className="text-xs text-muted-foreground mt-1">Section: {improvement.section}</p>
+                                  <p className="text-sm mt-2">{improvement.description}</p>
+                                  {improvement.jobContext && (
+                                    <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs text-green-700 dark:text-green-300">
+                                      <strong>Job Context:</strong> {improvement.jobContext}
+                                    </div>
+                                  )}
+                                </div>
+                                <Badge className={getPriorityColor(improvement.priority)}>
+                                  {improvement.priority}
+                                </Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                        {jobSpecificImprovements.length === 0 && (
+                          <p className="text-center text-muted-foreground py-4">No job-specific improvements available</p>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="combined" className="space-y-4 mt-4">
+                      <div className="text-sm text-muted-foreground">
+                        All improvements combined, with job-specific suggestions shown first for priority.
+                      </div>
+                      <div className="space-y-3">
+                        {getFilteredImprovements().map((improvement, index) => (
+                          <Card key={index} className={`border-l-4 ${
+                            improvement.improvementType === 'job_specific'
+                              ? 'border-l-green-500'
+                              : 'border-l-blue-500'
+                          }`}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-medium text-sm">{improvement.title}</h4>
+                                    {improvement.improvementType === 'job_specific' && (
+                                      <Badge variant="secondary" className="text-xs">Job-Specific</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">Section: {improvement.section}</p>
+                                  <p className="text-sm mt-2">{improvement.description}</p>
+                                  {improvement.jobContext && (
+                                    <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs text-green-700 dark:text-green-300">
+                                      <strong>Job Context:</strong> {improvement.jobContext}
+                                    </div>
+                                  )}
+                                </div>
+                                <Badge className={getPriorityColor(improvement.priority)}>
+                                  {improvement.priority}
+                                </Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                        {getFilteredImprovements().length === 0 && (
+                          <p className="text-center text-muted-foreground py-4">No improvements available</p>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    {approvals.length > 0 ? (
+                      <Button
+                        onClick={() => setCurrentStep('approvals')}
+                        className="w-full"
+                      >
+                        Review {approvals.length} Improvement{approvals.length > 1 ? 's' : ''}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleViewSummary}
+                        className="w-full"
+                      >
+                        <BarChart3 className="mr-2 h-4 w-4" />
+                        View Approval Summary
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Single View - No Job Context */
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    {improvements.map((improvement, index) => (
+                      <Card key={index}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{improvement.title}</h4>
+                              <p className="text-xs text-muted-foreground mt-1">Section: {improvement.section}</p>
+                              <p className="text-sm mt-2">{improvement.description}</p>
+                            </div>
+                            <Badge className={getPriorityColor(improvement.priority)}>
+                              {improvement.priority}
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {improvements.length === 0 && (
+                      <p className="text-center text-muted-foreground py-4">No improvements available</p>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    {approvals.length > 0 ? (
+                      <Button
+                        onClick={() => setCurrentStep('approvals')}
+                        className="w-full"
+                      >
+                        Review {approvals.length} Improvement{approvals.length > 1 ? 's' : ''}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleViewSummary}
+                        className="w-full"
+                      >
+                        <BarChart3 className="mr-2 h-4 w-4" />
+                        View Approval Summary
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
           )}
@@ -530,16 +898,25 @@ export function CVAnalysisClient() {
                 const priority = improvement?.priority || 'medium';
                 const description = improvement?.description || 'No description available';
                 const reasoning = improvement?.reasoning || 'No reasoning provided';
+                const jobContext = improvement?.jobContext || improvement?.job_context || null;
+                const improvementType = improvement?.improvementType || improvement?.improvement_type || null;
 
                 // Check if this approval is being processed
                 const isProcessing = processingApprovals.has(approval.id);
 
                 return (
-                  <Card key={approval.id} className={`border-2 transition-opacity ${isProcessing ? 'opacity-60' : ''}`}>
+                  <Card key={approval.id} className={`border-2 transition-opacity ${isProcessing ? 'opacity-60' : ''} ${
+                    improvementType === 'job_specific' ? 'border-l-green-500' : ''
+                  }`}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-base">{title}</CardTitle>
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-base">{title}</CardTitle>
+                            {improvementType === 'job_specific' && (
+                              <Badge variant="secondary" className="text-xs">Job-Specific</Badge>
+                            )}
+                          </div>
                           <CardDescription className="mt-1">
                             Section: {section}
                           </CardDescription>
@@ -559,6 +936,13 @@ export function CVAnalysisClient() {
                         <p className="text-sm font-medium mb-1">Reasoning:</p>
                         <p className="text-sm text-muted-foreground">{reasoning}</p>
                       </div>
+
+                      {jobContext && (
+                        <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-md border border-green-200 dark:border-green-800">
+                          <p className="text-sm font-medium mb-1 text-green-700 dark:text-green-300">Job Context:</p>
+                          <p className="text-sm text-green-600 dark:text-green-400">{jobContext}</p>
+                        </div>
+                      )}
 
                       {isProcessing ? (
                         <div className="flex items-center justify-center gap-2 p-4 bg-muted rounded-md">

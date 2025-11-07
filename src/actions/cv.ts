@@ -152,6 +152,7 @@ export async function uploadAndAnalyzeCV(input: {
   fileSize: number
   fileData: string // base64 (empty string if using existing document)
   documentId?: string // If provided, use existing document instead of uploading
+  jobDescriptionId?: string // Optional job description for enhanced analysis
 }) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -266,7 +267,7 @@ export async function uploadAndAnalyzeCV(input: {
     if (!documentId) {
       return { success: false, error: 'Document ID is required' }
     }
-    return await triggerCVAnalysisWorkflow(documentId)
+    return await triggerCVAnalysisWorkflow(documentId, input.jobDescriptionId)
   } catch (error: any) {
     console.error('Upload and analyze error:', error)
     return {
@@ -288,7 +289,7 @@ export async function uploadAndAnalyzeCV(input: {
 /**
  * Trigger CV analysis workflow using CV Agent
  */
-export async function triggerCVAnalysisWorkflow(documentId: string) {
+export async function triggerCVAnalysisWorkflow(documentId: string, jobDescriptionId?: string) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -297,13 +298,29 @@ export async function triggerCVAnalysisWorkflow(documentId: string) {
   }
 
   try {
+    // Validate job description if provided
+    if (jobDescriptionId) {
+      const { data: jdDocument, error: jdError } = await supabase
+        .from('documents')
+        .select('id')
+        .eq('id', jobDescriptionId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (jdError || !jdDocument) {
+        return { success: false, error: 'Job description not found or access denied' }
+      }
+    }
+
     // Create or get session
     const { data: session, error: sessionError } = await supabase
       .from('sessions')
       .insert({
         user_id: user.id,
         current_stage: 'cv_analysis',
-        state: { documentId },
+        state: { documentId, jobDescriptionId },
+        job_description_id: jobDescriptionId || null,
+        analysis_type: jobDescriptionId ? 'job_enhanced' : 'general',
       })
       .select()
       .single()
@@ -316,7 +333,7 @@ export async function triggerCVAnalysisWorkflow(documentId: string) {
     const cvAgent = new CVAgent(supabase)
 
     // Run analysis workflow
-    const result = await cvAgent.analyzeCV(documentId, session.id, user.id)
+    const result = await cvAgent.analyzeCV(documentId, session.id, user.id, jobDescriptionId)
 
     // Revalidate paths
     revalidatePath('/cv-analysis')
@@ -327,6 +344,7 @@ export async function triggerCVAnalysisWorkflow(documentId: string) {
       sessionId: session.id,
       analysis: result.analysis,
       improvements: result.improvements,
+      scores: result.scores,
       error: result.error,
     }
   } catch (error: any) {
