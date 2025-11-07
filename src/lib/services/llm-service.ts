@@ -4,10 +4,17 @@
  * Provides unified interface for Language Model operations using:
  * - OpenRouter API (for GPT-4/GPT-5 via compatible endpoint)
  * - OpenAI API (for embeddings: text-embedding-3-small)
+ * - LangSmith tracing for monitoring and debugging
  */
 
 import { ChatOpenAI } from '@langchain/openai'
 import { OpenAIEmbeddings } from '@langchain/openai'
+import { initializeLangSmith, getLangSmithStatus, LangSmithUtils } from '@/lib/config/langsmith'
+
+// Initialize LangSmith tracing when service is imported
+if (typeof window === 'undefined') {
+  initializeLangSmith()
+}
 
 /**
  * Create LLM instance using OpenRouter
@@ -28,7 +35,7 @@ export function createLLM(options?: {
     throw new Error('OPENROUTER_API_KEY environment variable is not set')
   }
 
-  return new ChatOpenAI({
+  const llm = new ChatOpenAI({
     model,
     temperature,
     maxTokens,
@@ -41,6 +48,49 @@ export function createLLM(options?: {
       },
     },
   })
+
+  // Log LangSmith status when creating LLM
+  const status = getLangSmithStatus()
+  if (status.enabled) {
+    console.log(`🔍 LLM created with LangSmith tracing enabled (project: ${status.project})`)
+  }
+
+  return llm
+}
+
+/**
+ * LLM invocation with enhanced tracing
+ */
+export async function invokeLLM(
+  llm: any,
+  prompt: string | any[],
+  options?: {
+    runName?: string
+    metadata?: Record<string, any>
+  }
+) {
+  const { runName = 'LLM Invocation', metadata = {} } = options || {}
+
+  // Add LangSmith tracing if enabled
+  return await LangSmithUtils.createRun(
+    runName,
+    { prompt: typeof prompt === 'string' ? prompt.slice(0, 200) + '...' : 'Array of messages', metadata },
+    async () => {
+      const startTime = Date.now()
+
+      try {
+        const result = await llm.invoke(prompt)
+        const duration = Date.now() - startTime
+
+        console.log(`✅ LLM call completed in ${duration}ms`)
+        return result
+      } catch (error) {
+        const duration = Date.now() - startTime
+        console.error(`❌ LLM call failed after ${duration}ms:`, error)
+        throw error
+      }
+    }
+  )
 }
 
 /**
