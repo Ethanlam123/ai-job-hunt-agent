@@ -303,7 +303,7 @@ export class CVAgent {
       const response = await this.llm.invoke(prompt)
       console.log('Identify Improvements - LLM raw response:', response)
 
-      // Parse LLM response
+      // Parse LLM response with improved error handling
       let improvementsData
       try {
         const content = typeof response.content === 'string'
@@ -312,32 +312,107 @@ export class CVAgent {
 
         console.log('Identify Improvements - Response content:', content)
 
-        const cleanContent = content
-          .replace(/```json\n?/g, '')
+        // More aggressive content cleaning
+        let cleanContent = content
+          .replace(/```json\n?/g, '') // Remove markdown code blocks
           .replace(/```\n?/g, '')
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+          .replace(/\s+/g, ' ') // Normalize whitespace
           .trim()
 
-        console.log('Identify Improvements - Cleaned content:', cleanContent)
+        console.log('Identify Improvements - Cleaned content length:', cleanContent.length)
 
-        improvementsData = JSON.parse(cleanContent)
-        console.log('Identify Improvements - Parsed successfully:', improvementsData)
+        // Try to parse the cleaned JSON
+        try {
+          improvementsData = JSON.parse(cleanContent)
+          console.log('Identify Improvements - Parsed successfully:', improvementsData)
+        } catch (firstParseError: unknown) {
+          console.warn('First parse attempt failed, trying additional cleaning:', firstParseError instanceof Error ? firstParseError.message : String(firstParseError))
+
+          // Try more aggressive cleaning
+          cleanContent = cleanContent
+            .replace(/,\s*}/g, '}') // Remove trailing commas
+            .replace(/,\s*]/g, ']') // Remove trailing commas in arrays
+            .replace(/\n/g, '\\n') // Escape newlines
+            .replace(/\t/g, '\\t') // Escape tabs
+
+          improvementsData = JSON.parse(cleanContent)
+          console.log('Identify Improvements - Parsed after additional cleaning:', improvementsData)
+        }
+
+        // Validate the structure
+        if (!improvementsData || !improvementsData.improvements || !Array.isArray(improvementsData.improvements)) {
+          throw new Error('Invalid JSON structure: missing improvements array')
+        }
+
+        // Validate each improvement item
+        improvementsData.improvements = improvementsData.improvements.filter((imp: any, index: number) => {
+          const isValid = imp && typeof imp === 'object' && imp.id && imp.type && imp.title
+          if (!isValid) {
+            console.warn(`Filtering out invalid improvement at index ${index}:`, imp)
+          }
+          return isValid
+        })
+
+        if (improvementsData.improvements.length === 0) {
+          throw new Error('No valid improvements found after filtering')
+        }
+
       } catch (parseError) {
         console.error('Failed to parse improvements:', parseError)
         console.error('Raw content that failed to parse:', typeof response.content === 'string' ? response.content : JSON.stringify(response.content))
-        improvementsData = {
-          improvements: [
-            {
-              id: 'fallback-1',
-              type: 'edit',
-              section: 'general',
-              priority: 'medium',
-              title: 'Review and enhance',
-              description: 'Manual review recommended',
-              reasoning: 'Automatic analysis incomplete',
-            },
-          ],
+
+        // Try to extract improvements using regex as last resort
+        try {
+          const content = typeof response.content === 'string' ? response.content : JSON.stringify(response.content)
+          const improvementsMatch = content.match(/\[\s*\{[\s\S]*\}\s*\]/)
+          if (improvementsMatch) {
+            const extractedJson = JSON.parse(improvementsMatch[0])
+            if (Array.isArray(extractedJson) && extractedJson.length > 0) {
+              improvementsData = { improvements: extractedJson }
+              console.log('Identify Improvements - Successfully extracted improvements using regex fallback')
+            } else {
+              throw new Error('Extracted data is not a valid improvements array')
+            }
+          } else {
+            throw new Error('Could not extract improvements array from response')
+          }
+        } catch (extractError: unknown) {
+          console.warn('Regex extraction also failed, using structured fallback:', extractError instanceof Error ? extractError.message : String(extractError))
+
+          improvementsData = {
+            improvements: [
+              {
+                id: 'fallback-1',
+                type: 'edit',
+                section: 'summary',
+                priority: 'high',
+                title: 'Add Professional Summary',
+                description: 'Add a concise 2-3 sentence professional summary highlighting your key qualifications and career goals.',
+                reasoning: 'A professional summary helps recruiters quickly understand your background and career objectives.',
+              },
+              {
+                id: 'fallback-2',
+                type: 'edit',
+                section: 'skills',
+                priority: 'high',
+                title: 'Organize Technical Skills',
+                description: 'Categorize and format your technical skills clearly with proficiency levels where applicable.',
+                reasoning: 'Well-organized skills make it easier for recruiters to assess your technical qualifications.',
+              },
+              {
+                id: 'fallback-3',
+                type: 'edit',
+                section: 'experience',
+                priority: 'medium',
+                title: 'Quantify Achievements',
+                description: 'Add specific metrics and achievements to your work experience where possible.',
+                reasoning: 'Quantified results demonstrate the impact of your work more effectively.',
+              },
+            ],
+          }
+          console.log('Using structured fallback improvements data')
         }
-        console.log('Using fallback improvements data')
       }
 
       return {
@@ -722,12 +797,12 @@ Provide only valid JSON as your response.
           original_content: { text: improvement.originalContent || null },
           proposed_content: {
             ...improvement,
-            improvementType: improvement.improvementType,
+            improvementType: improvement.type === 'job_specific' ? 'job_specific' : 'general', // Derive improvementType
             jobContext: improvement.jobContext || null,
           },
           status: 'pending',
-          priority: improvement.priority || 'medium',
-          sort_order: improvement.improvementType === 'job_specific' ? index : index + 1000, // Job-specific first
+          priority: this.mapPriority(improvement.priority),
+          sort_order: improvement.type === 'job_specific' ? index : index + 1000, // Job-specific first
         }))
 
         const { error: approvalError } = await this.supabase
@@ -786,6 +861,25 @@ Provide only valid JSON as your response.
     }
 
     return data
+  }
+
+  /**
+   * Map improvement priority to database-allowed priority values
+   */
+  private mapPriority(priority: string): 'high' | 'medium' | 'low' {
+    switch (priority?.toLowerCase()) {
+      case 'critical':
+      case 'urgent':
+        return 'high'
+      case 'low':
+      case 'nice-to-have':
+        return 'low'
+      case 'medium':
+      case 'important':
+      case 'normal':
+      default:
+        return 'medium'
+    }
   }
 
   /**

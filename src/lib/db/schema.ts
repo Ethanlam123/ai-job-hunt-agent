@@ -129,6 +129,8 @@ export const approvals = pgTable('approvals', {
   proposedContent: jsonb('proposed_content'),
   status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending' | 'approved' | 'rejected'
   userFeedback: text('user_feedback'),
+  priority: varchar('priority', { length: 20 }).notNull().default('medium'), // 'high' | 'medium' | 'low'
+  sortOrder: integer('sort_order').notNull().default(0), // Order for sorting improvements
   createdAt: timestamp('created_at').defaultNow(),
   decidedAt: timestamp('decided_at'),
 })
