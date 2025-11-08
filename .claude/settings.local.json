@@ -70,7 +70,17 @@
       "Bash(git rm:*)",
       "Bash(openspec:*)",
       "Bash(npm run type-check:*)",
-      "Bash(npm run)"
+      "Bash(npm run)",
+      "Bash(curl:*)",
+      "Bash(npx openspec validate:*)",
+      "Bash(npx openspec change:*)",
+      "Bash(npx openspec list:*)",
+      "Bash(xargs kill:*)",
+      "mcp__zai-mcp-server__analyze_image",
+      "Bash(jobs:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm:*)",
+      "Bash(NEXT_TELEMETRY_DISABLED=1 npm run build:*)"
     ],
     "deny": [],
     "ask": []

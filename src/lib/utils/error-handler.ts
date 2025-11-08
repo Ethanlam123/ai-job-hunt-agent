@@ -6,7 +6,7 @@
  */
 
 import { config, getErrorMessage } from '@/lib/config/app-config'
-import { secureLogger } from '@/lib/utils/secure-logger'
+import { logger } from '@/lib/utils/secure-logger'
 import { ERROR_CODES, ERROR_MESSAGES } from '@/lib/config/app-config'
 
 /**
@@ -366,16 +366,16 @@ export class ErrorHandler {
 
     switch (error.severity) {
       case ErrorSeverity.CRITICAL:
-        secureLogger.error('CRITICAL ERROR', logData)
+        logger.error('CRITICAL ERROR', logData)
         break
       case ErrorSeverity.HIGH:
-        secureLogger.error('HIGH SEVERITY ERROR', logData)
+        logger.error('HIGH SEVERITY ERROR', logData)
         break
       case ErrorSeverity.MEDIUM:
-        secureLogger.warn('MEDIUM SEVERITY ERROR', logData)
+        logger.warn('MEDIUM SEVERITY ERROR', logData)
         break
       case ErrorSeverity.LOW:
-        secureLogger.info('LOW SEVERITY ERROR', logData)
+        logger.info('LOW SEVERITY ERROR', logData)
         break
     }
   }
@@ -445,7 +445,7 @@ export class ErrorHandler {
 
   static createProcessingError(message: string, details?: Record<string, any>): ApplicationError {
     return new ApplicationError({
-      code: ERROR_CODES.PROCESSING_ERROR,
+      code: ERROR_CODES.FILE_PROCESSING_ERROR,
       message,
       category: ErrorCategory.PROCESSING,
       severity: ErrorSeverity.HIGH,

@@ -19,14 +19,17 @@ export function RegisterForm() {
     try {
       const result = await signup(formData)
 
-      if (result?.error) {
-        toast.error(result.error)
-      } else if (result?.success) {
-        toast.success(result.success)
+      if (result && 'error' in result) {
+        const errorResult = result as { error: any }
+        toast.error(typeof errorResult.error === 'string' ? errorResult.error : 'Registration failed')
+      } else if (result && 'success' in result) {
+        const successResult = result as { success: any }
+        toast.success(typeof successResult.success === 'string' ? successResult.success : 'Registration successful')
         // Handle redirect if provided
-        if (result.redirect) {
+        const redirectResult = result as any
+        if ('redirect' in redirectResult && typeof redirectResult.redirect === 'string') {
           setTimeout(() => {
-            router.push(result.redirect)
+            router.push(redirectResult.redirect)
           }, 2000)
         } else {
           // Redirect to login page for email confirmation

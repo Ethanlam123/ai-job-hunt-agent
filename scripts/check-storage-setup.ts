@@ -104,7 +104,7 @@ async function checkStorageSetup() {
     console.log(`   ✅ Upload permissions: ${uploadError ? 'Failed' : 'Working'}`)
 
   } catch (error) {
-    console.error('❌ Check failed:', error.message)
+    console.error('❌ Check failed:', error instanceof Error ? error.message : String(error))
   }
 }
 

@@ -20,7 +20,7 @@ export function LoginForm() {
       const result = await login(formData)
 
       if (result?.error) {
-        toast.error(result.error)
+        toast.error(typeof result.error === 'string' ? result.error : 'Login failed')
       }
     } catch (error) {
       toast.error('An unexpected error occurred')

@@ -198,9 +198,8 @@ export function JobDescriptionSelector({
 
       {previewDocument && (
         <DocumentPreviewDialog
-          document={previewDocument}
-          open={showPreview}
-          onOpenChange={setShowPreview}
+          documentId={previewDocument.id}
+          filename={previewDocument.original_filename}
         />
       )}
 

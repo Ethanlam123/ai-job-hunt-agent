@@ -476,6 +476,25 @@ export async function getApprovalSummary(sessionId: string) {
       throw new Error(`Failed to fetch approvals: ${approvalsError.message}`)
     }
 
+    // Get user responses count for this session
+    let responseCount = 0
+    try {
+      const { data: userResponses, error: responsesError } = await supabase
+        .from('user_responses')
+        .select('*')
+        .eq('session_id', sessionId)
+        .eq('user_id', user.id)
+        .eq('is_skipped', 'false')
+        .not('answer', 'is', null)
+
+      if (!responsesError && userResponses) {
+        responseCount = userResponses.length
+      }
+    } catch (responseErr) {
+      console.warn('Failed to fetch user responses for count:', responseErr)
+      // Continue without response count if table doesn't exist or other error
+    }
+
     // Calculate statistics
     const total = allApprovals.length
     const approved = allApprovals.filter(a => a.status === 'approved')
@@ -489,6 +508,7 @@ export async function getApprovalSummary(sessionId: string) {
         approvedCount: approved.length,
         rejectedCount: rejected.length,
         pendingCount: pending.length,
+        responseCount,
         approved: approved.map(a => ({
           id: a.id,
           changeType: a.change_type,
@@ -605,6 +625,11 @@ export async function generateUpdatedCV(sessionId: string) {
       throw new Error('Original CV content is empty')
     }
 
+    // Get user responses for additional context
+    const { CVAgent } = await import('@/lib/agents/cv-agent')
+    const cvAgent = new CVAgent(supabase)
+    const userResponses = await cvAgent.getResponses(sessionId, user.id)
+
     // Get approved improvements
     const { data: approvals, error: approvalsError } = await supabase
       .from('approvals')
@@ -617,22 +642,28 @@ export async function generateUpdatedCV(sessionId: string) {
       throw new Error(`Failed to fetch approvals: ${approvalsError.message}`)
     }
 
-    if (!approvals || approvals.length === 0) {
-      throw new Error('No approved improvements found')
+    // Handle case where there are no approved improvements but there might be questionnaire responses
+    const hasApprovedImprovements = approvals && approvals.length > 0
+    const hasUserResponses = userResponses && userResponses.length > 0
+
+    if (!hasApprovedImprovements && !hasUserResponses) {
+      throw new Error('No approved improvements or questionnaire responses found')
     }
 
-    // Transform approvals to the format expected by CVGenerationService
-    const improvements = approvals.map(approval => ({
+    console.log(`Generating CV with ${hasApprovedImprovements ? approvals.length : 0} approved improvements and ${hasUserResponses ? userResponses.length : 0} user responses`)
+
+    // Transform approvals to the format expected by CVGenerationService (empty array if no approvals)
+    const improvements = (approvals || []).map(approval => ({
       id: approval.id,
       changeType: approval.change_type,
       content: approval.proposed_content,
     }))
 
-    // Generate updated CV
+    // Generate updated CV with user responses
     const { CVGenerationService } = await import('@/lib/services/cv-generation-service')
     const generationService = new CVGenerationService(supabase)
 
-    const result = await generationService.generateUpdatedCV(originalCV, improvements)
+    const result = await generationService.generateUpdatedCV(originalCV, improvements, userResponses)
 
     if (!result.success || !result.updatedCV) {
       throw new Error(result.error || 'Failed to generate updated CV')
@@ -674,6 +705,157 @@ export async function generateUpdatedCV(sessionId: string) {
       error: error.message || 'Failed to generate updated CV',
       documentId: null,
       downloadUrl: null,
+    }
+  }
+}
+
+/**
+ * Generate questions for CV information collection
+ */
+export async function generateCVQuestions(sessionId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized', questions: null }
+  }
+
+  try {
+    const { CVAgent } = await import('@/lib/agents/cv-agent')
+    const cvAgent = new CVAgent(supabase)
+
+    const questions = await cvAgent.generateQuestions(sessionId, user.id)
+
+    // Update session stage to information collection
+    await supabase
+      .from('sessions')
+      .update({
+        current_stage: 'information_collection',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+
+    return {
+      success: true,
+      questions,
+      error: null,
+    }
+  } catch (error: any) {
+    console.error('Generate CV questions error:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to generate questions',
+      questions: null,
+    }
+  }
+}
+
+/**
+ * Get questions for a session
+ */
+export async function getCVQuestions(sessionId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized', questions: null }
+  }
+
+  try {
+    const { CVAgent } = await import('@/lib/agents/cv-agent')
+    const cvAgent = new CVAgent(supabase)
+
+    const questions = await cvAgent.getQuestions(sessionId, user.id)
+
+    return {
+      success: true,
+      questions,
+      error: null,
+    }
+  } catch (error: any) {
+    console.error('Get CV questions error:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to get questions',
+      questions: null,
+    }
+  }
+}
+
+/**
+ * Save user responses to CV questions
+ */
+export async function saveCVResponses(
+  sessionId: string,
+  responses: Array<{
+    questionId: string;
+    questionCategory?: string;
+    questionText?: string;
+    answer: any;
+    isSkipped?: boolean;
+    skipReason?: string
+  }>
+) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' }
+  }
+
+  try {
+    const { CVAgent } = await import('@/lib/agents/cv-agent')
+    const cvAgent = new CVAgent(supabase)
+
+    const result = await cvAgent.saveResponses(sessionId, user.id, responses)
+
+    revalidatePath('/cv-analysis')
+
+    return {
+      success: result.success,
+      savedCount: result.savedCount || 0,
+      error: result.error || null,
+      note: result.note || null,
+    }
+  } catch (error: any) {
+    console.error('Save CV responses error:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to save responses',
+      savedCount: 0,
+    }
+  }
+}
+
+/**
+ * Get user responses for a session
+ */
+export async function getCVResponses(sessionId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized', responses: null }
+  }
+
+  try {
+    const { CVAgent } = await import('@/lib/agents/cv-agent')
+    const cvAgent = new CVAgent(supabase)
+
+    const responses = await cvAgent.getResponses(sessionId, user.id)
+
+    return {
+      success: true,
+      responses,
+      error: null,
+    }
+  } catch (error: any) {
+    console.error('Get CV responses error:', error)
+    return {
+      success: false,
+      error: error.message || 'Failed to get responses',
+      responses: null,
     }
   }
 }

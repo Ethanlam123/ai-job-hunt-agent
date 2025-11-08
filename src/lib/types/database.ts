@@ -105,6 +105,16 @@ export interface DatabaseTransactionOptions {
 }
 
 export interface QueryBuilderOptions {
+  /** Columns to select (default: ['*']) */
+  selectColumns?: string[]
+  /** Custom WHERE clause to override criteria-based WHERE */
+  whereClause?: string
+  /** Order by clauses */
+  orderBy?: OrderByClause | OrderByClause[]
+  /** Limit number of results */
+  limit?: number
+  /** Offset for pagination */
+  offset?: number
   /** Add query performance logging */
   enablePerformanceLogging?: boolean
   /** Add query comments for debugging */
@@ -124,6 +134,8 @@ export interface DatabaseClient {
   query<T = any>(sql: string, params?: any[]): Promise<T[]>
   /** Execute a transaction */
   transaction<T>(callback: (client: DatabaseClient) => Promise<T>, options?: DatabaseTransactionOptions): Promise<T>
+  /** Execute batch operations */
+  batchOperation<T>(data: T[], operation: (batch: T[]) => Promise<void>, options?: BatchOperationOptions): Promise<BatchOperationResult<T>>
   /** Get connection pool statistics */
   getConnectionPoolStats(): Promise<ConnectionPoolStats>
   /** Check database health */

@@ -23,9 +23,9 @@ export interface IBaseRepository<T, ID = string> {
 
   /** Find entities with pagination */
   findWithPagination(
-    criteria?: Partial<T>,
     page: number,
     limit: number,
+    criteria?: Partial<T>,
     options?: QueryBuilderOptions
   ): Promise<{
     items: T[]
@@ -169,9 +169,9 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
    * Find entities with pagination
    */
   async findWithPagination(
+    page: number,
+    limit: number,
     criteria?: Partial<T>,
-    page: number = 1,
-    limit: number = 20,
     options: QueryBuilderOptions = {}
   ) {
     const offset = (page - 1) * limit
@@ -225,32 +225,78 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
    */
   async createMany(
     data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>[],
-    options: BatchOperationOptions = {}
+    options: BatchOperationOptions = { batchSize: 100 }
   ): Promise<BatchOperationResult<T>> {
-    return this.db.batchOperation(
-      data,
-      async (batch) => {
-        const keys = Object.keys(batch[0])
-        const valuesList = batch.map(item => Object.values(item))
+    const successfulItems: T[] = []
+    const failedItems: Array<{ item: Omit<T, 'id' | 'createdAt' | 'updatedAt'>; error: Error }> = []
+    const startTime = Date.now()
 
-        const placeholders = valuesList
-          .map((_, batchIndex) =>
-            `(${keys.map((_, keyIndex) => `$${batchIndex * keys.length + keyIndex + 1}`).join(', ')})`
-          )
-          .join(', ')
+    try {
+      // Process in batches
+      for (let i = 0; i < data.length; i += options.batchSize) {
+        const batch = data.slice(i, i + options.batchSize)
 
-        const flatValues = valuesList.flat()
+        try {
+          const keys = Object.keys(batch[0])
+          const valuesList = batch.map(item => Object.values(item))
 
-        const sql = `
-          INSERT INTO ${this.getTable()} (${keys.join(', ')})
-          VALUES ${placeholders}
-          RETURNING *
-        `
+          const placeholders = valuesList
+            .map((_, batchIndex) =>
+              `(${keys.map((_, keyIndex) => `$${batchIndex * keys.length + keyIndex + 1}`).join(', ')})`
+            )
+            .join(', ')
 
-        return this.db.query<T>(sql, flatValues)
-      },
-      options
-    )
+          const flatValues = valuesList.flat()
+
+          const sql = `
+            INSERT INTO ${this.getTable()} (${keys.join(', ')})
+            VALUES ${placeholders}
+            RETURNING *
+          `
+
+          const results = await this.db.query<T>(sql, flatValues)
+          successfulItems.push(...results)
+        } catch (error) {
+          // Add failed items
+          batch.forEach(item => {
+            failedItems.push({
+              item,
+              error: error instanceof Error ? error : new Error(String(error))
+            })
+          })
+
+          // Continue processing unless continueOnError is false
+          if (!options.continueOnError) {
+            break
+          }
+        }
+
+        // Add delay between batches if specified
+        if (options.batchDelayMs && i + options.batchSize < data.length) {
+          await new Promise(resolve => setTimeout(resolve, options.batchDelayMs))
+        }
+      }
+    } catch (error) {
+      // Handle any unexpected errors
+      data.forEach(item => {
+        failedItems.push({
+          item,
+          error: error instanceof Error ? error : new Error(String(error))
+        })
+      })
+    }
+
+    const processingTimeMs = Date.now() - startTime
+    const totalProcessed = successfulItems.length + failedItems.length
+    const successRate = totalProcessed > 0 ? (successfulItems.length / totalProcessed) * 100 : 0
+
+    return {
+      successfulItems,
+      failedItems: failedItems as unknown as { item: T; error: Error }[],
+      totalProcessed,
+      successRate,
+      processingTimeMs
+    }
   }
 
   /**
@@ -393,7 +439,7 @@ export abstract class RepositoryFactory {
 /**
  * Transaction-aware repository mixin
  */
-export function WithTransaction<T extends BaseRepository<any, any>>(Base: T) {
+export function WithTransaction<T extends new (...args: any[]) => BaseRepository<any, any>>(Base: T) {
   return class extends Base {
     /**
      * Execute operation within transaction
@@ -402,7 +448,7 @@ export function WithTransaction<T extends BaseRepository<any, any>>(Base: T) {
       operation: (repo: this) => Promise<R>
     ): Promise<R> {
       return this.db.transaction(async (client) => {
-        const transactionalRepo = new (Base.constructor as any)(client)
+        const transactionalRepo = new Base(client)
         return operation(transactionalRepo as this)
       })
     }

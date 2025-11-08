@@ -50,9 +50,9 @@ export async function getClientIpServer(): Promise<string> {
  *
  * @returns User agent string or 'unknown'
  */
-export function getUserAgentServer(): string {
+export async function getUserAgentServer(): Promise<string> {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     return headersList.get('user-agent') || 'unknown'
   } catch (error) {
     return 'unknown'

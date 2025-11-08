@@ -460,7 +460,7 @@ export class Logger {
         ...entry,
         environment: config.NODE_ENV,
         service: 'ai-job-hunt-agent',
-        version: config.APP_VERSION,
+        version: '1.0.0', // Placeholder version
       })),
     }
 
@@ -469,7 +469,7 @@ export class Logger {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${this.config.apiKey}`,
-        'User-Agent': `${config.APP_NAME}/${config.APP_VERSION}`,
+        'User-Agent': 'ai-job-hunt-agent/1.0.0',
       },
       body: JSON.stringify(payload),
     })

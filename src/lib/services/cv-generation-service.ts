@@ -38,22 +38,27 @@ export class CVGenerationService {
   }
 
   /**
-   * Generate updated CV by applying approved improvements
+   * Generate updated CV by applying approved improvements and incorporating user responses
    */
   async generateUpdatedCV(
     originalCV: string,
-    approvedImprovements: ApprovedImprovement[]
+    approvedImprovements: ApprovedImprovement[],
+    userResponses?: any[]
   ): Promise<CVGenerationResult> {
     try {
       console.log('Generating updated CV...')
       console.log(`Original CV length: ${originalCV.length} characters`)
       console.log(`Number of approved improvements: ${approvedImprovements.length}`)
+      console.log(`Number of user responses: ${userResponses?.length || 0}`)
 
       // Build improvement summary for LLM
       const improvementsSummary = this.buildImprovementsSummary(approvedImprovements)
 
+      // Build user preferences summary for LLM
+      const userPreferencesSummary = this.buildUserPreferencesSummary(userResponses || [])
+
       // Create prompt for LLM
-      const prompt = this.createGenerationPrompt(originalCV, improvementsSummary)
+      const prompt = this.createGenerationPrompt(originalCV, improvementsSummary, userPreferencesSummary)
 
       // Call LLM to generate updated CV
       const response = await this.llm.invoke(prompt)
@@ -97,10 +102,73 @@ ${index + 1}. [${imp.changeType.toUpperCase()}] ${content.section || 'General'}
   }
 
   /**
+   * Build a summary of user preferences and information for the LLM
+   */
+  private buildUserPreferencesSummary(userResponses: any[]): string {
+    if (!userResponses || userResponses.length === 0) {
+      return "No additional user preferences provided."
+    }
+
+    const personalInfo = userResponses.filter(r => r.question_category === 'personal')
+    const careerInfo = userResponses.filter(r => r.question_category === 'career')
+    const experienceInfo = userResponses.filter(r => r.question_category === 'experience')
+    const formattingInfo = userResponses.filter(r => r.question_category === 'formatting')
+
+    let summary = "# USER PREFERENCES AND INFORMATION\n\n"
+
+    if (personalInfo.length > 0) {
+      summary += "## Personal Information:\n"
+      personalInfo.forEach(response => {
+        summary += `- ${response.question_text}: ${this.formatAnswer(response.answer)}\n`
+      })
+      summary += "\n"
+    }
+
+    if (careerInfo.length > 0) {
+      summary += "## Career Objectives:\n"
+      careerInfo.forEach(response => {
+        summary += `- ${response.question_text}: ${this.formatAnswer(response.answer)}\n`
+      })
+      summary += "\n"
+    }
+
+    if (experienceInfo.length > 0) {
+      summary += "## Experience & Skills:\n"
+      experienceInfo.forEach(response => {
+        summary += `- ${response.question_text}: ${this.formatAnswer(response.answer)}\n`
+      })
+      summary += "\n"
+    }
+
+    if (formattingInfo.length > 0) {
+      summary += "## Formatting Preferences:\n"
+      formattingInfo.forEach(response => {
+        summary += `- ${response.question_text}: ${this.formatAnswer(response.answer)}\n`
+      })
+      summary += "\n"
+    }
+
+    return summary.trim()
+  }
+
+  /**
+   * Format user answer for display in summary
+   */
+  private formatAnswer(answer: any): string {
+    if (Array.isArray(answer)) {
+      return answer.join(', ')
+    }
+    if (typeof answer === 'boolean') {
+      return answer ? 'Yes' : 'No'
+    }
+    return String(answer || 'Not provided')
+  }
+
+  /**
    * Create the prompt for CV generation
    */
-  private createGenerationPrompt(originalCV: string, improvementsSummary: string): string {
-    return `You are an expert CV writer. Your task is to update a CV by carefully applying a set of approved improvements.
+  private createGenerationPrompt(originalCV: string, improvementsSummary: string, userPreferencesSummary: string): string {
+    return `You are an expert CV writer. Your task is to update a CV by carefully applying approved improvements and incorporating user preferences to create a personalized, professional CV.
 
 # ORIGINAL CV:
 ${originalCV}
@@ -108,18 +176,33 @@ ${originalCV}
 # APPROVED IMPROVEMENTS TO APPLY:
 ${improvementsSummary}
 
+# USER PREFERENCES AND INFORMATION:
+${userPreferencesSummary}
+
 # INSTRUCTIONS:
 1. Read the original CV carefully
 2. Apply each approved improvement to the appropriate section
-3. Maintain the overall structure and formatting of the CV
-4. Keep all existing good content that wasn't mentioned in improvements
-5. For "ADD" changes: Insert new content in the appropriate location
-6. For "EDIT" changes: Modify existing content as described
-7. For "DELETE" changes: Remove the specified content
-8. Ensure the updated CV flows naturally and professionally
-9. Use clear section headings (e.g., # Professional Summary, ## Work Experience, ## Education, ## Skills)
-10. Return ONLY the updated CV content in markdown format
-11. Do NOT include any explanations, notes, or commentary - just the CV
+3. Incorporate the user's personal information, career objectives, and preferences
+4. Use the user's professional title, contact information, and career goals
+5. Tailor the content based on the user's target role level and industries
+6. Apply formatting preferences (length, section order, etc.) as specified
+7. Maintain the overall structure and formatting of the CV
+8. Keep all existing good content that wasn't mentioned in improvements
+9. For "ADD" changes: Insert new content in the appropriate location
+10. For "EDIT" changes: Modify existing content as described
+11. For "DELETE" changes: Remove the specified content
+12. Ensure the updated CV flows naturally and professionally
+13. Use clear section headings (e.g., # Professional Summary, ## Work Experience, ## Education, ## Skills)
+14. Personalize the content to reflect the user's specific career goals and preferences
+15. Return ONLY the updated CV content in markdown format
+16. Do NOT include any explanations, notes, or commentary - just the CV
+
+# SPECIAL CONSIDERATIONS:
+- Personalize the professional summary based on user's career objectives
+- Highlight experience and skills that align with target industries
+- Format according to user's preferred CV length and structure
+- Emphasize achievements that match the user's career goals
+- Include user's preferred contact information and professional title
 
 # OUTPUT FORMAT:
 Return the complete updated CV in clean markdown format with proper headings and structure.

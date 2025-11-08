@@ -41,7 +41,7 @@ export const documents = pgTable('documents', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
+  sessionId: uuid('session_id'),
   documentType: varchar('document_type', { length: 50 }), // 'cv' | 'jd' | 'cover_letter'
   originalFilename: varchar('original_filename', { length: 255 }),
   filePath: varchar('file_path', { length: 500 }),
@@ -135,6 +135,28 @@ export const approvals = pgTable('approvals', {
   sortOrder: integer('sort_order').notNull().default(0), // Order for sorting improvements
   createdAt: timestamp('created_at').defaultNow(),
   decidedAt: timestamp('decided_at'),
+})
+
+// User responses table - stores questionnaire responses for CV generation
+export const userResponses = pgTable('user_responses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => sessions.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  questionCategory: varchar('question_category', { length: 50 }).notNull(), // 'personal' | 'career' | 'experience' | 'formatting'
+  questionId: varchar('question_id', { length: 100 }).notNull(), // Unique identifier for the question
+  questionText: text('question_text').notNull(),
+  answer: jsonb('answer'), // JSON for flexibility with different answer types
+  isRequired: varchar('is_required', { length: 10 }).notNull().default('false'), // 'true' | 'false'
+  isSkipped: varchar('is_skipped', { length: 10 }).notNull().default('false'), // 'true' | 'false'
+  skipReason: text('skip_reason'),
+  orderIndex: integer('order_index').notNull().default(0), // Order for displaying questions
+  metadata: jsonb('metadata'), // Additional data about question context
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 })
 
 // Skill gaps table - identifies missing skills from CV vs JD comparison
@@ -242,6 +264,8 @@ export type RateLimit = typeof rateLimits.$inferSelect
 export type NewRateLimit = typeof rateLimits.$inferInsert
 export type Approval = typeof approvals.$inferSelect
 export type NewApproval = typeof approvals.$inferInsert
+export type UserResponse = typeof userResponses.$inferSelect
+export type NewUserResponse = typeof userResponses.$inferInsert
 export type SkillGap = typeof skillGaps.$inferSelect
 export type NewSkillGap = typeof skillGaps.$inferInsert
 export type UserMetric = typeof userMetrics.$inferSelect

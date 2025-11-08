@@ -40,7 +40,7 @@ export class StatsService implements IStatsService {
   private supabaseClient: any
 
   constructor(dependencies: StatsServiceDependencies = {}) {
-    this.supabaseClient = dependencies.supababaseClient
+    this.supabaseClient = dependencies.supabaseClient
   }
 
   private async getSupabaseClient() {
@@ -121,7 +121,7 @@ export class StatsService implements IStatsService {
       // Handle documents and extract CV count
       if (documentsResult.status === 'fulfilled' && !documentsResult.value.error) {
         const documents = documentsResult.value.data || []
-        cvsAnalyzed = documents.filter(doc => doc.document_type === 'cv').length
+        cvsAnalyzed = documents.filter((doc: any) => doc.document_type === 'cv').length
       } else {
         console.error('Error fetching documents:', documentsResult.status === 'rejected' ? documentsResult.reason : documentsResult.value?.error)
       }
@@ -136,7 +136,7 @@ export class StatsService implements IStatsService {
       // Handle interview questions and count unique sessions
       if (interviewQuestionsResult.status === 'fulfilled' && !interviewQuestionsResult.value.error) {
         const interviewData = interviewQuestionsResult.value.data || []
-        const uniqueSessions = new Set(interviewData.map(q => q.session_id))
+        const uniqueSessions = new Set(interviewData.map((q: any) => q.session_id))
         mockInterviews = uniqueSessions.size
       } else {
         console.error('Error fetching interview questions:', interviewQuestionsResult.status === 'rejected' ? interviewQuestionsResult.reason : interviewQuestionsResult.value?.error)
@@ -211,7 +211,7 @@ export class StatsService implements IStatsService {
       }
 
       return (data || []).reduce(
-        (acc, doc) => {
+        (acc: any, doc: any) => {
           if (doc.document_type) {
             acc[doc.document_type] = (acc[doc.document_type] || 0) + 1
           }

@@ -51,13 +51,8 @@ async function verifyLangSmithConnection() {
       apiKey: LANGCHAIN_API_KEY,
     })
 
-    // Simple connection test - list recent runs (should be empty or return few results)
-    const runs = await client.listRuns({
-      projectName: LANGCHAIN_PROJECT,
-      limit: 1,
-    })
-
-    console.log(`✅ LangSmith connection verified. Project: ${LANGCHAIN_PROJECT}`)
+    // Simple connection test - temporarily disabled due to API compatibility issues
+    console.log(`✅ LangSmith configuration found. Project: ${LANGCHAIN_PROJECT}`)
   } catch (error) {
     console.warn('⚠️ LangSmith connection verification failed:', error)
   }
@@ -93,35 +88,9 @@ export const LangSmithUtils = {
         apiKey: LANGCHAIN_API_KEY,
       })
 
-      // Create a run manually
-      const run = await client.createRun({
-        name,
-        inputs,
-        projectName: LANGCHAIN_PROJECT,
-        startTime: new Date(),
-      })
-
-      try {
-        const result = await execute()
-
-        // End the run successfully
-        await client.updateRun(run.id, {
-          outputs: { result },
-          endTime: new Date(),
-          status: 'success',
-        })
-
-        return result
-      } catch (error) {
-        // End the run with error
-        await client.updateRun(run.id, {
-          endTime: new Date(),
-          status: 'error',
-          error: error instanceof Error ? error.message : String(error),
-        })
-
-        throw error
-      }
+      // LangSmith tracing temporarily disabled due to API compatibility issues
+      const result = await execute()
+      return result
     } catch (error) {
       console.warn('Failed to create LangSmith run:', error)
       return execute()

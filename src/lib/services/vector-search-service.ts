@@ -9,7 +9,7 @@ import { OpenAI } from 'openai'
 import { VectorSearchResult, BatchOperationOptions, BatchOperationResult } from '@/lib/types/database'
 import { databaseService } from '@/lib/services/database-service'
 import { vectorSearchConfig } from '@/lib/config/database'
-import { secureLogger } from '@/lib/utils/secure-logger'
+import { logger } from '@/lib/utils/secure-logger'
 import { CacheService } from '@/lib/services/cache-service'
 
 export interface EmbeddingOptions {
@@ -83,7 +83,7 @@ export class VectorSearchService {
         const cached = await this.cacheService.get(cacheKey)
 
         if (cached) {
-          secureLogger.debug('Embedding cache hit', { textLength: text.length })
+          logger.debug('Embedding cache hit', { textLength: text.length })
           return cached as number[]
         }
       }
@@ -105,7 +105,7 @@ export class VectorSearchService {
         await this.cacheService.set(cacheKey, embedding, undefined, cacheTtl)
       }
 
-      secureLogger.debug('Embedding generated', {
+      logger.debug('Embedding generated', {
         textLength: text.length,
         dimensions,
         generationTime,
@@ -116,7 +116,7 @@ export class VectorSearchService {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      secureLogger.error('Embedding generation failed', {
+      logger.error('Embedding generation failed', {
         textLength: text.length,
         model,
         error: errorMessage,
@@ -130,7 +130,7 @@ export class VectorSearchService {
    */
   async generateBatchEmbeddings(
     texts: string[],
-    options: EmbeddingOptions & BatchOperationOptions = {}
+    options: EmbeddingOptions & BatchOperationOptions = { batchSize: 100 }
   ): Promise<BatchOperationResult<{ text: string; embedding: number[] }>> {
     const {
       batchSize = vectorSearchConfig.batchSize,
@@ -142,10 +142,10 @@ export class VectorSearchService {
     const items = texts.map(text => ({ text, embeddingOptions }))
 
     return databaseService.batchOperation(
-      items,
-      async (batch) => {
+      items as any,
+      async (batch: any[]) => {
         const results = await Promise.allSettled(
-          batch.map(async ({ text }) => {
+          batch.map(async ({ text }: any) => {
             const embedding = await this.generateEmbedding(text, embeddingOptions)
             return { text, embedding }
           })
@@ -156,7 +156,7 @@ export class VectorSearchService {
         results.forEach((result, index) => {
           if (result.status === 'rejected') {
             failedTexts.push(batch[index].text)
-            secureLogger.warning('Embedding generation failed in batch', {
+            logger.warn('Embedding generation failed in batch', {
               text: batch[index].text.substring(0, 100),
               error: result.reason,
             })
@@ -168,7 +168,7 @@ export class VectorSearchService {
         }
       },
       { batchSize, batchDelayMs, continueOnError }
-    )
+    ) as unknown as BatchOperationResult<{ text: string; embedding: number[] }>
   }
 
   /**
@@ -201,7 +201,7 @@ export class VectorSearchService {
 
         const cached = await this.cacheService.get(cacheKey)
         if (cached) {
-          secureLogger.debug('Vector search cache hit', { tableName, limit })
+          logger.debug('Vector search cache hit', { tableName, limit })
           return cached as VectorSearchResult
         }
       }
@@ -230,7 +230,7 @@ export class VectorSearchService {
         await this.cacheService.set(cacheKey, result, undefined, cacheTtl)
       }
 
-      secureLogger.debug('Vector search completed', {
+      logger.debug('Vector search completed', {
         tableName,
         resultCount: result.records.length,
         searchTime: result.metadata.searchTimeMs,
@@ -241,7 +241,7 @@ export class VectorSearchService {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      secureLogger.error('Vector search failed', {
+      logger.error('Vector search failed', {
         tableName,
         vectorColumn,
         limit,
@@ -272,7 +272,7 @@ export class VectorSearchService {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      secureLogger.error('Similar document search failed', {
+      logger.error('Similar document search failed', {
         tableName,
         queryLength: queryText.length,
         error: errorMessage,
@@ -300,7 +300,7 @@ export class VectorSearchService {
 
     // Process embedding asynchronously
     this.processEmbeddingJob(job.id).catch(error => {
-      secureLogger.error('Async embedding job failed', {
+      logger.error('Async embedding job failed', {
         jobId: job.id,
         error: error instanceof Error ? error.message : 'Unknown error',
       })
@@ -350,7 +350,7 @@ export class VectorSearchService {
       job.status = 'completed'
       job.completedAt = new Date()
 
-      secureLogger.debug('Embedding job completed', {
+      logger.debug('Embedding job completed', {
         jobId,
         textLength: job.text.length,
       })
@@ -359,7 +359,7 @@ export class VectorSearchService {
       job.status = 'failed'
       job.error = error instanceof Error ? error.message : 'Unknown error'
 
-      secureLogger.error('Embedding job failed', {
+      logger.error('Embedding job failed', {
         jobId,
         error: job.error,
       })
@@ -385,7 +385,7 @@ export class VectorSearchService {
     }
 
     if (cleanedCount > 0) {
-      secureLogger.debug('Cleaned up embedding jobs', {
+      logger.debug('Cleaned up embedding jobs', {
         cleanedCount,
         remainingJobs: this.processingJobs.size,
       })
