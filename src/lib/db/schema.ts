@@ -19,6 +19,8 @@ export const sessions = pgTable('sessions', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   completedAt: timestamp('completed_at'),
+  jobDescriptionId: uuid('job_description_id').references(() => documents.id, { onDelete: 'set null' }), // Optional reference to job description document
+  analysisType: varchar('analysis_type', { length: 20 }).default('general').notNull(), // 'general' | 'job_enhanced'
 })
 
 // Messages table - chat messages with agent responses
