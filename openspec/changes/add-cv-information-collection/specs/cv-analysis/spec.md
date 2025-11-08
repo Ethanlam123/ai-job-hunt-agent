@@ -7,33 +7,37 @@ The system SHALL provide a comprehensive CV analysis workflow that includes docu
 - **WHEN** user uploads a CV for analysis
 - **AND** reviews and approves/rejects improvement suggestions
 - **THEN** system SHALL present an information collection step
-- **AND** user SHALL be asked targeted questions about their career goals and preferences
+- **AND** system SHALL generate contextual questions based on CV content and approved improvements
+- **AND** user SHALL be prompted to provide detailed information that enhances CV quality
 - **AND** system SHALL use collected information to generate a personalized CV
 
 ## ADDED Requirements
 
-### Requirement: Dynamic Question Generation
-The system SHALL generate contextual questions based on CV analysis results and user-approved improvements.
+### Requirement: LLM-Generated Dynamic Question Generation
+The system SHALL generate completely contextual questions using LLM analysis of CV content, approved improvements, and identified gaps.
 
-#### Scenario: Essential Career Information Questions
+#### Scenario: Context-Aware Question Generation
 - **WHEN** user completes improvement approvals
-- **THEN** system SHALL present questions about contact information, career objectives, and target roles
-- **AND** questions SHALL be categorized (personal, career, experience, formatting)
+- **THEN** LLM SHALL analyze CV content, approved improvements, and gaps to generate contextual questions
+- **AND** questions SHALL focus on extracting specific details, achievements, and context missing from current CV
+- **AND** system SHALL prioritize questions that will most improve CV quality and effectiveness
 - **AND** essential questions SHALL be marked as required
 
-#### Scenario: Contextual Questions Based on Analysis
-- **WHEN** CV analysis identifies skill gaps or experience gaps
-- **THEN** system SHALL generate specific questions about relevant experience or achievements
-- **AND** questions SHALL be tailored to approved improvement areas
+#### Scenario: Adaptive Questioning Based on CV Content
+- **WHEN** CV analysis identifies specific areas needing enhancement (e.g., vague achievements, missing metrics)
+- **THEN** LLM SHALL generate targeted questions to elicit detailed information for those areas
+- **AND** questions SHALL adapt based on user's experience level, industry, and career stage
+- **AND** questions SHALL encourage users to provide quantifiable achievements and specific examples
 - **AND** user SHALL have option to skip non-essential questions
 
 ### Requirement: Information Collection Interface
 The system SHALL provide an intuitive interface for collecting user information before CV generation.
 
-#### Scenario: Question Presentation and Navigation
+#### Scenario: Dynamic Question Presentation and Navigation
 - **WHEN** user reaches information collection step
-- **THEN** system SHALL display questions in logical categories
-- **AND** user SHALL be able to navigate between categories
+- **THEN** system SHALL display LLM-generated questions with clear context and explanations
+- **AND** questions SHALL be organized based on CV analysis priorities and approved improvements
+- **AND** user SHALL be able to navigate between question groups
 - **AND** progress indicator SHALL show completion status
 - **AND** user SHALL be able to return to previous steps to review approvals
 

@@ -5,11 +5,12 @@
 - [x] 1.4 Update Row Level Security policies for new table
 
 ## 2. Backend Logic Implementation
-- [x] 2.1 Extend CV Agent to generate contextual questions
-- [x] 2.2 Create question categories (personal, career, experience, formatting)
+- [x] 2.1 Extend CV Agent to generate LLM-powered contextual questions based on CV analysis
+- [x] 2.2 Create adaptive question generation logic (no fixed categories)
 - [x] 2.3 Implement server actions for saving responses
 - [x] 2.4 Add response validation logic
 - [x] 2.5 Update workflow state management for new step
+- [ ] 2.6 Create question generation prompts that encourage detailed user responses
 
 ## 3. Frontend Component Development
 - [x] 3.1 Add information collection state to CVAnalysisClient
@@ -19,12 +20,13 @@
 - [x] 3.5 Update workflow progress indicators
 - [x] 3.6 Add navigation between approval and information collection steps
 
-## 4. Question Generation System
-- [x] 4.1 Implement dynamic question generation based on CV analysis
-- [x] 4.2 Create question templates for different scenarios
-- [x] 4.3 Add conditional question logic based on approved improvements
-- [x] 4.4 Implement question prioritization (essential vs optional)
+## 4. LLM-Based Question Generation System
+- [x] 4.1 Implement LLM-powered dynamic question generation based on CV analysis and approved improvements
+- [x] 4.2 Create comprehensive prompts for generating contextual questions
+- [x] 4.3 Add adaptive question logic that responds to CV content gaps and approved improvements
+- [x] 4.4 Implement question prioritization based on impact on CV quality
 - [x] 4.5 Add question skipping and "not applicable" options
+- [ ] 4.6 Refine question generation prompts to focus on extracting detailed achievements and metrics
 
 ## 5. CV Generation Integration
 - [x] 5.1 Update CVGenerationService to use collected responses
