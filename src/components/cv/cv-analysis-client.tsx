@@ -1371,8 +1371,7 @@ export function CVAnalysisClient() {
       {/* Summary View */}
       {currentStep === 'summary' && sessionId && (
         <div className="space-y-6" data-summary-section="true">
-          {console.log('Summary section rendering...')}
-          {/* Success Header */}
+                    {/* Success Header */}
           <div className="text-center py-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg border border-green-200 dark:border-green-800">
             <div className="flex flex-col items-center space-y-2">
               <div className="flex items-center space-x-2">

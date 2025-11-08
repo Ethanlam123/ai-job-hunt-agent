@@ -3,6 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { CVPrompts } from '@/lib/prompts/cv-prompts'
 import { generateQuestions, QuestionTemplate } from '@/lib/prompts/cv-question-prompts'
 import { DocumentService } from '@/lib/services/document-service'
+import { JSONParser } from '@/lib/utils/json-parser'
 
 interface CVState {
   userId: string
@@ -244,36 +245,16 @@ export class CVAgent {
       console.log('Analyze Structure - LLM raw response:', response)
 
       // Parse LLM response
-      let analysis
-      try {
-        const content = typeof response.content === 'string'
-          ? response.content
-          : JSON.stringify(response.content)
+      const analysis = JSONParser.cleanAndParseJSON(response.content, {
+        overallScore: 70,
+        sections: {},
+        strengths: ['Document uploaded successfully'],
+        weaknesses: ['Detailed analysis unavailable'],
+        recommendations: ['Review CV structure manually'],
+      })
 
-        console.log('Analyze Structure - Response content:', content)
-
-        // Remove markdown code blocks if present
-        const cleanContent = content
-          .replace(/```json\n?/g, '')
-          .replace(/```\n?/g, '')
-          .trim()
-
-        console.log('Analyze Structure - Cleaned content:', cleanContent)
-
-        analysis = JSON.parse(cleanContent)
-        console.log('Analyze Structure - Parsed successfully:', analysis)
-      } catch (parseError) {
-        console.error('Failed to parse LLM response:', parseError)
-        console.error('Raw content that failed to parse:', typeof response.content === 'string' ? response.content : JSON.stringify(response.content))
-        // Fallback analysis
-        analysis = {
-          overallScore: 70,
-          sections: {},
-          strengths: ['Document uploaded successfully'],
-          weaknesses: ['Detailed analysis unavailable'],
-          recommendations: ['Review CV structure manually'],
-        }
-        console.log('Using fallback analysis data')
+      if (!analysis || typeof analysis.overallScore !== 'number') {
+        console.warn('Invalid analysis structure, using fallback')
       }
 
       return {
@@ -912,7 +893,7 @@ Provide only valid JSON as your response.
   }
 
   /**
-   * Generate contextual questions for CV information collection
+   * Generate contextual questions for CV information collection using LLM
    */
   async generateQuestions(
     sessionId: string,
@@ -922,21 +903,143 @@ Provide only valid JSON as your response.
       // Get the analysis results and approved improvements
       const analysisResult = await this.getAnalysisResults(sessionId, userId)
       const approvedImprovements = await this.getApprovedImprovements(sessionId, userId)
+      const sessionData = await this.getSessionData(sessionId, userId)
 
       const cvAnalysis = analysisResult.result?.analysis
+      const cvContent = analysisResult.result?.documentId ?
+        await this.getDocumentContent(analysisResult.result.documentId, userId) : null
       const hasJobDescription = !!analysisResult.result?.jobDescriptionId
+      const jobDescriptionContent = hasJobDescription && analysisResult.result?.jobDescriptionId ?
+        await this.getDocumentContent(analysisResult.result.jobDescriptionId, userId) : null
 
-      // Generate questions based on analysis and improvements
-      const questions = generateQuestions(cvAnalysis, approvedImprovements, hasJobDescription)
+      // Build user profile for personalization
+      const userProfile = {
+        currentLevel: this.extractCareerLevel(cvContent, cvAnalysis),
+        targetRole: this.extractTargetRole(jobDescriptionContent, sessionData),
+        industry: this.extractIndustry(cvContent, jobDescriptionContent),
+        yearsExperience: this.extractYearsExperience(cvContent)
+      }
+
+      // Generate dynamic questions using LLM
+      const prompt = CVPrompts.generateContextualQuestions(
+        cvContent,
+        cvAnalysis,
+        approvedImprovements,
+        jobDescriptionContent,
+        userProfile
+      )
+
+      console.log('Generate Questions - Sending prompt to LLM...')
+      const response = await this.llm.invoke(prompt)
+      console.log('Generate Questions - LLM response received')
+
+      // Parse and validate LLM response
+      const questionsData = JSONParser.cleanAndParseJSON(response.content)
+
+      if (!questionsData || !questionsData.questions) {
+        console.warn('Invalid questions data from LLM, falling back to static questions')
+        const fallbackQuestions = generateQuestions(cvAnalysis, approvedImprovements, hasJobDescription)
+        await this.saveQuestions(sessionId, userId, fallbackQuestions)
+        return fallbackQuestions
+      }
+
+      // Convert LLM response to QuestionTemplate format
+      const questionTemplates = JSONParser.batchConvertToQuestionTemplates(questionsData.questions)
 
       // Save questions to database for tracking
-      await this.saveQuestions(sessionId, userId, questions)
+      await this.saveQuestions(sessionId, userId, questionTemplates)
 
-      return questions
+      return questionTemplates
     } catch (error) {
       console.error('Error generating questions:', error)
       throw new Error(`Failed to generate questions: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
+  }
+
+  /**
+   * Helper methods for extracting user profile information
+   */
+  private async getSessionData(sessionId: string, userId: string) {
+    const { data, error } = await this.supabase
+      .from('sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('user_id', userId)
+      .single()
+
+    return data || {}
+  }
+
+  private async getDocumentContent(documentId: string, userId: string) {
+    try {
+      const document = await this.documentService.getDocument(documentId, userId)
+      return document?.parsed_content || null
+    } catch (error) {
+      console.error('Error fetching document content:', error)
+      return null
+    }
+  }
+
+  private extractCareerLevel(cvContent: any, cvAnalysis: any): string {
+    // Try to extract career level from CV content or analysis
+    if (cvContent?.fullText) {
+      const text = cvContent.fullText.toLowerCase()
+      if (text.includes('senior') || text.includes('lead') || text.includes('principal')) {
+        return 'Senior'
+      }
+      if (text.includes('junior') || text.includes('associate')) {
+        return 'Junior'
+      }
+      if (text.includes('manager') || text.includes('director')) {
+        return 'Manager'
+      }
+    }
+
+    // Default to mid-level if unclear
+    return 'Mid-Level'
+  }
+
+  private extractTargetRole(jobDescription: any, sessionData: any): string {
+    // Try to extract from job description first
+    if (jobDescription?.fullText) {
+      const text = jobDescription.fullText
+      const titleMatch = text.match(/(?:job title|position|role)[:\s]*([^\n]+)/i)
+      if (titleMatch) {
+        return titleMatch[1].trim()
+      }
+    }
+
+    // Fallback to session data or default
+    return sessionData?.targetRole || 'Not specified'
+  }
+
+  private extractIndustry(cvContent: any, jobDescription: any): string {
+    const text = `${cvContent?.fullText || ''} ${jobDescription?.fullText || ''}`.toLowerCase()
+
+    const industries = ['technology', 'software', 'healthcare', 'finance', 'education', 'retail', 'manufacturing']
+    for (const industry of industries) {
+      if (text.includes(industry)) {
+        return industry
+      }
+    }
+
+    return 'Not specified'
+  }
+
+  private extractYearsExperience(cvContent: any): string {
+    if (cvContent?.fullText) {
+      const text = cvContent.fullText.toLowerCase()
+      const experienceMatch = text.match(/(\d+)\s*(?:years?|yrs?)\s*(?:of\s*)?experience/i)
+      if (experienceMatch) {
+        const years = parseInt(experienceMatch[1])
+        if (years <= 2) return '0-2 years'
+        if (years <= 5) return '2-5 years'
+        if (years <= 10) return '5-10 years'
+        return '10+ years'
+      }
+    }
+
+    return 'Not specified'
   }
 
   /**
@@ -1016,14 +1119,18 @@ Provide only valid JSON as your response.
       questionCategory?: string;
       questionText?: string;
       answer: any;
+      required?: boolean;
       isSkipped?: boolean;
-      skipReason?: string
+      skipReason?: string;
+      type?: string;
+      placeholder?: string;
+      maxLength?: number;
     }>
   ) {
     try {
       console.log(`Attempting to save ${responses.length} responses for session ${sessionId}`)
 
-      const upsertPromises = responses.map(response =>
+      const upsertPromises = responses.map((response, index) =>
         this.supabase
           .from('user_responses')
           .upsert({
@@ -1032,15 +1139,16 @@ Provide only valid JSON as your response.
             question_id: response.questionId,
             question_category: response.questionCategory || 'personal',
             question_text: response.questionText || '',
-            answer: response.isSkipped ? null : response.answer,
-            is_required: 'true', // We assume all questions are required unless marked otherwise
-            is_skipped: response.isSkipped ? 'true' : 'false',
+            answer: response.isSkipped ? null : JSONParser.sanitizeResponse(response.answer),
+            is_required: String(response.required !== false),
+            is_skipped: String(Boolean(response.isSkipped)),
             skip_reason: response.skipReason || null,
-            order_index: 0, // Could be enhanced to include order if needed
+            order_index: index,
             metadata: {
-              type: 'text', // Default type, could be enhanced
-              placeholder: '',
-              maxLength: null
+              type: response.type || 'text',
+              placeholder: response.placeholder || '',
+              maxLength: response.maxLength || null,
+              category: response.questionCategory || 'personal'
             },
             updated_at: new Date().toISOString()
           }, {
@@ -1113,6 +1221,59 @@ Provide only valid JSON as your response.
       }
 
       return { success: false, savedCount: 0, error: error.message || 'Failed to save responses' }
+    }
+  }
+
+  /**
+   * Generate follow-up questions for extracting detailed achievements
+   */
+  async generateFollowUpQuestions(
+    sessionId: string,
+    userId: string,
+    questionId: string,
+    initialResponse: string
+  ): Promise<any> {
+    try {
+      // Get the original question context
+      const { data: questionData } = await this.supabase
+        .from('user_responses')
+        .select('*')
+        .eq('session_id', sessionId)
+        .eq('user_id', userId)
+        .eq('question_id', questionId)
+        .single()
+
+      const questionContext = {
+        category: questionData?.question_category || 'general',
+        questionText: questionData?.question_text || '',
+        cvReference: 'Based on CV analysis',
+        improvementLink: 'Related to approved improvements'
+      }
+
+      // Generate follow-up questions using LLM
+      const prompt = CVPrompts.generateAchievementDetailQuestions(
+        initialResponse,
+        questionContext
+      )
+
+      console.log('Generate Follow-up Questions - Sending prompt to LLM...')
+      const response = await this.llm.invoke(prompt)
+
+      // Parse LLM response
+      const followUpData = JSONParser.cleanAndParseJSON(response.content, {
+        followUpQuestions: [],
+        analysis: { currentDetailLevel: 'medium' }
+      })
+
+      if (!followUpData || !followUpData.followUpQuestions) {
+        console.warn('Invalid follow-up questions data, returning empty response')
+        return { followUpQuestions: [], analysis: { currentDetailLevel: 'medium' } }
+      }
+
+      return followUpData
+    } catch (error) {
+      console.error('Error generating follow-up questions:', error)
+      return { followUpQuestions: [], analysis: { currentDetailLevel: 'low' } }
     }
   }
 

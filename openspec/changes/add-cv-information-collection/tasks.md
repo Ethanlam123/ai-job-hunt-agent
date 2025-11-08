@@ -10,7 +10,7 @@
 - [x] 2.3 Implement server actions for saving responses
 - [x] 2.4 Add response validation logic
 - [x] 2.5 Update workflow state management for new step
-- [ ] 2.6 Create question generation prompts that encourage detailed user responses
+- [x] 2.6 Create question generation prompts that encourage detailed user responses
 
 ## 3. Frontend Component Development
 - [x] 3.1 Add information collection state to CVAnalysisClient
@@ -26,7 +26,7 @@
 - [x] 4.3 Add adaptive question logic that responds to CV content gaps and approved improvements
 - [x] 4.4 Implement question prioritization based on impact on CV quality
 - [x] 4.5 Add question skipping and "not applicable" options
-- [ ] 4.6 Refine question generation prompts to focus on extracting detailed achievements and metrics
+- [x] 4.6 Refine question generation prompts to focus on extracting detailed achievements and metrics
 
 ## 5. CV Generation Integration
 - [x] 5.1 Update CVGenerationService to use collected responses
@@ -43,8 +43,8 @@
 - [x] 6.5 Implement auto-save functionality for partial responses
 
 ## 7. Testing and Validation
-- [ ] 7.1 Write unit tests for question generation logic
-- [ ] 7.2 Create integration tests for response storage
+- [x] 7.1 Write unit tests for question generation logic
+- [x] 7.2 Create integration tests for response storage
 - [ ] 7.3 Test workflow navigation and state management
 - [ ] 7.4 Validate CV generation quality improvements
 - [ ] 7.5 Test edge cases (minimal responses, skipped questions)
@@ -54,9 +54,9 @@
 - [x] 8.2 Document question generation algorithms
 - [x] 8.3 Update user guides with new workflow steps
 - [x] 8.4 Add TypeScript type definitions for new data structures
-- [ ] 8.5 Clean up temporary code and optimize performance
+- [x] 8.5 Clean up temporary code and optimize performance
 
 ## 9. Database Migration
-- [ ] 9.1 Apply user_responses table migration to database
-- [ ] 9.2 Verify RLS policies are working correctly
-- [ ] 9.3 Test database operations with new schema
+- [x] 9.1 Apply user_responses table migration to database
+- [x] 9.2 Verify RLS policies are working correctly
+- [x] 9.3 Test database operations with new schema

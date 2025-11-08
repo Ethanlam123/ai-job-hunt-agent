@@ -10,9 +10,16 @@ if (!DATABASE_URL) {
 }
 
 async function runMigration() {
+  // Parse DATABASE_URL to disable SSL
+  if (!DATABASE_URL) {
+    throw new Error('DATABASE_URL is required')
+  }
+
+  const dbUrl = new URL(DATABASE_URL)
+  dbUrl.searchParams.append('sslmode', 'disable')
+
   const pool = new Pool({
-    connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // Add SSL configuration
+    connectionString: dbUrl.toString()
   })
 
   try {
