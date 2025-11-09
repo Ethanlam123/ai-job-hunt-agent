@@ -9,7 +9,6 @@ An AI-powered job hunting assistant built with Next.js 16, LangChain.js, and Sup
 - 🎯 **Interview Preparation**: Mock questions and answer evaluation
 - 📊 **Document Management**: Upload and manage CVs and job descriptions
 - 📈 **Skill Gap Analysis**: Identify missing skills and get personalized learning roadmaps
-- 🔒 **Privacy-First**: No automatic job applications
 - 👤 **Human-in-the-Loop**: All CV changes require explicit user approval
 
 ## Tech Stack
@@ -187,7 +186,6 @@ The application uses 15 tables with the following key features:
 ## Architecture Overview
 
 - **Multi-Agent System**: Specialized AI agents for different tasks
-- **Privacy-First**: No automatic job applications or email sending
 - **Human-in-the-Loop**: All CV modifications require user approval
 - **Document Processing**: Automatic parsing of PDF, DOCX, and TXT files
 - **Real-time Updates**: Server-Sent Events for long-running operations
