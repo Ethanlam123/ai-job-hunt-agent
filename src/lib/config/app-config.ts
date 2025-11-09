@@ -293,7 +293,7 @@ function loadConfig(): EnvironmentConfig {
     if (process.env.NODE_ENV === 'development') {
       console.error('Missing or invalid environment variables:')
       if (error instanceof z.ZodError) {
-        error.errors.forEach(err => {
+        error.issues.forEach(err => {
           console.error(`  ${err.path.join('.')}: ${err.message}`)
         })
       }

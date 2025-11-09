@@ -42,7 +42,7 @@ describe('Sensitive Data Leakage Security Tests', () => {
     creditCards: [/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/gi],
 
     // File system paths
-    filePaths: [/[A-Z]:\\.*\\gi, /\/home\/.*\//gi, /\/Users\/.*\//gi],
+    filePaths: [/[A-Z]:\\.*\\/gi, /\/home\/.*\//gi, /\/Users\/.*\//gi],
     configFiles: [/\.env/gi, /\.config/gi, /config\./gi],
 
     // Database connection strings
