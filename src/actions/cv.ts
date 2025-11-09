@@ -1,12 +1,12 @@
 'use server'
 
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf"
 import { writeFile, unlink } from "fs/promises"
 import { join } from "path"
 import { tmpdir } from "os"
 import { randomUUID } from "crypto"
 import { createClient } from '@/lib/supabase/server'
 import { CVAgent } from '@/lib/agents/cv-agent'
+import { DocumentParser } from '@/lib/services/document-parser'
 import { revalidatePath } from 'next/cache'
 
 interface AnalyzeCVInput {
@@ -57,14 +57,14 @@ export async function analyzeCVAction(input: AnalyzeCVInput): Promise<AnalyzeCVO
     // Write buffer to temporary file
     await writeFile(tempFilePath, buffer);
 
-    // Load PDF using LangChain PDFLoader
-    const loader = new PDFLoader(tempFilePath);
-    const docs = await loader.load();
+    // Parse PDF using DocumentParser
+    const documentParser = new DocumentParser();
+    const parsedResult = await documentParser.parseDocument(buffer, 'pdf');
 
-    // Extract text from all pages
-    const fullText = docs.map(doc => doc.pageContent).join("\n\n");
+    // Extract text and metadata
+    const fullText = parsedResult.text;
     const preview = fullText.slice(0, 500);
-    const pageCount = docs.length;
+    const pageCount = parsedResult.metadata?.pages || 1;
 
     // Basic insights (can be enhanced with LLM later)
     const insights = generateBasicInsights(fullText, pageCount);
@@ -214,20 +214,21 @@ export async function uploadAndAnalyzeCV(input: {
         return { success: false, error: `Upload failed: ${uploadError.message}` }
       }
 
-      // Parse PDF content
+      // Parse document content using DocumentParser
       let parsedContent = null
       if (input.fileType === 'application/pdf') {
-        const tempFileName = `cv-${randomUUID()}.pdf`
-        tempFilePath = join(tmpdir(), tempFileName)
-        await writeFile(tempFilePath, buffer)
+        const documentParser = new DocumentParser()
+        const parsedResult = await documentParser.parseDocument(buffer, 'pdf')
 
-        const loader = new PDFLoader(tempFilePath)
-        const docs = await loader.load()
+        // Extract CV sections for better analysis
+        const sections = documentParser.extractCVSections(parsedResult.text)
 
         parsedContent = {
-          pageCount: docs.length,
-          fullText: docs.map(doc => doc.pageContent).join('\n\n'),
-          pages: docs.map((doc, index) => ({
+          pageCount: parsedResult.metadata?.pages || 1,
+          fullText: parsedResult.text,
+          wordCount: parsedResult.metadata?.wordCount || 0,
+          sections: sections,
+          pages: parsedResult.documents.map((doc, index) => ({
             pageNumber: index + 1,
             content: doc.pageContent,
           })),
