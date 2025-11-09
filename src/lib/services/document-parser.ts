@@ -55,13 +55,15 @@ export class DocumentParser {
   }
 
   /**
-   * Parse PDF file using LangChain PDFLoader
+   * Parse PDF file using LangChain PDFLoader with fallback text extraction
    */
   private async parsePDF(buffer: Buffer): Promise<ParsedDocument> {
     let tempPath: string | null = null
     try {
       tempPath = await this.createTempFile(buffer, 'pdf')
-      const loader = new PDFLoader(tempPath)
+      const loader = new PDFLoader(tempPath, {
+        splitPages: false, // Extract as single document to avoid parsing issues
+      })
       const documents = await loader.load()
 
       const text = documents.map(doc => doc.pageContent).join('\n\n')
