@@ -1,6 +1,6 @@
 # AI Job Hunt Agent
 
-An AI-powered job hunting assistant built with Next.js 16, LangGraph.js, and Supabase. Features CV analysis, cover letter generation, interview preparation, and skill gap analysis with a human-in-the-loop approach.
+An AI-powered job hunting assistant built with Next.js 16, LangChain.js, and Supabase. Features CV analysis, cover letter generation, interview preparation, and skill gap analysis with a human-in-the-loop approach.
 
 ## Features
 
@@ -15,7 +15,7 @@ An AI-powered job hunting assistant built with Next.js 16, LangGraph.js, and Sup
 ## Tech Stack
 
 - **Frontend**: Next.js 16 with React 19, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL, Auth, Storage), LangGraph.js, LangChain
+- **Backend**: Supabase (PostgreSQL, Auth, Storage), LangChain.js
 - **AI**: OpenRouter (LLM), OpenAI (embeddings)
 - **Database**: PostgreSQL with pgvector for vector embeddings
 - **UI**: shadcn/ui components with Radix UI
@@ -33,17 +33,20 @@ An AI-powered job hunting assistant built with Next.js 16, LangGraph.js, and Sup
 ### Installation
 
 1. Clone the repository
+
    ```bash
    git clone <your-repo-url>
    cd ai-job-hunt-agent
    ```
 
 2. Install dependencies
+
    ```bash
    npm install
    ```
 
 3. Set up environment variables
+
    ```bash
    cp .env.example .env
    # Edit .env with your API keys and Supabase credentials
@@ -52,12 +55,15 @@ An AI-powered job hunting assistant built with Next.js 16, LangGraph.js, and Sup
 4. Set up the database
 
    **Option A: Automated Setup with MCP (Easiest)**
+
    ```bash
    ./scripts/setup-database.sh
    ```
+
    *Requires Supabase MCP tools to be configured*
 
    **Option B: Automated Setup without MCP**
+
    ```bash
    # Using psql (requires PostgreSQL client tools)
    ./scripts/setup-database-sql.sh
@@ -68,12 +74,14 @@ An AI-powered job hunting assistant built with Next.js 16, LangGraph.js, and Sup
    ```
 
    **Option C: Supabase Dashboard (Visual)**
+
    1. Go to your Supabase project dashboard
    2. Open the SQL Editor
    3. Copy and paste the contents of `scripts/database-schema.sql`
    4. Run the script
 
    **Option D: Traditional Drizzle Setup**
+
    ```bash
    npm run db:push  # May have connection issues
    npm run db:apply-rls  # Apply Row Level Security policies
@@ -82,17 +90,20 @@ An AI-powered job hunting assistant built with Next.js 16, LangGraph.js, and Sup
 5. Apply Row Level Security (Required)
 
    **Step 5a: Apply RLS policies (Required for user access)**
+
    ```bash
    npm run db:apply-rls  # Apply RLS policies
    ```
 
    **Alternative RLS application methods:**
+
    - Supabase SQL Editor with `scripts/rls-policies.sql`
    - Direct SQL: `psql $DATABASE_URL -f scripts/rls-policies.sql`
 
    > **⚠️ Important**: RLS policies are **required** for the application to work. Users will get "Tenant or user not found" errors without proper RLS policies.
 
 6. Run the development server
+
    ```bash
    npm run dev
    ```
@@ -126,6 +137,7 @@ See [DATABASE_FIX.md](./DATABASE_FIX.md) for comprehensive troubleshooting of co
 - **[TESTING.md](./TESTING.md)** - Comprehensive testing workflows
 - **[DATABASE_FIX.md](./DATABASE_FIX.md)** - Database setup troubleshooting and solutions
 - **[spec-nextjs.md](./spec-nextjs.md)** - Detailed technical specifications
+- **[Documentation Portal](./docs/)** - Complete documentation hub with guides for users, developers, and testers
 
 ## Database Commands
 
@@ -156,6 +168,7 @@ If you encounter connection issues with `npm run db:push`, you have multiple alt
 3. **Manual Setup**: See [DATABASE_FIX.md](./DATABASE_FIX.md) for detailed troubleshooting
 
 **Prerequisites for Different Methods:**
+
 - **MCP Script**: Supabase MCP tools configured
 - **SQL Script**: PostgreSQL client tools (`psql`) installed
 - **Supabase Dashboard**: Web browser and Supabase account
@@ -164,6 +177,7 @@ If you encounter connection issues with `npm run db:push`, you have multiple alt
 ## Database Schema
 
 The application uses 15 tables with the following key features:
+
 - **Vector embeddings** for CV and job description analysis (1536 dimensions)
 - **Row Level Security (RLS)** for multi-tenant data isolation
 - **JSONB storage** for flexible metadata and content
@@ -172,7 +186,7 @@ The application uses 15 tables with the following key features:
 
 ## Architecture Overview
 
-- **Multi-Agent System**: LangGraph.js orchestrates specialized AI agents
+- **Multi-Agent System**: Specialized AI agents for different tasks
 - **Privacy-First**: No automatic job applications or email sending
 - **Human-in-the-Loop**: All CV modifications require user approval
 - **Document Processing**: Automatic parsing of PDF, DOCX, and TXT files

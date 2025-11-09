@@ -20,8 +20,8 @@ This directory contains comprehensive documentation for the AI Job Hunt Agent pr
 ### 💻 [Developer Documentation](./developer/)
 - [Development Guide](./developer/development-guide.md) - Development patterns, coding standards, and best practices
 - [Contribution Guidelines](./developer/contribution-guidelines.md) - How to contribute to the project
+- [Components Documentation](./developer/components.md) - Complete component reference and patterns
 - API reference documentation
-- Component documentation
 
 ### 🧪 [Testing](./testing/)
 - [Comprehensive Testing Guide](./testing/comprehensive-testing.md) - Testing strategies, procedures, and best practices

@@ -81,7 +81,7 @@ This guide provides comprehensive information for developers working on the AI J
 | **Styling** | Tailwind CSS + shadcn/ui | Component styling |
 | **Backend** | Next.js Server Actions | API endpoints |
 | **Database** | Supabase + PostgreSQL | Data persistence |
-| **AI/ML** | LangGraph.js + LangChain | Agent orchestration |
+| **AI/ML** | LangChain | LLM integration |
 | **Vector DB** | pgvector | Embeddings storage |
 
 ### Directory Structure

@@ -33,7 +33,7 @@ graph TB
 
     subgraph "External Services"
         OpenRouter["OpenRouter API<br/>GPT-5-nano"]
-        OpenAI["OpenAI API<br/>Embeddings"]
+        OpenAI["OpenAI API<br/>text-embedding-3-small"]
     end
 
     UI --> Pages
@@ -96,9 +96,7 @@ graph TB
 
 ```mermaid
 graph TB
-    subgraph "Agent Orchestration"
-        Orchestrator["Orchestrator Agent<br/>LangGraph.js"]
-
+    subgraph "AI Agents"
         subgraph "Specialized Agents"
             CVAgent[CV Analysis Agent]
             InterviewAgent[Interview Prep Agent]
@@ -113,11 +111,6 @@ graph TB
         VectorEmbeddings["Vector Embeddings<br/>pgvector Storage"]
         TaskManagement["Task Management<br/>Background Processing"]
     end
-
-    Orchestrator --> CVAgent
-    Orchestrator --> InterviewAgent
-    Orchestrator --> CoverLetterAgent
-    Orchestrator --> SkillGapAgent
 
     CVAgent --> DocumentProcessing
     InterviewAgent --> DocumentProcessing
@@ -364,7 +357,6 @@ flowchart TD
 | PostgreSQL | Latest | Primary database |
 | pgvector | Latest | Vector embeddings |
 | Drizzle ORM | Latest | Type-safe database access |
-| LangGraph.js | Latest | Agent orchestration |
 | LangChain.js | Latest | LLM integration |
 
 ### AI/ML Stack

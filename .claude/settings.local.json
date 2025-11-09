@@ -86,7 +86,8 @@
       "Bash(./scripts/add-user-responses-table.sh:*)",
       "Bash(xxd:*)",
       "Bash(NEXT_TELEMETRY_DISABLED=1 npx next build:*)",
-      "Bash(NEXT_TELEMETRY_DISABLED=1 npm run build:webpack:*)"
+      "Bash(NEXT_TELEMETRY_DISABLED=1 npm run build:webpack:*)",
+      "Bash(npx markdownlint:*)"
     ],
     "deny": [],
     "ask": []

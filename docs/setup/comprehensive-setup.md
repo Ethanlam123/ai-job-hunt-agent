@@ -54,21 +54,24 @@ Edit `.env` with your credentials:
 
 ```bash
 # Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
 # Database (optional, for Drizzle migrations)
-DATABASE_URL=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres:[password]@db.your-project-id.supabase.co:5432/postgres
 
 # AI Services
-OPENROUTER_API_KEY=your_openrouter_api_key
-OPENAI_API_KEY=your_openai_api_key
+OPENROUTER_API_KEY=your-openrouter-api-key
+OPENAI_API_KEY=your-openai-api-key
 
 # Optional: LangSmith for tracing
 LANGCHAIN_TRACING_V2=true
 LANGCHAIN_PROJECT=job-hunt-agent
-LANGCHAIN_API_KEY=your_langsmith_api_key
+LANGCHAIN_API_KEY=your-langsmith-api-key
+
+# Application Configuration
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 ### 1.4 Environment Variables Explained

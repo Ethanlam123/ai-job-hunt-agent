@@ -49,39 +49,111 @@ This guide provides detailed testing strategies and procedures for the AI Job Hu
 
 | Tool | Purpose | Configuration |
 |------|---------|---------------|
-| **Vitest** | Unit testing framework | `vitest.config.ts` |
+| **Jest** | Unit testing framework | Global configuration in package.json |
 | **Testing Library** | Component testing | React Testing Library |
-| **Playwright** | E2E testing | `playwright.config.ts` |
+| **Vitest** | Test runner and utilities | Used in test files |
 | **MSW** | API mocking | Mock Service Worker |
 | **Test Containers** | Database testing | Docker containers |
-| **Coverage** | Code coverage | `c8` or `nyc` |
+| **Coverage** | Code coverage | Jest coverage reports |
 
 ### Configuration Files
 
-#### Vitest Configuration
+#### Jest Configuration
 
+Jest configuration is handled through package.json scripts and built-in defaults:
+```json
+{
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:security": "jest --testPathPattern=security"
+  }
+}
+```
+
+#### Test Setup
+
+Tests use Vitest utilities with Jest runner:
 ```typescript
-// vitest.config.ts
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+```
 
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    coverage: {
-      provider: 'c8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src/test/',
-        '**/*.d.ts',
-        '**/*.config.*'
-      ]
-    }
+#### Coverage Configuration
+
+Coverage is configured through Jest defaults:
+- Excludes node_modules and test files
+- Generates text and HTML reports
+- Thresholds configured in CI/CD
+
+## Test Structure
+
+### Directory Organization
+
+```
+src/
+├── __tests__/
+│   ├── unit/                     # Unit tests
+│   │   └── question-generation.test.ts
+│   ├── integration/              # Integration tests
+│   │   ├── database.integration.test.ts
+│   │   └── response-storage.test.ts
+│   ├── e2e/                      # End-to-end tests
+│   │   └── critical-workflows.e2e.test.ts
+│   ├── security/                 # Security tests
+│   │   ├── auth-bypass.security.test.ts
+│   │   └── data-leakage.security.test.ts
+│   └── auth.test.ts              # Authentication tests
+```
+
+### Test Categories
+
+1. **Unit Tests** (`*.test.ts`)
+   - Test individual functions and components
+   - Fast execution with mocked dependencies
+   - Use Vitest utilities
+
+2. **Integration Tests** (`*.integration.test.ts`)
+   - Test component interactions
+   - Database operations
+   - External service integrations
+
+3. **E2E Tests** (`*.e2e.test.ts`)
+   - Complete user workflows
+   - Browser automation
+   - Real user scenarios
+
+4. **Security Tests** (`*.security.test.ts`)
+   - Authentication bypass attempts
+   - Data leakage detection
+   - Input validation testing
+
+## Running Tests
+
+### Command Line Options
+
+```bash
+# Run all tests
+npm run test
+
+# Watch mode for development
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+
+# Run specific test categories
+npm run test:integration
+npm run test:security
+
+# Run specific test file
+npm test auth.test.ts
+
+# Run tests matching pattern
+npm test -- --testNamePattern="Email Validation"
+```
   },
   resolve: {
     alias: {

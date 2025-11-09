@@ -23,31 +23,377 @@ if (error || !user) {
 }
 ```
 
-## Document Management
+## Authentication Actions (`src/actions/auth.ts`)
+
+### `login`
+Authenticates user with email and password.
+
+**Input**: `FormData` with `email` and `password` fields
+**Output**: `{ success: boolean, error?: string, redirect?: string }`
+
+### `signup`
+Registers new user account.
+
+**Input**: `FormData` with `email`, `password`, `confirmPassword` fields
+**Output**: `{ success: boolean, error?: string, redirect?: string }`
+
+### `signout`
+Logs out current user.
+
+**Output**: `{ success: boolean, error?: string }`
+
+## Document Management (`src/actions/documents.ts`)
 
 ### `uploadDocument`
-**Location**: `src/actions/documents.ts`
-
 Uploads and parses PDF, DOCX, or TXT documents.
 
-**Input**:
+**Input**: `FormData` with file and metadata
+**Output**: `{ success: boolean, data?: Document, error?: string }`
+
+### `getUserDocuments`
+Retrieves user's documents with optional filtering.
+
+**Input**: `documentType?: 'cv' | 'jd' | 'cover_letter'`
+**Output**: `{ success: boolean, data?: Document[] }`
+
+### `getDocumentById`
+Retrieves specific document by ID.
+
+**Input**: `documentId: string`
+**Output**: `{ success: boolean, data?: Document }`
+
+### `renameDocument`
+Renames an existing document.
+
+**Input**: `documentId: string`, `newName: string`
+**Output**: `{ success: boolean, data?: Document }`
+
+### `deleteDocument`
+Deletes a document and associated files.
+
+**Input**: `documentId: string`
+**Output**: `{ success: boolean }`
+
+## CV Analysis (`src/actions/cv.ts`)
+
+### `analyzeCVAction`
+Analyzes uploaded CV for improvement suggestions.
+
+**Input**: `{ documentId: string, sessionId?: string }`
+**Output**: `{ success: boolean, data?: AnalysisResult }`
+
+### `uploadAndAnalyzeCV`
+Combines document upload with analysis.
+
+**Input**: `{ file: File, sessionId?: string }`
+**Output**: `{ success: boolean, data?: AnalysisResult }`
+
+### `triggerCVAnalysisWorkflow`
+Starts AI-powered CV analysis workflow.
+
+**Input**: `documentId: string`, `jobDescriptionId?: string`
+**Output**: `{ success: boolean, taskId?: string }`
+
+### `getAnalysisResults`
+Retrieves CV analysis results.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: AnalysisResults }`
+
+### `getPendingApprovals`
+Gets pending CV improvement approvals.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: PendingApproval[] }`
+
+### `handleApprovalDecision`
+Processes user approval decision for CV changes.
+
+**Input**: `{ sessionId: string, approvalId: string, approved: boolean }`
+**Output**: `{ success: boolean }`
+
+### `getApprovalSummary`
+Gets summary of all approval decisions.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: ApprovalSummary }`
+
+### `generateUpdatedCV`
+Generates updated CV based on approved changes.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: GeneratedCV }`
+
+### `generateCVQuestions`
+Generates questions about CV for missing information.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: Question[] }`
+
+### `getCVQuestions`
+Retrieves generated CV questions.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: Question[] }`
+
+### `saveCVResponses`
+Saves user responses to CV questions.
+
+**Input**: `{ sessionId: string, responses: Record<string, string> }`
+**Output**: `{ success: boolean }`
+
+### `getCVResponses`
+Retrieves saved CV question responses.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: Record<string, string> }`
+
+## Cover Letter Generation (`src/actions/cover-letter.ts`)
+
+### `generateCoverLetter`
+Generates personalized cover letter.
+
+**Input**: `{ cvId: string, jobId: string, tone?: string }`
+**Output**: `{ success: boolean, data?: CoverLetter, taskId?: string }`
+
+### `getCoverLetterHistory`
+Retrieves user's cover letter history.
+
+**Input**: `limit?: number` (default: 10)
+**Output**: `{ success: boolean, data?: CoverLetter[] }`
+
+### `getCoverLetter`
+Retrieves specific cover letter.
+
+**Input**: `id: string`
+**Output**: `{ success: boolean, data?: CoverLetter }`
+
+### `getUserJDDocuments`
+Retrieves user's job description documents.
+
+**Output**: `{ success: boolean, data?: Document[] }`
+
+## Interview Preparation (`src/actions/interview.ts`)
+
+### `generateInterviewQuestions`
+Generates mock interview questions.
+
+**Input**: `{ cvId: string, jobId: string, questionCount?: number }`
+**Output**: `{ success: boolean, data?: Question[], taskId?: string }`
+
+### `getInterviewQuestions`
+Retrieves interview questions for session.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: Question[] }`
+
+### `getQuestion`
+Retrieves specific interview question.
+
+**Input**: `questionId: string`
+**Output**: `{ success: boolean, data?: Question }`
+
+### `submitAnswer`
+Submits answer to interview question.
+
+**Input**: `{ questionId: string, answer: string, sessionId: string }`
+**Output**: `{ success: boolean, feedback?: string }`
+
+### `getSessionProgress`
+Gets interview session progress.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: SessionProgress }`
+
+### `analyzeInterviewPerformance`
+Analyzes overall interview performance.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: PerformanceAnalysis }`
+
+### `getInterviewHistory`
+Retrieves interview session history.
+
+**Output**: `{ success: boolean, data?: InterviewSession[] }`
+
+### `getInterviewStatistics`
+Gets interview performance statistics.
+
+**Output**: `{ success: boolean, data?: InterviewStats }`
+
+### `deleteInterviewSession`
+Deletes interview session.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean }`
+
+### `getUnansweredQuestions`
+Gets unanswered questions for session.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: Question[] }`
+
+## Skill Gap Analysis (`src/actions/skill-gap.ts`)
+
+### `analyzeSkillGaps`
+Analyzes skill gaps between CV and job requirements.
+
+**Input**: `{ cvId: string, jobId: string, sessionId?: string }`
+**Output**: `{ success: boolean, data?: SkillGapResult, taskId?: string }`
+
+### `getSkillGapResults`
+Retrieves skill gap analysis results.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: SkillGapResult }`
+
+### `getSkillGapsByTimeline`
+Retrieves skill gaps organized by timeline.
+
+**Input**: `sessionId: string`
+**Output**: `{ success: boolean, data?: TimelineSkillGaps }`
+
+### `updateSkillGapStatus`
+Updates status of a specific skill gap.
+
+**Input**: `{ skillGapId: string, status: 'pending' | 'in_progress' | 'completed' | 'not_interested' }`
+**Output**: `{ success: boolean }`
+
+### `getSkillGapStats`
+Gets skill gap statistics.
+
+**Output**: `{ success: boolean, data?: SkillGapStats }`
+
+### `getUserCVDocuments`
+Retrieves user's CV documents.
+
+**Output**: `{ success: boolean, data?: Document[] }`
+
+### `getUserJDDocuments`
+Retrieves user's job description documents.
+
+**Output**: `{ success: boolean, data?: Document[] }`
+
+### `validateJobDescription`
+Validates quality of job description.
+
+**Input**: `jobDescriptionText: string`
+**Output**: `{ success: boolean, data?: ValidationResult }`
+
+## Error Handling
+
+All server actions follow this error handling pattern:
+
 ```typescript
-interface UploadDocumentInput {
-  file: File
-  sessionId?: string
-  documentType: 'cv' | 'jd' | 'cover_letter'
+try {
+  // Server action logic
+  return { success: true, data: result }
+} catch (error) {
+  console.error('Action failed:', error)
+  return { success: false, error: error.message }
 }
 ```
 
-**Output**:
+### Common Error Types
+
+- **Authentication**: User not authenticated
+- **Authorization**: User lacks permission
+- **Validation**: Invalid input data
+- **Network**: External API failures
+- **Database**: Database operation failures
+- **File**: File upload/download issues
+
+## Task Tracking
+
+Long-running operations use task tracking:
+
 ```typescript
-interface UploadDocumentOutput {
-  success: boolean
-  data?: {
-    id: string
-    originalFilename: string
-    fileFormat: string
-    parsedContent: ParsedContent
+// Create task
+const { data: task } = await supabase.from('tasks').insert({
+  session_id: sessionId,
+  task_type: 'cv_analysis',
+  status: 'processing'
+}).select().single()
+
+// Poll for results
+const { data: updatedTask } = await supabase.from('tasks')
+  .select('*')
+  .eq('id', taskId)
+  .single()
+```
+
+## Usage Examples
+
+### React Component Usage
+```typescript
+'use client'
+
+import { analyzeCVAction } from '@/actions/cv'
+
+export function CVAnalyzer({ documentId }: { documentId: string }) {
+  const handleAnalyze = async () => {
+    const result = await analyzeCVAction({ documentId })
+    if (result.success) {
+      // Handle success
+    } else {
+      // Handle error
+    }
+  }
+
+  return <button onClick={handleAnalyze}>Analyze CV</button>
+}
+```
+
+### Form Submission
+```typescript
+'use client'
+
+import { uploadDocument } from '@/actions/documents'
+
+export function DocumentUploader() {
+  const handleSubmit = async (formData: FormData) => {
+    const result = await uploadDocument(formData)
+    if (result.success) {
+      // Handle success
+    }
+  }
+
+  return (
+    <form action={handleSubmit}>
+      <input type="file" name="file" />
+      <button type="submit">Upload</button>
+    </form>
+  )
+}
+```
+
+## Rate Limiting
+
+Server actions implement rate limiting using PostgreSQL:
+- **Per-user limits**: Based on user ID
+- **IP-based limits**: Fallback for anonymous users
+- **Sliding window**: 10 requests per 10 seconds
+- **Database tracked**: Prevents bypass via cache
+
+## Security Considerations
+
+### Row Level Security (RLS)
+All database operations respect RLS policies:
+- Users can only access their own data
+- Service role key bypasses RLS (development only)
+- Session-based authentication
+
+### Input Validation
+- TypeScript interfaces for type safety
+- Server-side validation of all inputs
+- File type and size restrictions
+- SQL injection prevention via parameterized queries
+
+### Authentication State
+- Cookie-based sessions
+- Automatic token refresh
+- Secure token storage
+- CORS configuration
     preview: string
   }
   error?: string
@@ -133,7 +479,7 @@ interface TriggerCVAnalysisOutput {
 
 **Process**:
 1. Document validation and parsing
-2. AI agent analysis using LangGraph.js
+2. AI agent analysis using LangChain.js
 3. Improvement suggestions generation
 4. Task tracking for real-time updates
 5. Results storage with user approval workflow

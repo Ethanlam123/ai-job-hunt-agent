@@ -76,7 +76,7 @@ npm run db:fix-all-rls # Fix all RLS policies
 **Backend:**
 - Next.js Route Handlers (`app/api/*/route.ts`)
 - Server Actions (`'use server'`) for mutations
-- LangGraph.js + LangChain.js for AI agent orchestration
+- LangChain.js for AI agent orchestration
 - OpenRouter (GPT-5-nano) for LLM operations
 - OpenAI (text-embedding-3-small) for embeddings
 
@@ -126,7 +126,7 @@ components/
 └── shared/             # Shared components
 
 lib/
-├── agents/             # LangGraph agents (orchestrator, cv, interview, skill-gap, etc.)
+├── agents/             # AI agents (cv, interview, skill-gap, etc.)
 ├── services/           # Business logic
 │   ├── document-parser.ts         # PDF/DOCX/TXT parsing service
 │   ├── llm-service.ts             # LLM integration service
@@ -301,18 +301,18 @@ rate_limits         // Request timestamps for rate limiting
 
 ## AI Agent Architecture
 
-### Multi-Agent System (LangGraph.js)
+### Multi-Agent System
 
-The system uses specialized agents coordinated by an orchestrator:
+The system uses specialized AI agents:
 
-1. **Orchestrator Agent**: Routes requests to specialized agents, manages workflow state
-2. **CV Agent**: Parses, analyzes CVs, generates improvements with human approval
-3. **Interview Agent**: Generates mock interview questions, provides feedback
-4. **Cover Letter Agent**: Creates personalized cover letters from CV + JD
-5. **Skill Gap Agent**: Identifies missing skills, creates learning roadmap with timeline organization (short/medium/long term)
+1. **CV Agent**: Parses, analyzes CVs, generates improvements with human approval
+2. **Interview Agent**: Generates mock interview questions, provides feedback
+3. **Cover Letter Agent**: Creates personalized cover letters from CV + JD
+4. **Skill Gap Agent**: Identifies missing skills, creates learning roadmap with timeline organization (short/medium/long term)
 
 **Agent Communication:**
-- Agents communicate via LangGraph state channels
+- Each agent operates independently with direct database access
+- State is managed through Server Actions and database records
 - Long-running operations use Server Actions with PostgreSQL task tracking
 - Clients poll task status or use Server-Sent Events (SSE) for real-time updates
 
