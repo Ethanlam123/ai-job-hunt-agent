@@ -29,7 +29,7 @@ export default async function InterviewPage() {
     .from('documents')
     .select('id, original_filename, created_at')
     .eq('user_id', user.id)
-    .eq('document_type', 'job_description')
+    .eq('document_type', 'jd')
     .order('created_at', { ascending: false })
 
   const cvDocs = cvDocuments || []
