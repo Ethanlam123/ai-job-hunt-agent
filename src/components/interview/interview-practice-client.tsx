@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -127,6 +127,9 @@ export function InterviewPracticeClient({
   const [performanceAnalysis, setPerformanceAnalysis] = useState<PerformanceAnalysis | null>(null)
 
   const currentQuestion = questions[currentQuestionIndex]
+
+  // Removed auto-switching to ensure both text and document modes work correctly
+  // Users should have full control over their preferred input method
 
   const handleGenerateQuestions = async () => {
     if (!cvDocumentId) {
@@ -363,7 +366,11 @@ export function InterviewPracticeClient({
                   variant={jdInputMode === 'text' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setJdInputMode('text')}
+                  className="flex items-center gap-2"
                 >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
                   Paste Text
                 </Button>
                 <Button
@@ -371,8 +378,17 @@ export function InterviewPracticeClient({
                   variant={jdInputMode === 'document' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setJdInputMode('document')}
+                  className="flex items-center gap-2"
                 >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
                   Select Document
+                  {jdDocuments.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {jdDocuments.length}
+                    </Badge>
+                  )}
                 </Button>
               </div>
 
@@ -385,18 +401,31 @@ export function InterviewPracticeClient({
                   className="font-mono text-sm"
                 />
               ) : (
-                <Select value={jdDocumentId} onValueChange={setJdDocumentId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a job description" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {jdDocuments.map((doc) => (
-                      <SelectItem key={doc.id} value={doc.id}>
-                        {doc.original_filename}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <>
+                  {jdDocuments.length === 0 ? (
+                    <div className="border rounded-md p-4 text-center bg-muted/10">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        No job description documents available
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Upload job descriptions in the Documents page or use the "Paste Text" option above
+                      </p>
+                    </div>
+                  ) : (
+                    <Select value={jdDocumentId} onValueChange={setJdDocumentId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a job description" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {jdDocuments.map((doc) => (
+                          <SelectItem key={doc.id} value={doc.id}>
+                            {doc.original_filename}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </>
               )}
             </div>
 

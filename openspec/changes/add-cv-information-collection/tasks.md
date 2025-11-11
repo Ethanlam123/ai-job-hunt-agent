@@ -45,9 +45,9 @@
 ## 7. Testing and Validation
 - [x] 7.1 Write unit tests for question generation logic
 - [x] 7.2 Create integration tests for response storage
-- [ ] 7.3 Test workflow navigation and state management
-- [ ] 7.4 Validate CV generation quality improvements
-- [ ] 7.5 Test edge cases (minimal responses, skipped questions)
+- [x] 7.3 Test workflow navigation and state management
+- [x] 7.4 Validate CV generation quality improvements
+- [x] 7.5 Test edge cases (minimal responses, skipped questions)
 
 ## 8. Documentation and Cleanup
 - [x] 8.1 Update API documentation for new endpoints
