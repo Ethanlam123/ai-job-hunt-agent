@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an **AI-powered job hunting agent system** built with **Next.js 16**, using a multi-agent architecture to help job seekers with CV analysis, interview preparation, cover letter generation, and skill gap analysis. The system is now feature-complete with all core functionality implemented.
+This is an **AI-powered job hunting agent system** built with **Next.js 16**, using a multi-agent architecture to help job seekers with CV analysis, interview preparation, cover letter generation, and skill gap analysis. The system is feature-complete with production-ready security implementations and Serena AI code analysis capabilities.
 
 **Key Architecture Principles:**
 - **Privacy-first**: No automatic job applications or email sending
@@ -31,6 +31,7 @@ This is an **AI-powered job hunting agent system** built with **Next.js 16**, us
 - **Supabase-only data layer**: PostgreSQL (with pgvector), Storage, and Auth - no Redis or Inngest
 - **Row Level Security (RLS)**: All database operations respect user context through RLS policies
 - **Full-stack Next.js**: Server Components, Server Actions, and Route Handlers
+- **Security-First**: Production environment validation prevents service role key exposure
 
 ## Development Commands
 
@@ -61,6 +62,13 @@ npm run db:cleanup   # Clean database and reset
 npm run db:apply-rls # Apply RLS policies to database
 npm run db:fix-rls   # Fix RLS policies for documents table
 npm run db:fix-all-rls # Fix all RLS policies
+
+# OpenSpec Management
+./scripts/setup-database.sh        # Automated setup with MCP (easiest)
+./scripts/setup-database-sql.sh     # Automated setup without MCP
+openspec list                     # List all changes and specs
+openspec validate <change-id>      # Validate a change proposal
+openspec show <change-id>          # Show change details
 ```
 
 ## Architecture Overview
@@ -100,7 +108,7 @@ npm run db:fix-all-rls # Fix all RLS policies
 ```
 app/
 ├── (auth)/              # Auth route group (login, register)
-├── (dashboard)/         # Protected routes (dashboard, workflow, history)
+├── (dashboard)/         # Protected routes (dashboard, workflow)
 │   ├── cv-analysis/     # CV analysis page
 │   ├── skill-gap/       # Skill gap analysis page
 │   ├── cover-letter/    # Cover letter generation
@@ -235,16 +243,26 @@ export const APP_CONFIG = {
 
 ## Critical Security Requirements
 
-### Row Level Security (RLS)
+### Row Level Security (RLS) and Service Role Key Security
 
-**IMPORTANT:** `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS and should be used with caution:
-- **Development**: Can be used for testing, seeding databases, or admin operations
-- **Production**: NEVER use in production client-facing code - it creates security vulnerabilities
+**CRITICAL SECURITY IMPLEMENTATION:** The system now includes production-safe validation for `SUPABASE_SERVICE_ROLE_KEY`:
+
+- **Production Environment**: Service role key is automatically blocked and cannot be used
+- **Development Environment**: Service role key available for testing and administrative operations
+- **Test Environment**: Service role key available for comprehensive test coverage
+- **Build-time Validation**: Production builds fail if service role key is detected
+
+**OpenSpec Security Proposal:** See `openspec/changes/secure-service-role-key/` for detailed implementation
 
 **For standard operations, always use:**
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` for client-side operations (respects RLS)
 - Server-side Supabase clients created via `createClient()` (inherit user context from cookies)
-- `SUPABASE_SERVICE_ROLE_KEY` only in development for admin tasks or when you explicitly need to bypass RLS
+- Service role key only in development/test environments with proper validation
+
+**Security Validation Layers:**
+1. Configuration schema validation prevents service role key in production
+2. Build-time validation blocks production builds with service role key
+3. Runtime validation adds additional safety during application startup
 
 **RLS-Aware Cache Keys:**
 All cache operations must use user-scoped keys:
@@ -530,6 +548,37 @@ The most recently implemented feature provides comprehensive skill gap analysis:
 - `src/actions/skill-gap.ts` - Server actions
 - `src/components/skill-gap/` - UI components
 - `src/app/(dashboard)/skill-gap/page.tsx` - Feature page
+
+## Serena AI Code Analysis
+
+The project now includes Serena semantic code analysis capabilities for enhanced development and maintenance:
+
+**Capabilities:**
+- **Semantic Code Understanding**: Analyzes code structure without reading entire files
+- **Symbol-Level Analysis**: Traces relationships between functions, classes, and modules
+- **Intelligent Search**: Fast pattern matching and code exploration
+- **Memory Management**: Maintains comprehensive project knowledge in structured memory files
+
+**Memory Files:**
+- `.serena/memories/project-overview.md` - Complete project understanding
+- `.serena/memories/project-structure.md` - Detailed architecture documentation
+- `.serena/memories/code-style-conventions.md` - Development standards and patterns
+- `.serena/memories/development-commands.md` - Essential commands and workflows
+- `.serena/memories/task-completion-checklist.md` - Quality assurance checklists
+
+## OpenSpec Change Management
+
+The project uses OpenSpec for structured change proposals and specification management:
+
+**Recent Changes:**
+- `secure-service-role-key`: Critical security fix to prevent service role key exposure in production
+- Multi-layer validation (build-time, runtime, configuration) for production safety
+- Comprehensive testing strategies and backward compatibility maintenance
+
+**OpenSpec Commands:**
+- `openspec list` - View all changes and specifications
+- `openspec validate <change-id>` - Validate change proposals
+- `openspec show <change-id>` - Display detailed change information
 
 ## Testing
 
