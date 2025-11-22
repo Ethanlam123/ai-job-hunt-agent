@@ -96,7 +96,17 @@
       "mcp__serena__list_memories",
       "mcp__serena__get_symbols_overview",
       "mcp__serena__find_symbol",
-      "mcp__serena__search_for_pattern"
+      "mcp__serena__search_for_pattern",
+      "mcp__serena__read_memory",
+      "Bash(npx supabase status:*)",
+      "Bash(env:*)",
+      "Bash(unset:*)",
+      "mcp__serena__think_about_whether_you_are_done",
+      "Bash(export NEXT_PUBLIC_SUPABASE_URL=https://zqojbtlhaosmueifixyi.supabase.co:*)",
+      "Bash(export NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_sosMxjUT0dB9JB2idqIb8Q_5B7RTPEp:*)",
+      "Bash(export DATABASE_URL:*)",
+      "Bash(export SUPABASE_SERVICE_ROLE_KEY=sb_secret_4t4HZwPJ4iyzvf9hoBe5hg_4APq88Ck)",
+      "mcp__serena__find_file"
     ],
     "deny": [],
     "ask": []

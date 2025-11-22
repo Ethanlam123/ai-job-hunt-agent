@@ -44,7 +44,7 @@ An AI-powered job hunting assistant built with Next.js 16, LangChain.js, and Sup
    npm install
    ```
 
-3. Set up environment variables
+  3. Set up environment variables
 
    ```bash
    cp .env.example .env
@@ -111,30 +111,32 @@ An AI-powered job hunting assistant built with Next.js 16, LangChain.js, and Sup
 
 ## Troubleshooting
 
-### "Tenant or user not found" Error
+### Installation Issues
 
-This error occurs when there's a mismatch between Supabase Auth users and your application's users table. Fix it with:
+If you encounter dependency conflicts with Zod versions:
 
 ```bash
-# Quick fix (recommended)
-npm run db:apply-rls && npm run db:fix-all-rls
-
-# Manual fix via SQL Editor
-# 1. Open Supabase Dashboard → SQL Editor
-# 2. Run: scripts/supabase-auth-user-sync.sql
+npm install --legacy-peer-deps
 ```
 
-**Root Cause**: Supabase Auth creates users in `auth.users` table, but your app queries `public.users`. The sync script creates automatic sync between both tables.
+### Database Connection
 
-### Database Connection Issues
+For database setup issues, ensure your Supabase project has:
+- **pgvector extension** enabled
+- **Proper API keys** configured in `.env`
+- **Correct project URL** matching your Supabase dashboard
 
-See [DATABASE_FIX.md](./DATABASE_FIX.md) for comprehensive troubleshooting of connection problems.
+### Authentication Issues
+
+If you see "Tenant or user not found" errors, run:
+```bash
+npm run db:apply-rls && npm run db:fix-all-rls
+```
 
 ## Documentation
 
 - **[CLAUDE.md](./CLAUDE.md)** - Architecture overview and development guide
 - **[TESTING.md](./TESTING.md)** - Comprehensive testing workflows
-- **[DATABASE_FIX.md](./DATABASE_FIX.md)** - Database setup troubleshooting and solutions
 - **[spec-nextjs.md](./spec-nextjs.md)** - Detailed technical specifications
 - **[Documentation Portal](./docs/)** - Complete documentation hub with guides for users, developers, and testers
 
@@ -158,20 +160,14 @@ npm run db:migrate               # Run database migrations
 npm run db:fix-all-rls           # Fix all RLS policies
 ```
 
-### Database Setup Troubleshooting
+### Database Setup Alternatives
 
-If you encounter connection issues with `npm run db:push`, you have multiple alternatives:
+For database setup, multiple options are available:
 
-1. **MCP-Free Script**: Use `./scripts/setup-database-sql.sh` (requires psql)
-2. **Supabase Dashboard**: Copy `scripts/database-schema.sql` to the SQL Editor
-3. **Manual Setup**: See [DATABASE_FIX.md](./DATABASE_FIX.md) for detailed troubleshooting
-
-**Prerequisites for Different Methods:**
-
-- **MCP Script**: Supabase MCP tools configured
-- **SQL Script**: PostgreSQL client tools (`psql`) installed
-- **Supabase Dashboard**: Web browser and Supabase account
-- **Drizzle**: Working database connection (may have network issues)
+1. **MCP Script**: `./scripts/setup-database.sh` (requires Supabase MCP tools)
+2. **SQL Script**: `./scripts/setup-database-sql.sh` (requires PostgreSQL client tools)
+3. **Supabase Dashboard**: Copy `scripts/database-schema.sql` to the SQL Editor
+4. **Drizzle**: `npm run db:push` (requires working database connection)
 
 ## Database Schema
 

@@ -37,8 +37,7 @@
     "docs:components": "npx tsx scripts/generate-component-docs.ts",
     "docs:database": "npx tsx scripts/generate-db-docs.ts",
     "docs:coverage": "npx tsx scripts/check-docs-coverage.ts",
-    "docs:build": "npm run docs:generate && npm run docs:coverage",
-    "postinstall": "prisma generate"
+    "docs:build": "npm run docs:generate && npm run docs:coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
