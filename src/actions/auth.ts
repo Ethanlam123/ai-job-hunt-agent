@@ -14,7 +14,7 @@ import {
   type StandardResponse
 } from '@/lib/utils/error-response'
 
-export async function login(formData: FormData) {
+export async function login(prevState: any, formData: FormData) {
   const supabase = await createClient()
 
   // Get client IP for rate limiting
@@ -23,25 +23,32 @@ export async function login(formData: FormData) {
   // Check rate limiting for login attempts
   const rateLimitResult = await checkAuthRateLimit('LOGIN', clientIp)
   if (!rateLimitResult.success) {
-    return createErrorResponse(
-      ERROR_CODES.RATE_LIMIT_EXCEEDED,
-      'Too many login attempts. Please try again later.',
-      [{
-        message: `Rate limit exceeded. Try again after ${Math.ceil((rateLimitResult.reset.getTime() - Date.now()) / 1000)} seconds`,
-        code: 'RATE_LIMIT_RETRY_AFTER'
-      }]
-    )
+    return {
+      success: false,
+      error: 'Too many login attempts. Please try again later.'
+    }
   }
 
   // Validate and sanitize input
   const validation = validateAuthFormData(formData)
 
   if (!validation.isValid) {
-    return createErrorResponse(
-      ERROR_CODES.INVALID_INPUT_FORMAT,
-      'Validation failed',
-      validation.errors.map(message => ({ message }))
-    )
+    return {
+      success: false,
+      error: 'Please check your input and try again.',
+      fieldErrors: validation.errors.reduce((acc, error, index) => {
+        // Map errors to field names based on validation patterns
+        if (error.toLowerCase().includes('email')) {
+          acc.email = error
+        } else if (error.toLowerCase().includes('password')) {
+          acc.password = error
+        } else {
+          // Default to email field for general validation errors
+          acc.email = error
+        }
+        return acc
+      }, {} as Record<string, string>)
+    }
   }
 
   try {
@@ -51,14 +58,29 @@ export async function login(formData: FormData) {
     })
 
     if (error) {
-      return handleError(error)
+      return {
+        success: false,
+        error: 'Invalid email or password. Please try again.',
+        fieldErrors: {}
+      }
     }
 
     revalidatePath('/', 'layout')
     redirect('/dashboard')
 
   } catch (error) {
-    return handleError(error)
+    // Check if it's a Next.js redirect error (successful login)
+    if (error instanceof Error && 'digest' in error && error.digest?.includes('NEXT_REDIRECT')) {
+      // This is expected behavior for successful login redirect
+      // Re-throw it so Next.js can handle the redirect
+      throw error
+    }
+
+    return {
+      success: false,
+      error: 'An unexpected error occurred. Please try again.',
+      fieldErrors: {}
+    }
   }
 }
 
@@ -103,13 +125,6 @@ export async function signup(formData: FormData) {
 
     if (error) {
       return handleError(error)
-    }
-
-    // Log success without sensitive user data in production
-    if (process.env.NODE_ENV === 'production') {
-      console.log('New user registration successful')
-    } else {
-      console.log('Sign-up success:', signUpData)
     }
 
     // Check if user needs email confirmation
