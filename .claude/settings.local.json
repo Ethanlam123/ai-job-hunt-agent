@@ -106,7 +106,10 @@
       "Bash(export NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_sosMxjUT0dB9JB2idqIb8Q_5B7RTPEp:*)",
       "Bash(export DATABASE_URL:*)",
       "Bash(export SUPABASE_SERVICE_ROLE_KEY=sb_secret_4t4HZwPJ4iyzvf9hoBe5hg_4APq88Ck)",
-      "mcp__serena__find_file"
+      "mcp__serena__find_file",
+      "Bash(echo:*)",
+      "mcp__supabase__get_anon_key",
+      "mcp__supabase__search_docs"
     ],
     "deny": [],
     "ask": []

@@ -1,149 +1,117 @@
-# Documentation Directory
+# AI Job Hunt Agent
 
-This directory contains comprehensive documentation for the AI Job Hunt Agent project.
+A comprehensive AI-powered job hunting system built with Next.js 16 and Supabase.
 
-## 📚 Documentation Structure
-
-### 📖 [User Guides](./user-guides/)
-- [CV Analysis Guide](./user-guides/cv-analysis.md) - Complete guide for analyzing and improving your CV
-- [Skill Gap Analysis Guide](./user-guides/skill-gap-analysis.md) - Identify and address skill gaps for target jobs
-- [Cover Letter Generation Guide](./user-guides/cover-letter-generation.md) - Create personalized cover letters
-- [Interview Preparation Guide](./user-guides/interview-preparation.md) - Practice and prepare for interviews
-
-### 🏗️ [Architecture](./architecture/)
-- [System Overview](./architecture/system-overview.md) - Complete system architecture and design patterns
-- Database schema documentation
-- AI agent architecture
-- Security architecture
-- Performance considerations
-
-### 💻 [Developer Documentation](./developer/)
-- [Development Guide](./developer/development-guide.md) - Development patterns, coding standards, and best practices
-- [Contribution Guidelines](./developer/contribution-guidelines.md) - How to contribute to the project
-- [Components Documentation](./developer/components.md) - Complete component reference and patterns
-- API reference documentation
-
-### 🧪 [Testing](./testing/)
-- [Comprehensive Testing Guide](./testing/comprehensive-testing.md) - Testing strategies, procedures, and best practices
-- Unit testing guidelines
-- Integration testing approaches
-- End-to-end testing scenarios
-- Performance testing strategies
-
-### 🔧 [Setup Guides](./setup/)
-- [Comprehensive Setup Guide](./setup/comprehensive-setup.md) - Complete environment setup instructions
-- Prerequisites and requirements
-- Database setup procedures
-- Troubleshooting common issues
-
-### 📡 [API Documentation](./api/)
-- [Server Actions Reference](./api/server-actions.md) - All available Server Actions with examples
-- Request/response formats
-- Authentication and authorization
-- Error handling patterns
-
-## 🚀 Quick Start
-
-### For Users
-
-1. **New to the application?** Start with the [User Guides](./user-guides/)
-2. **Need help with setup?** Follow the [Comprehensive Setup Guide](./setup/comprehensive-setup.md)
-3. **Having issues?** Check the troubleshooting sections in each guide
-
-### For Developers
-
-1. **Setting up development environment?** Read the [Development Guide](./developer/development-guide.md)
-2. **Want to contribute?** Follow the [Contribution Guidelines](./developer/contribution-guidelines.md)
-3. **Need to understand the architecture?** Check the [System Overview](./architecture/system-overview.md)
-
-### For Testers
-
-1. **Testing the application?** Use the [Comprehensive Testing Guide](./testing/comprehensive-testing.md)
-2. **Need test data?** Check the testing documentation for sample scenarios
-
-## 🔍 Documentation Maintenance
-
-### Automated Generation
-
-The project includes automated documentation generation:
+## Quick Start
 
 ```bash
-# Generate all documentation
-npm run docs:generate
+# Install dependencies
+npm install
 
-# Check documentation coverage
-npm run docs:coverage
+# Setup environment variables
+cp .env.example .env
+# Edit .env with your Supabase credentials
 
-# Build complete documentation
-npm run docs:build
+# Setup database
+npm run db:push && npm run db:apply-rls
+
+# Start development
+npm run dev
 ```
 
-### Manual Updates
+## Features
 
-- **User Guides**: Update when features change or new documentation is needed
-- **Developer Docs**: Update when architecture or development patterns change
-- **API Docs**: Auto-generated, but may need manual enhancement
-- **Architecture Docs**: Update when system design changes
+- **CV Analysis**: AI-powered resume improvement suggestions
+- **Skill Gap Analysis**: Compare your skills against job requirements
+- **Interview Preparation**: Generate practice questions and get feedback
+- **Cover Letter Generation**: Create personalized cover letters
+- **Document Management**: Upload and manage CVs and job descriptions
 
-### Coverage Requirements
+## Architecture
 
-- **Server Actions**: 100% documentation coverage required
-- **Components**: 90% documentation coverage required
-- **Database Schema**: 100% documentation coverage required
-- **Environment Variables**: 100% documentation coverage required
+- **Frontend**: Next.js 16 with React 19 and TypeScript
+- **Backend**: Supabase (PostgreSQL + Auth + Storage)
+- **AI**: LangChain.js with OpenRouter and OpenAI
+- **Security**: Row Level Security (RLS) policies
 
-## 📋 Documentation Standards
+## Project Structure
 
-### Writing Guidelines
+```
+├── app/                    # Next.js 16 App Router
+├── components/             # React components
+├── lib/                    # Utilities and services
+├── actions/                # Server Actions
+└── docs/                   # Documentation
+```
 
-1. **Clear and Concise**: Use simple, direct language
-2. **Action-Oriented**: Start sections with verbs
-3. **Code Examples**: Include practical examples for all APIs
-4. **Visual Aids**: Use diagrams, screenshots, and tables
-5. **Cross-References**: Link to related documentation
+## Documentation
 
-### Formatting Standards
+- [User Guides](user-guides/) - How to use features
+- [API Reference](api/) - Server actions and endpoints
+- [Development Guide](developer/) - Contributing and setup
+- [Architecture](architecture/) - System design and database schema
 
-- **Markdown**: Use GitHub-flavored markdown
-- **Code Blocks**: Specify language for syntax highlighting
-- **Links**: Use relative links for internal documentation
-- **Images**: Optimize for web and include alt text
-- **Tables**: Use consistent formatting
+## Environment Variables
 
-### Review Process
+Required environment variables:
 
-1. **Peer Review**: All documentation changes require review
-2. **Accuracy Check**: Ensure technical accuracy
-3. **User Testing**: Verify user guides are actionable
-4. **Accessibility**: Ensure documentation is accessible to all users
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your-project-url.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-## 🔗 Related Resources
+# AI Services
+OPENROUTER_API_KEY=your-openrouter-key
+OPENAI_API_KEY=your-openai-key
+```
 
-### External Documentation
+## Common Issues
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Supabase Documentation](https://supabase.com/docs)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [LangChain Documentation](https://js.langchain.com/docs)
+### Storage Upload Problems
 
-### Community
+If you encounter storage issues:
 
-- [GitHub Issues](https://github.com/your-repo/issues) - Bug reports and feature requests
-- [GitHub Discussions](https://github.com/your-repo/discussions) - General questions and discussions
-- [Contributing Guide](./developer/contribution-guidelines.md) - How to contribute
+1. **Bucket not found**: Run storage setup in Supabase Dashboard
+2. **Foreign key error**: Check user sync triggers
+3. **Permission denied**: Verify RLS policies
 
-## 📞 Getting Help
+See [Troubleshooting Guide](#troubleshooting) for detailed solutions.
 
-If you need help with the documentation:
+## Troubleshooting
 
-1. **Check existing documentation** first
-2. **Search for related topics** using the search functionality
-3. **Open an issue** for documentation problems or suggestions
-4. **Join discussions** for questions and community support
+### Database Issues
 
----
+```bash
+# Reset database (careful - deletes all data)
+npm run db:cleanup
 
-**Last Updated**: Auto-generated documentation is updated on each build.
-**Manual Documentation**: Last reviewed by maintainers on ${new Date().toISOString().split('T')[0]}
+# Apply RLS policies
+npm run db:apply-rls
 
-For the most up-to-date information, always check the [main project README](../README.md).
+# Fix all RLS issues
+npm run db:fix-all-rls
+```
+
+### Storage Issues
+
+1. **Create documents bucket** in Supabase Storage
+2. **Configure RLS policies** for user access
+3. **Test upload** with diagnostic script
+
+### Authentication Issues
+
+- Check environment variables match your Supabase project
+- Verify cookies are enabled in browser
+- Check RLS policies on auth tables
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Follow the development guidelines
+4. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details.
