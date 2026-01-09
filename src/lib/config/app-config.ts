@@ -224,6 +224,14 @@ export const APP_CONSTANTS = {
   APP_VERSION: '1.0.0',
   APP_DESCRIPTION: 'AI-powered job hunting assistant with CV analysis and interview preparation',
 
+  /** LLM Model constants */
+  LLM_MODELS: {
+    DEFAULT: 'openai/gpt-5-nano',
+    FALLBACK: 'openai/gpt-4o-mini',
+    EMBEDDINGS: 'text-embedding-3-small',
+    EMBEDDING_DIMENSIONS: 1536,
+  } as const,
+
   /** Supported document types */
   SUPPORTED_DOCUMENT_TYPES: ['CV', 'Resume', 'Cover Letter', 'Job Description'] as const,
 

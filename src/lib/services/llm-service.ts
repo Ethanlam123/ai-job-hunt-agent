@@ -10,6 +10,7 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { OpenAIEmbeddings } from '@langchain/openai'
 import { initializeLangSmith, getLangSmithStatus, LangSmithUtils } from '@/lib/config/langsmith'
+import { APP_CONSTANTS } from '@/lib/config/app-config'
 
 // Initialize LangSmith tracing when service is imported
 if (typeof window === 'undefined') {
@@ -26,7 +27,7 @@ export function createLLM(options?: {
   maxTokens?: number
 }) {
   const {
-    model = 'openai/gpt-5-nano', // Default model - can be changed to gpt-4o-mini or others
+    model = APP_CONSTANTS.LLM_MODELS.DEFAULT,
     temperature = 0.7,
     maxTokens = 2000,
   } = options || {}
@@ -104,8 +105,8 @@ export function createEmbeddings() {
 
   return new OpenAIEmbeddings({
     openAIApiKey: process.env.OPENAI_API_KEY,
-    modelName: 'text-embedding-3-small',
-    dimensions: 1536, // Match database schema
+    modelName: APP_CONSTANTS.LLM_MODELS.EMBEDDINGS,
+    dimensions: APP_CONSTANTS.LLM_MODELS.EMBEDDING_DIMENSIONS,
   })
 }
 
