@@ -141,7 +141,7 @@ export function createErrorResponse(
   code: ErrorCode,
   message?: string,
   details?: ErrorDetail[],
-  requestId?: string
+  requestId?: string,
 ): StandardError {
   return {
     success: false,
@@ -166,7 +166,7 @@ export function createErrorResponse(
 export function createSuccessResponse<T>(
   data: T,
   message?: string,
-  requestId?: string
+  requestId?: string,
 ): StandardSuccess<T> {
   return {
     success: true,
@@ -186,7 +186,7 @@ export function createSuccessResponse<T>(
  */
 export function createValidationErrorResponse(
   fieldErrors: Record<string, string>,
-  requestId?: string
+  requestId?: string,
 ): StandardError {
   const details: ErrorDetail[] = Object.entries(fieldErrors).map(([field, message]) => ({
     field,
@@ -198,7 +198,7 @@ export function createValidationErrorResponse(
     ERROR_CODES.INVALID_INPUT_FORMAT,
     'Validation failed',
     details,
-    requestId
+    requestId,
   )
 }
 
@@ -213,7 +213,7 @@ export function createValidationErrorResponse(
 export function createRateLimitErrorResponse(
   resetTime: Date,
   retryAfter: number,
-  requestId?: string
+  requestId?: string,
 ): StandardError {
   const details: ErrorDetail[] = [
     {
@@ -230,7 +230,7 @@ export function createRateLimitErrorResponse(
     ERROR_CODES.RATE_LIMIT_EXCEEDED,
     'Too many requests. Please try again later.',
     details,
-    requestId
+    requestId,
   )
 }
 
@@ -281,7 +281,7 @@ export function handleError(error: any, requestId?: string): StandardError {
     return createRateLimitErrorResponse(
       error.resetTime || new Date(Date.now() + 60000),
       error.retryAfter || 60,
-      requestId
+      requestId,
     )
   }
 
@@ -297,7 +297,7 @@ export function handleError(error: any, requestId?: string): StandardError {
       ? 'An unexpected error occurred'
       : error?.message || 'Unknown error occurred',
     undefined,
-    requestId
+    requestId,
   )
 }
 

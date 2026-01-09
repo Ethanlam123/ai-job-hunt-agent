@@ -12,7 +12,7 @@ export class InterviewPrompts {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jdContent: any,
     difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate',
-    questionCount: number = 10
+    questionCount: number = 10,
   ): string {
     return `You are an expert technical interviewer. Generate ${questionCount} interview questions based on the candidate's CV and the job description.
 
@@ -81,7 +81,7 @@ Return ONLY valid JSON, no markdown or additional text.`
     question: string,
     expectedAnswer: string,
     candidateAnswer: string,
-    evaluationCriteria: string[]
+    evaluationCriteria: string[],
   ): string {
     const hasExpectedAnswer = expectedAnswer && expectedAnswer.trim().length > 0
 
@@ -90,7 +90,7 @@ Return ONLY valid JSON, no markdown or additional text.`
 Question:
 ${question}
 
-${hasExpectedAnswer ? `Expected Answer Points:\n${expectedAnswer}\n` : `Note: This is a CV-based/behavioral question. The candidate's actual experience is the correct answer. Focus on evaluating the QUALITY of their response (clarity, structure, depth, reflection) rather than comparing to an expected answer.\n`}
+${hasExpectedAnswer ? `Expected Answer Points:\n${expectedAnswer}\n` : 'Note: This is a CV-based/behavioral question. The candidate\'s actual experience is the correct answer. Focus on evaluating the QUALITY of their response (clarity, structure, depth, reflection) rather than comparing to an expected answer.\n'}
 Evaluation Criteria:
 ${evaluationCriteria.join('\n')}
 
@@ -157,11 +157,11 @@ Return ONLY valid JSON, no markdown or additional text.`
   /**
    * Analyze overall interview performance
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   static analyzeInterviewPerformance(
     questions: any[],
     answers: any[],
-    evaluations: any[]
+    evaluations: any[],
   ): string {
     return `You are an interview coach analyzing a candidate's overall interview performance.
 
@@ -235,7 +235,7 @@ Return ONLY valid JSON, no markdown or additional text.`
   static generatePreparationGuide(
     cvContent: any,
     jdContent: any,
-    weakAreas: string[]
+    weakAreas: string[],
   ): string {
     return `You are an interview preparation coach. Create a personalized preparation guide.
 
@@ -302,7 +302,7 @@ Return ONLY valid JSON, no markdown or additional text.`
   static generateFollowUpQuestions(
     originalQuestion: string,
     candidateAnswer: string,
-    depth: number = 2
+    depth: number = 2,
   ): string {
     return `Based on the candidate's answer, generate ${depth} insightful follow-up questions to probe deeper.
 

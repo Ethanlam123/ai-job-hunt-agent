@@ -1,15 +1,15 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { generateUpdatedCV, getDocumentContent } from "@/actions/cv";
-import { CVComparison } from "./cv-comparison";
-import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
+import { generateUpdatedCV, getDocumentContent } from '@/actions/cv'
+import { CVComparison } from './cv-comparison'
+import { createClient } from '@/lib/supabase/client'
 
-interface ApprovalSummary {
+interface ApprovalSummaryData {
   total: number;
   approvedCount: number;
   rejectedCount: number;
@@ -36,7 +36,7 @@ interface ApprovalSummary {
 }
 
 interface ApprovalSummaryProps {
-  summary: ApprovalSummary;
+  summary: ApprovalSummaryData;
   sessionId: string;
   onBack: () => void;
   preGeneratedCV?: {
@@ -46,100 +46,100 @@ interface ApprovalSummaryProps {
 }
 
 export function ApprovalSummary({ summary, sessionId, onBack, preGeneratedCV }: ApprovalSummaryProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [originalCV, setOriginalCV] = useState<string>('');
-  const [updatedCV, setUpdatedCV] = useState<string>('');
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false)
+  const [originalCV, setOriginalCV] = useState<string>('')
+  const [updatedCV, setUpdatedCV] = useState<string>('')
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // Auto-generate CV and fetch content when component mounts (if not already generated)
   useEffect(() => {
     const initializeComparison = async () => {
       // Check if we have either approved improvements or questionnaire responses
       if (summary.approvedCount === 0 && (summary.responseCount ?? 0) === 0) {
-        setError('No approved improvements or questionnaire responses found');
-        setIsLoading(false);
-        return;
+        setError('No approved improvements or questionnaire responses found')
+        setIsLoading(false)
+        return
       }
 
-      console.log(`Starting CV comparison with ${summary.approvedCount} approved improvements and ${summary.responseCount ?? 0} questionnaire responses`);
+      console.log(`Starting CV comparison with ${summary.approvedCount} approved improvements and ${summary.responseCount ?? 0} questionnaire responses`)
 
-      setIsLoading(true);
-      setError(null);
+      setIsLoading(true)
+      setError(null)
 
       try {
-        let generateResult;
-        let documentId: string;
+        let generateResult
+        let documentId: string
 
         // Step 1: Check if CV is already generated, otherwise generate it
         if (preGeneratedCV?.documentId && preGeneratedCV?.downloadUrl) {
-          console.log('Using pre-generated CV...');
+          console.log('Using pre-generated CV...')
           generateResult = {
             success: true,
             documentId: preGeneratedCV.documentId,
-            downloadUrl: preGeneratedCV.downloadUrl
-          };
-          documentId = preGeneratedCV.documentId;
-          setDownloadUrl(preGeneratedCV.downloadUrl);
+            downloadUrl: preGeneratedCV.downloadUrl,
+          }
+          documentId = preGeneratedCV.documentId
+          setDownloadUrl(preGeneratedCV.downloadUrl)
         } else {
-          console.log('Generating updated CV...');
-          generateResult = await generateUpdatedCV(sessionId);
+          console.log('Generating updated CV...')
+          generateResult = await generateUpdatedCV(sessionId)
 
           if (!generateResult.success || !generateResult.documentId) {
-            throw new Error(generateResult.error || 'Failed to generate CV');
+            throw new Error(generateResult.error || 'Failed to generate CV')
           }
-          documentId = generateResult.documentId;
-          setDownloadUrl(generateResult.downloadUrl);
+          documentId = generateResult.documentId
+          setDownloadUrl(generateResult.downloadUrl)
         }
 
         // Step 2: Get session to find original document ID
-        const supabase = createClient();
+        const supabase = createClient()
         const { data: session, error: sessionError } = await supabase
           .from('sessions')
           .select('state')
           .eq('id', sessionId)
-          .single();
+          .single()
 
         if (sessionError || !session?.state?.documentId) {
-          throw new Error('Failed to find original document');
+          throw new Error('Failed to find original document')
         }
 
         // Step 3: Fetch original CV content
-        console.log('Fetching original CV...');
-        const originalResult = await getDocumentContent(session.state.documentId);
+        console.log('Fetching original CV...')
+        const originalResult = await getDocumentContent(session.state.documentId)
 
         if (!originalResult.success || !originalResult.content) {
-          throw new Error(originalResult.error || 'Failed to fetch original CV');
+          throw new Error(originalResult.error || 'Failed to fetch original CV')
         }
 
-        setOriginalCV(originalResult.content);
+        setOriginalCV(originalResult.content)
 
         // Step 4: Fetch updated CV content
-        console.log('Fetching updated CV...');
-        const updatedResult = await getDocumentContent(documentId);
+        console.log('Fetching updated CV...')
+        const updatedResult = await getDocumentContent(documentId)
 
         if (!updatedResult.success || !updatedResult.content) {
-          throw new Error(updatedResult.error || 'Failed to fetch updated CV');
+          throw new Error(updatedResult.error || 'Failed to fetch updated CV')
         }
 
-        setUpdatedCV(updatedResult.content);
+        setUpdatedCV(updatedResult.content)
       } catch (err) {
-        console.error('Initialize comparison error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load CV comparison');
+        console.error('Initialize comparison error:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load CV comparison')
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    initializeComparison();
-  }, [sessionId, summary.approvedCount, preGeneratedCV]);
+    initializeComparison()
+  }, [sessionId, summary.approvedCount, preGeneratedCV])
 
   // Show loading state
   if (isLoading) {
-    const hasItems = summary.approvedCount > 0 || (summary.responseCount ?? 0) > 0;
+    const hasItems = summary.approvedCount > 0 || (summary.responseCount ?? 0) > 0
     const items = summary.approvedCount > 0
       ? `${summary.approvedCount} approved improvement${summary.approvedCount !== 1 ? 's' : ''}`
-      : `${summary.responseCount ?? 0} questionnaire response${(summary.responseCount ?? 0) !== 1 ? 's' : ''}`;
+      : `${summary.responseCount ?? 0} questionnaire response${(summary.responseCount ?? 0) !== 1 ? 's' : ''}`
 
     return (
       <Card>
@@ -155,7 +155,7 @@ export function ApprovalSummary({ summary, sessionId, onBack, preGeneratedCV }: 
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   // Show error state
@@ -178,7 +178,7 @@ export function ApprovalSummary({ summary, sessionId, onBack, preGeneratedCV }: 
           </Button>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   // Show CV comparison
@@ -211,5 +211,5 @@ export function ApprovalSummary({ summary, sessionId, onBack, preGeneratedCV }: 
         onBack={onBack}
       />
     </div>
-  );
+  )
 }

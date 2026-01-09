@@ -11,7 +11,7 @@ import {
   createSuccessResponse,
   handleError,
   ERROR_CODES,
-  type StandardResponse
+  type StandardResponse,
 } from '@/lib/utils/error-response'
 
 export async function login(formData: FormData) {
@@ -28,8 +28,8 @@ export async function login(formData: FormData) {
       'Too many login attempts. Please try again later.',
       [{
         message: `Rate limit exceeded. Try again after ${Math.ceil((rateLimitResult.reset.getTime() - Date.now()) / 1000)} seconds`,
-        code: 'RATE_LIMIT_RETRY_AFTER'
-      }]
+        code: 'RATE_LIMIT_RETRY_AFTER',
+      }],
     )
   }
 
@@ -40,7 +40,7 @@ export async function login(formData: FormData) {
     return createErrorResponse(
       ERROR_CODES.INVALID_INPUT_FORMAT,
       'Validation failed',
-      validation.errors.map(message => ({ message }))
+      validation.errors.map(message => ({ message })),
     )
   }
 
@@ -76,8 +76,8 @@ export async function signup(formData: FormData) {
       'Too many signup attempts. Please try again later.',
       [{
         message: `Rate limit exceeded. Try again after ${Math.ceil((rateLimitResult.reset.getTime() - Date.now()) / 1000)} seconds`,
-        code: 'RATE_LIMIT_RETRY_AFTER'
-      }]
+        code: 'RATE_LIMIT_RETRY_AFTER',
+      }],
     )
   }
 
@@ -88,7 +88,7 @@ export async function signup(formData: FormData) {
     return createErrorResponse(
       ERROR_CODES.INVALID_INPUT_FORMAT,
       'Validation failed',
-      validation.errors.map(message => ({ message }))
+      validation.errors.map(message => ({ message })),
     )
   }
 
@@ -97,8 +97,8 @@ export async function signup(formData: FormData) {
       email: validation.data.email,
       password: validation.data.password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/callback`
-      }
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/callback`,
+      },
     })
 
     if (error) {
@@ -117,20 +117,20 @@ export async function signup(formData: FormData) {
       revalidatePath('/', 'layout')
       return createSuccessResponse(
         { email: validation.data.email },
-        'Account created successfully! Please check your email to verify your account.'
+        'Account created successfully! Please check your email to verify your account.',
       )
     } else if (signUpData.user && signUpData.user.email_confirmed_at) {
       // User is automatically confirmed, redirect to dashboard
       revalidatePath('/', 'layout')
       return createSuccessResponse(
         { redirect: '/dashboard' },
-        'Account created successfully! Redirecting to dashboard...'
+        'Account created successfully! Redirecting to dashboard...',
       )
     } else {
       revalidatePath('/', 'layout')
       return createSuccessResponse(
         { email: validation.data.email },
-        'Account created successfully! Please check your email to verify your account.'
+        'Account created successfully! Please check your email to verify your account.',
       )
     }
 

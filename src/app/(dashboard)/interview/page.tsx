@@ -1,11 +1,11 @@
-import { Metadata } from "next"
-import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
-import { InterviewPracticeClient } from "@/components/interview/interview-practice-client"
+import { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { InterviewPracticeClient } from '@/components/interview/interview-practice-client'
 
 export const metadata: Metadata = {
-  title: "Interview Preparation | AI Job Hunt Agent",
-  description: "Practice interviews with AI-generated questions and feedback",
+  title: 'Interview Preparation | AI Job Hunt Agent',
+  description: 'Practice interviews with AI-generated questions and feedback',
 }
 
 export default async function InterviewPage() {

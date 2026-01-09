@@ -213,7 +213,7 @@ export class DocumentRepository extends BaseRepository<Document, string> impleme
     options: {
       contentType?: Document['content_type']
       status?: Document['status']
-    } = {}
+    } = {},
   ) {
     const offset = (page - 1) * limit
 
@@ -482,7 +482,7 @@ export class DocumentRepository extends BaseRepository<Document, string> impleme
     // Get current version number
     const latestVersion = await this.db.query<{ version_number: number }>(
       'SELECT MAX(version_number) as version_number FROM document_versions WHERE document_id = $1',
-      [documentId]
+      [documentId],
     )
 
     const nextVersion = (latestVersion[0]?.version_number || 0) + 1
@@ -591,7 +591,7 @@ export class DocumentRepository extends BaseRepository<Document, string> impleme
         // Delete document
         const result = await client.query<{ rowCount: number }>(
           'DELETE FROM documents WHERE id = $1',
-          [documentId]
+          [documentId],
         )
 
         return (result[0]?.rowCount || 0) > 0

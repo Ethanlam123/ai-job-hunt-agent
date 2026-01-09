@@ -32,7 +32,7 @@ export class RateLimitService {
   async checkLimit(
     identifier: string,
     limit: number = 10,
-    window: number = 60
+    window: number = 60,
   ): Promise<RateLimitResult> {
     const supabase = await createClient()
     const now = new Date()
@@ -54,7 +54,7 @@ export class RateLimitService {
           limit,
           remaining: limit - 1,
           reset: new Date(now.getTime() + window * 1000),
-          error: 'Rate limit service unavailable'
+          error: 'Rate limit service unavailable',
         }
       }
 
@@ -100,7 +100,7 @@ export class RateLimitService {
         limit,
         remaining: limit - 1,
         reset: new Date(now.getTime() + window * 1000),
-        error: 'Rate limit service error'
+        error: 'Rate limit service error',
       }
     }
   }
@@ -133,7 +133,7 @@ export class RateLimitService {
   async getStatus(
     identifier: string,
     limit: number = 10,
-    window: number = 60
+    window: number = 60,
   ): Promise<RateLimitResult> {
     const supabase = await createClient()
     const now = new Date()
@@ -153,7 +153,7 @@ export class RateLimitService {
           limit,
           remaining: limit,
           reset: new Date(now.getTime() + window * 1000),
-          error: 'Failed to get status'
+          error: 'Failed to get status',
         }
       }
 
@@ -175,7 +175,7 @@ export class RateLimitService {
         limit,
         remaining: limit,
         reset: new Date(now.getTime() + window * 1000),
-        error: 'Status check failed'
+        error: 'Status check failed',
       }
     }
   }
@@ -262,7 +262,7 @@ export const RATE_LIMIT_CONFIGS = {
  */
 export async function checkAuthRateLimit(
   type: keyof typeof RATE_LIMIT_CONFIGS,
-  identifier: string
+  identifier: string,
 ): Promise<RateLimitResult> {
   const config = RATE_LIMIT_CONFIGS[type]
   const rateLimitService = new RateLimitService()

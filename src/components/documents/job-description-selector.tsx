@@ -47,13 +47,13 @@ export function JobDescriptionSelector({
         console.log('All documents loaded:', result.documents.map(doc => ({
           id: doc.id,
           type: doc.document_type,
-          filename: doc.original_filename
+          filename: doc.original_filename,
         })))
 
         // Filter for job descriptions using shared utility
         const jobDescriptions = result.documents.filter(isJobDescription)
 
-        console.log(`Total job descriptions found: ${jobDescriptions.length}`);
+        console.log(`Total job descriptions found: ${jobDescriptions.length}`)
         setDocuments(jobDescriptions)
       }
     } catch (error) {

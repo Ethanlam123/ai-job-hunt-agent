@@ -44,7 +44,7 @@ export class CVGenerationService {
   async generateUpdatedCV(
     originalCV: string,
     approvedImprovements: ApprovedImprovement[],
-    userResponses?: any[]
+    userResponses?: any[],
   ): Promise<CVGenerationResult> {
     try {
       console.log('Generating updated CV...')
@@ -107,7 +107,7 @@ ${index + 1}. [${imp.changeType.toUpperCase()}] ${content.section || 'General'}
    */
   private buildUserPreferencesSummary(userResponses: any[]): string {
     if (!userResponses || userResponses.length === 0) {
-      return "No additional user preferences provided."
+      return 'No additional user preferences provided.'
     }
 
     const personalInfo = userResponses.filter(r => r.question_category === 'personal')
@@ -115,38 +115,38 @@ ${index + 1}. [${imp.changeType.toUpperCase()}] ${content.section || 'General'}
     const experienceInfo = userResponses.filter(r => r.question_category === 'experience')
     const formattingInfo = userResponses.filter(r => r.question_category === 'formatting')
 
-    let summary = "# USER PREFERENCES AND INFORMATION\n\n"
+    let summary = '# USER PREFERENCES AND INFORMATION\n\n'
 
     if (personalInfo.length > 0) {
-      summary += "## Personal Information:\n"
+      summary += '## Personal Information:\n'
       personalInfo.forEach(response => {
         summary += `- ${response.question_text}: ${this.formatAnswer(response.answer)}\n`
       })
-      summary += "\n"
+      summary += '\n'
     }
 
     if (careerInfo.length > 0) {
-      summary += "## Career Objectives:\n"
+      summary += '## Career Objectives:\n'
       careerInfo.forEach(response => {
         summary += `- ${response.question_text}: ${this.formatAnswer(response.answer)}\n`
       })
-      summary += "\n"
+      summary += '\n'
     }
 
     if (experienceInfo.length > 0) {
-      summary += "## Experience & Skills:\n"
+      summary += '## Experience & Skills:\n'
       experienceInfo.forEach(response => {
         summary += `- ${response.question_text}: ${this.formatAnswer(response.answer)}\n`
       })
-      summary += "\n"
+      summary += '\n'
     }
 
     if (formattingInfo.length > 0) {
-      summary += "## Formatting Preferences:\n"
+      summary += '## Formatting Preferences:\n'
       formattingInfo.forEach(response => {
         summary += `- ${response.question_text}: ${this.formatAnswer(response.answer)}\n`
       })
-      summary += "\n"
+      summary += '\n'
     }
 
     return summary.trim()
@@ -220,7 +220,7 @@ UPDATED CV:`
     userId: string,
     sessionId: string,
     originalDocumentId: string,
-    updatedCVContent: string
+    updatedCVContent: string,
   ): Promise<{ success: boolean; documentId?: string; filePath?: string; error?: string }> {
     try {
       const fileName = `${userId}/${Date.now()}-updated-cv.md`

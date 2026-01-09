@@ -25,12 +25,12 @@ interface ThemeToggleProps {
 }
 
 // Extract icon transition styles for maintainability
-const iconTransitionClasses = "h-4 w-4 transition-all duration-300"
+const iconTransitionClasses = 'h-4 w-4 transition-all duration-300'
 
 export function ThemeToggle({
   variant = 'ghost',
   size = 'icon-sm',
-  className
+  className,
 }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme()
   const mounted = useMounted()

@@ -55,7 +55,7 @@ class SecureLogger {
       'apiKey',
       'privateKey',
       'accessToken',
-      'refreshToken'
+      'refreshToken',
     ]
 
     const sanitized = { ...data }
@@ -73,7 +73,7 @@ class SecureLogger {
 
           // Check if this is a sensitive field
           const isSensitive = sensitiveFields.some(field =>
-            lowerKey.includes(field.toLowerCase())
+            lowerKey.includes(field.toLowerCase()),
           )
 
           if (isSensitive) {
@@ -113,7 +113,7 @@ class SecureLogger {
       message,
       timestamp: new Date().toISOString(),
       context: this.sanitizeData(context),
-      requestId
+      requestId,
     }
 
     // Always log errors, but sanitize in production
@@ -164,7 +164,7 @@ class SecureLogger {
     const securityContext = {
       ...context,
       category: 'security',
-      severity: 'high'
+      severity: 'high',
     }
 
     this.error(`SECURITY: ${message}`, securityContext, requestId)

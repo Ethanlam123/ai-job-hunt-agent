@@ -65,9 +65,9 @@ async function applyRLSPolicies() {
       } catch (error: any) {
         // Ignore "already exists" errors
         if (error.message?.includes('already exists')) {
-          console.log(`  ⚠ Skipped (already exists)`)
+          console.log('  ⚠ Skipped (already exists)')
         } else {
-          console.error(`  ❌ Error executing statement:`, error.message)
+          console.error('  ❌ Error executing statement:', error.message)
           console.error(`     Statement: ${statement.substring(0, 100)}...`)
         }
       }

@@ -1,9 +1,9 @@
 'use server'
 
-import { writeFile, unlink } from "fs/promises"
-import { join } from "path"
-import { tmpdir } from "os"
-import { randomUUID } from "crypto"
+import { writeFile, unlink } from 'fs/promises'
+import { join } from 'path'
+import { tmpdir } from 'os'
+import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { SkillGapAgent } from '@/lib/agents/skill-gap-agent'
 import { revalidatePath } from 'next/cache'
@@ -39,7 +39,7 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
 
   let tempFilePath: string | null = null
   let documentId: string | undefined = input.cvDocumentId
-  let jdDocumentId = input.jdDocumentId
+  const jdDocumentId = input.jdDocumentId
   let jobDescriptionText = input.jobDescriptionText
 
   try {
@@ -139,7 +139,7 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
       // Parse document content based on type
       let parsedContent = null
       if (input.cvFileType === 'application/pdf') {
-        const { PDFLoader } = await import("@langchain/community/document_loaders/fs/pdf")
+        const { PDFLoader } = await import('@langchain/community/document_loaders/fs/pdf')
         const tempFileName = `cv-${randomUUID()}.pdf`
         tempFilePath = join(tmpdir(), tempFileName)
         await writeFile(tempFilePath, buffer)
@@ -213,8 +213,8 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
         current_stage: 'skill_gap',
         state: {
           cvDocumentId: documentId,
-          jdDocumentId: jdDocumentId,
-          jobDescriptionText: jobDescriptionText,
+          jdDocumentId,
+          jobDescriptionText,
         },
       })
       .select()
@@ -235,7 +235,7 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
       documentId,
       jobDescriptionText,
       session.id,
-      user.id
+      user.id,
     )
 
     // Revalidate paths
@@ -260,7 +260,7 @@ export async function analyzeSkillGaps(input: AnalyzeSkillGapInput): Promise<Ana
       try {
         await unlink(tempFilePath)
       } catch (cleanupError) {
-        console.error("Failed to clean up temp file:", cleanupError)
+        console.error('Failed to clean up temp file:', cleanupError)
       }
     }
   }
@@ -330,7 +330,7 @@ export async function getSkillGapsByTimeline(sessionId: string) {
 export async function updateSkillGapStatus(
   skillGapId: string,
   status: 'pending' | 'in_progress' | 'completed' | 'not_interested',
-  notes?: string
+  notes?: string,
 ) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -345,7 +345,7 @@ export async function updateSkillGapStatus(
       skillGapId,
       user.id,
       status,
-      notes
+      notes,
     )
 
     revalidatePath('/skill-gap')

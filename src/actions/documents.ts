@@ -182,7 +182,7 @@ export async function uploadDocument(formData: FormData): Promise<DocumentUpload
       } else if (uploadError.message?.includes('Bucket not found')) {
         return { success: false, error: 'Upload failed: Storage system is not properly configured. Please contact support.' }
       } else if (uploadError.message?.includes('File too large')) {
-        return { success: false, error: `Upload failed: File is too large. Maximum size is 10MB.` }
+        return { success: false, error: 'Upload failed: File is too large. Maximum size is 10MB.' }
       } else if (uploadError.message?.includes('Invalid file type')) {
         return { success: false, error: `Upload failed: File type "${file.type}" is not supported. Allowed types: PDF, DOCX, TXT, and Markdown.` }
       }
@@ -325,7 +325,7 @@ export async function renameDocument(documentId: string, newName: string) {
       trimmedName,
       document.document_type,
       user.id,
-      documentId
+      documentId,
     )
 
     if (duplicateCheck.error) {

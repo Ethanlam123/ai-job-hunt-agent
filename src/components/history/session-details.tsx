@@ -13,7 +13,7 @@ import {
   Clock,
   AlertCircle,
   Download,
-  Eye
+  Eye,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getSessionDetails } from '@/actions/history'
@@ -61,7 +61,7 @@ export function SessionDetails({ sessionId, onBack, className }: SessionDetailsP
       day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(new Date(date))
   }
 
@@ -73,7 +73,7 @@ export function SessionDetails({ sessionId, onBack, className }: SessionDetailsP
       'skill_gap': 'Skill Gap Analysis',
       'interview_preparation': 'Interview Preparation',
       'generating_cover_letter': 'Cover Letter Generation',
-      'skill-gap': 'Skill Gap Analysis'
+      'skill-gap': 'Skill Gap Analysis',
     }
 
     return stageNames[stage] || stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())

@@ -76,6 +76,7 @@ module.exports = [
       '@typescript-eslint': typescriptEslint,
     },
     rules: {
+      'no-undef': 'off', // TypeScript compiler handles this
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',

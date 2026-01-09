@@ -114,7 +114,7 @@ describe('Critical User Workflows - E2E Tests', () => {
       if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
         const adminClient = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
         )
 
         // Delete test user if exists

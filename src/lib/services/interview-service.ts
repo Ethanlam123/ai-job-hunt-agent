@@ -48,7 +48,7 @@ export class InterviewService {
    */
   async getInterviewQuestions(
     sessionId: string,
-    userId: string
+    userId: string,
   ): Promise<InterviewQuestion[]> {
     const { data, error } = await this.supabase
       .from('interview_questions')
@@ -90,7 +90,7 @@ export class InterviewService {
    */
   async getUnansweredQuestions(
     sessionId: string,
-    userId: string
+    userId: string,
   ): Promise<InterviewQuestion[]> {
     const { data, error } = await this.supabase
       .from('interview_questions')
@@ -112,7 +112,7 @@ export class InterviewService {
    */
   async getAnsweredQuestions(
     sessionId: string,
-    userId: string
+    userId: string,
   ): Promise<InterviewQuestion[]> {
     const { data, error } = await this.supabase
       .from('interview_questions')
@@ -135,7 +135,7 @@ export class InterviewService {
   async saveAnswer(
     questionId: string,
     answer: string,
-    userId: string
+    userId: string,
   ): Promise<void> {
     const { error } = await this.supabase
       .from('interview_questions')
@@ -156,7 +156,7 @@ export class InterviewService {
    */
   async getSessionProgress(
     sessionId: string,
-    userId: string
+    userId: string,
   ): Promise<{
     totalQuestions: number
     answeredQuestions: number
@@ -176,14 +176,14 @@ export class InterviewService {
     const questions = data || []
     const answeredQuestions = questions.filter((q) => q.user_answer)
     const questionsWithScores = answeredQuestions.filter(
-      (q) => q.evaluation_result && typeof q.evaluation_result.score === 'number'
+      (q) => q.evaluation_result && typeof q.evaluation_result.score === 'number',
     )
 
     const averageScore =
       questionsWithScores.length > 0
         ? questionsWithScores.reduce(
             (sum, q) => sum + q.evaluation_result.score,
-            0
+            0,
           ) / questionsWithScores.length
         : null
 
@@ -232,7 +232,7 @@ export class InterviewService {
     const allQuestions = questions || []
     const answeredQuestions = allQuestions.filter((q) => q.user_answer)
     const questionsWithScores = answeredQuestions.filter(
-      (q) => q.evaluation_result && typeof q.evaluation_result.score === 'number'
+      (q) => q.evaluation_result && typeof q.evaluation_result.score === 'number',
     )
 
     // Calculate average score
@@ -240,7 +240,7 @@ export class InterviewService {
       questionsWithScores.length > 0
         ? questionsWithScores.reduce(
             (sum, q) => sum + q.evaluation_result.score,
-            0
+            0,
           ) / questionsWithScores.length
         : 0
 
@@ -259,7 +259,7 @@ export class InterviewService {
       ([category, stats]) => ({
         category,
         average: stats.total / stats.count,
-      })
+      }),
     )
 
     // Sort by average score

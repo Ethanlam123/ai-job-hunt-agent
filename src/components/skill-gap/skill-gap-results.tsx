@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   BarChart3, CheckCircle2, AlertTriangle, TrendingUp,
   Clock, Target, BookOpen, ThumbsUp, XCircle, Info,
-  Award, Zap, Calendar, Lightbulb
-} from "lucide-react";
+  Award, Zap, Calendar, Lightbulb,
+} from 'lucide-react'
 
 interface SkillGap {
   id: string;
@@ -55,51 +55,51 @@ interface SkillGapResultsProps {
 }
 
 export function SkillGapResults({ analysis, organizedGaps }: SkillGapResultsProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
   // Get color for match score
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+    if (score >= 80) return 'text-green-600'
+    if (score >= 60) return 'text-yellow-600'
+    return 'text-red-600'
+  }
 
   // Get color for importance badge
   const getImportanceColor = (importance: string) => {
     switch (importance) {
-      case 'critical': return 'destructive';
-      case 'important': return 'default';
-      case 'nice-to-have': return 'secondary';
-      default: return 'outline';
+      case 'critical': return 'destructive'
+      case 'important': return 'default'
+      case 'nice-to-have': return 'secondary'
+      default: return 'outline'
     }
-  };
+  }
 
   // Get timeline icon
   const getTimelineIcon = (timeline: string) => {
     switch (timeline) {
-      case 'short': return <Zap className="h-4 w-4 text-green-600" />;
-      case 'medium': return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'long': return <Calendar className="h-4 w-4 text-red-600" />;
-      default: return <Clock className="h-4 w-4" />;
+      case 'short': return <Zap className="h-4 w-4 text-green-600" />
+      case 'medium': return <Clock className="h-4 w-4 text-yellow-600" />
+      case 'long': return <Calendar className="h-4 w-4 text-red-600" />
+      default: return <Clock className="h-4 w-4" />
     }
-  };
+  }
 
   // Get level color
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'expert': return 'bg-purple-500/20 text-purple-300 dark:bg-purple-500/30 dark:text-purple-200 border border-purple-500/30';
-      case 'advanced': return 'bg-blue-500/20 text-blue-300 dark:bg-blue-500/30 dark:text-blue-200 border border-blue-500/30';
-      case 'intermediate': return 'bg-green-500/20 text-green-300 dark:bg-green-500/30 dark:text-green-200 border border-green-500/30';
-      case 'beginner': return 'bg-yellow-500/20 text-yellow-300 dark:bg-yellow-500/30 dark:text-yellow-200 border border-yellow-500/30';
-      case 'none': return 'bg-red-500/20 text-red-300 dark:bg-red-500/30 dark:text-red-200 border border-red-500/30';
-      default: return 'bg-gray-500/20 text-gray-300 dark:bg-gray-500/30 dark:text-gray-200 border border-gray-500/30';
+      case 'expert': return 'bg-purple-500/20 text-purple-300 dark:bg-purple-500/30 dark:text-purple-200 border border-purple-500/30'
+      case 'advanced': return 'bg-blue-500/20 text-blue-300 dark:bg-blue-500/30 dark:text-blue-200 border border-blue-500/30'
+      case 'intermediate': return 'bg-green-500/20 text-green-300 dark:bg-green-500/30 dark:text-green-200 border border-green-500/30'
+      case 'beginner': return 'bg-yellow-500/20 text-yellow-300 dark:bg-yellow-500/30 dark:text-yellow-200 border border-yellow-500/30'
+      case 'none': return 'bg-red-500/20 text-red-300 dark:bg-red-500/30 dark:text-red-200 border border-red-500/30'
+      default: return 'bg-gray-500/20 text-gray-300 dark:bg-gray-500/30 dark:text-gray-200 border border-gray-500/30'
     }
-  };
+  }
 
   // Filter skill gaps by category
   const filteredGaps = selectedCategory === 'all'
     ? analysis.skillGaps
-    : analysis.skillGaps.filter(gap => gap.category === selectedCategory);
+    : analysis.skillGaps.filter(gap => gap.category === selectedCategory)
 
   return (
     <div className="space-y-6">
@@ -348,5 +348,5 @@ export function SkillGapResults({ analysis, organizedGaps }: SkillGapResultsProp
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

@@ -507,7 +507,7 @@ describe('Authentication Bypass Security Tests', () => {
 
   describe('Data Leakage Prevention Tests', () => {
     it('should prevent user enumeration through error messages', async () => {
-      const nonExistentEmail = 'nonexistent-' + Date.now() + '@example.com'
+      const nonExistentEmail = `nonexistent-${  Date.now()  }@example.com`
 
       // Try to sign up with email that might already exist
       const { error: signUpError } = await supabase.auth.signUp({
@@ -631,7 +631,7 @@ describe('Authentication Bypass Security Tests', () => {
                 Authorization: `Bearer ${session.access_token}`,
               },
             },
-          }
+          },
         )
 
         const { data, error } = await testClient.from('documents').select('*')
@@ -769,7 +769,7 @@ describe('Authentication Bypass Security Tests', () => {
         user_id: testUserId,
         title: 'oversized.pdf',
         file_name: 'oversized.pdf',
-        file_path: `security-test/oversized.pdf`,
+        file_path: 'security-test/oversized.pdf',
         file_size: 100 * 1024 * 1024, // 100MB
         mime_type: 'application/pdf',
         content_type: 'cv',

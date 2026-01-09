@@ -26,7 +26,7 @@ interface DocumentsClientProps {
 // Inline editable document name component
 function EditableDocumentName({
   document,
-  onRename
+  onRename,
 }: {
   document: Document
   onRename: (documentId: string, newName: string) => void
@@ -140,8 +140,8 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
   const handleDocumentRename = (documentId: string, newName: string) => {
     setDocuments((prev) =>
       prev.map((doc) =>
-        doc.id === documentId ? { ...doc, original_filename: newName } : doc
-      )
+        doc.id === documentId ? { ...doc, original_filename: newName } : doc,
+      ),
     )
   }
 

@@ -70,7 +70,7 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
   constructor(
     protected readonly db: DatabaseClient,
     protected readonly tableName: string,
-    protected readonly primaryKey: string = 'id'
+    protected readonly primaryKey: string = 'id',
   ) {}
 
   /**
@@ -112,7 +112,7 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
    */
   protected buildSelectQuery(
     criteria?: Partial<T>,
-    options: QueryBuilderOptions = {}
+    options: QueryBuilderOptions = {},
   ): { sql: string; params: any[] } {
     const { selectColumns = ['*'], whereClause, orderBy, limit, offset } = options
 
@@ -172,7 +172,7 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
     page: number,
     limit: number,
     criteria?: Partial<T>,
-    options: QueryBuilderOptions = {}
+    options: QueryBuilderOptions = {},
   ) {
     const offset = (page - 1) * limit
 
@@ -225,7 +225,7 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
    */
   async createMany(
     data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>[],
-    options: BatchOperationOptions = { batchSize: 100 }
+    options: BatchOperationOptions = { batchSize: 100 },
   ): Promise<BatchOperationResult<T>> {
     const successfulItems: T[] = []
     const failedItems: Array<{ item: Omit<T, 'id' | 'createdAt' | 'updatedAt'>; error: Error }> = []
@@ -242,7 +242,7 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
 
           const placeholders = valuesList
             .map((_, batchIndex) =>
-              `(${keys.map((_, keyIndex) => `$${batchIndex * keys.length + keyIndex + 1}`).join(', ')})`
+              `(${keys.map((_, keyIndex) => `$${batchIndex * keys.length + keyIndex + 1}`).join(', ')})`,
             )
             .join(', ')
 
@@ -261,7 +261,7 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
           batch.forEach(item => {
             failedItems.push({
               item,
-              error: error instanceof Error ? error : new Error(String(error))
+              error: error instanceof Error ? error : new Error(String(error)),
             })
           })
 
@@ -281,7 +281,7 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
       data.forEach(item => {
         failedItems.push({
           item,
-          error: error instanceof Error ? error : new Error(String(error))
+          error: error instanceof Error ? error : new Error(String(error)),
         })
       })
     }
@@ -295,7 +295,7 @@ export abstract class BaseRepository<T, ID = string> implements IBaseRepository<
       failedItems: failedItems as unknown as { item: T; error: Error }[],
       totalProcessed,
       successRate,
-      processingTimeMs
+      processingTimeMs,
     }
   }
 
@@ -426,7 +426,7 @@ export abstract class RepositoryFactory {
   static create<T, ID = string>(
     db: DatabaseClient,
     tableName: string,
-    primaryKey: string = 'id'
+    primaryKey: string = 'id',
   ): IBaseRepository<T, ID> {
     return new (class extends BaseRepository<T, ID> {
       constructor() {
@@ -445,7 +445,7 @@ export function WithTransaction<T extends new (...args: any[]) => BaseRepository
      * Execute operation within transaction
      */
     async withTransaction<R>(
-      operation: (repo: this) => Promise<R>
+      operation: (repo: this) => Promise<R>,
     ): Promise<R> {
       return this.db.transaction(async (client) => {
         const transactionalRepo = new Base(client)

@@ -474,7 +474,7 @@ export async function withErrorHandling<T>(
     userId?: string
     operation?: string
     requestId?: string
-  }
+  },
 ): Promise<{ data?: T; error?: ApplicationError }> {
   try {
     const data = await operation()
@@ -497,7 +497,7 @@ export function handleServerError(error: unknown, context?: {
   const errorHandler = ErrorHandler.getInstance()
   const appError = errorHandler.handleError(
     error instanceof Error ? error : new Error(String(error)),
-    context
+    context,
   )
 
   // In server actions, we throw the error to be handled by the client
@@ -518,7 +518,7 @@ export function handleApiError(error: unknown, context?: {
   const errorHandler = ErrorHandler.getInstance()
   const appError = errorHandler.handleError(
     error instanceof Error ? error : new Error(String(error)),
-    context
+    context,
   )
 
   // Map error categories to HTTP status codes
@@ -557,7 +557,7 @@ export function handleClientError(error: unknown, context?: {
   const errorHandler = ErrorHandler.getInstance()
   return errorHandler.handleError(
     error instanceof Error ? error : new Error(String(error)),
-    context
+    context,
   )
 }
 

@@ -47,8 +47,8 @@ export async function generateCoverLetter(params: CoverLetterParams) {
           status: 'processing',
           companyName: params.companyName,
           positionTitle: params.positionTitle,
-          jdDocumentId: params.jdDocumentId
-        }
+          jdDocumentId: params.jdDocumentId,
+        },
       })
       .select()
       .single()
@@ -93,16 +93,16 @@ export async function generateCoverLetter(params: CoverLetterParams) {
       // Manually set size property for Node.js environment
       Object.defineProperty(file, 'size', {
         value: params.fileSize,
-        writable: false
+        writable: false,
       })
 
       // Upload and parse CV
       const documentService = new DocumentService(supabase)
       const uploadResult = await documentService.uploadDocument({
         userId: user.id,
-        file: file,
+        file,
         documentType: 'cv',
-        sessionId: session.id
+        sessionId: session.id,
       })
 
       if (!uploadResult.documentId) {
@@ -190,9 +190,9 @@ export async function generateCoverLetter(params: CoverLetterParams) {
     const result = await generateCoverLetterWithLLM({
       cvContent: cvText,
       jobDescription: jobDescriptionText,
-      companyName: companyName,
-      positionTitle: positionTitle,
-      hiringManagerName: hiringManagerName || undefined
+      companyName,
+      positionTitle,
+      hiringManagerName: hiringManagerName || undefined,
     })
 
     // Save the cover letter to the database
@@ -205,13 +205,13 @@ export async function generateCoverLetter(params: CoverLetterParams) {
         content: result.coverLetter,
         version: '1',
         metadata: {
-          companyName: companyName,
-          positionTitle: positionTitle,
+          companyName,
+          positionTitle,
           jobDescription: jobDescriptionText,
-          hiringManagerName: hiringManagerName,
+          hiringManagerName,
           jdDocumentId: params.jdDocumentId,
-          generatedAt: result.metadata.generatedAt
-        }
+          generatedAt: result.metadata.generatedAt,
+        },
       })
       .select()
       .single()
@@ -233,10 +233,10 @@ export async function generateCoverLetter(params: CoverLetterParams) {
           positionTitle: params.positionTitle,
           result: {
             coverLetterId: coverLetterRecord?.id,
-            documentId: cvDocumentId
-          }
+            documentId: cvDocumentId,
+          },
         },
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
       })
       .eq('id', session.id)
 
@@ -245,12 +245,12 @@ export async function generateCoverLetter(params: CoverLetterParams) {
       coverLetter: result.coverLetter,
       coverLetterId: coverLetterRecord?.id,
       documentId: cvDocumentId,
-      sessionId: session.id
+      sessionId: session.id,
     }
   } catch (error) {
     console.error('Error generating cover letter:', error)
     return {
-      error: error instanceof Error ? error.message : 'Failed to generate cover letter'
+      error: error instanceof Error ? error.message : 'Failed to generate cover letter',
     }
   }
 }
@@ -278,7 +278,7 @@ export async function getCoverLetterHistory(limit = 10) {
     return { success: true, coverLetters: data }
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : 'Failed to fetch cover letter history'
+      error: error instanceof Error ? error.message : 'Failed to fetch cover letter history',
     }
   }
 }
@@ -306,7 +306,7 @@ export async function getCoverLetter(id: string) {
     return { success: true, coverLetter: data }
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : 'Failed to fetch cover letter'
+      error: error instanceof Error ? error.message : 'Failed to fetch cover letter',
     }
   }
 }

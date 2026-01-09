@@ -31,7 +31,7 @@ export async function getAuthenticatedUser() {
 export async function verifyAndFetchDocument(
   documentId: string,
   userId: string,
-  expectedType?: string
+  expectedType?: string,
 ): Promise<{ document?: Document; error?: string }> {
   const supabase = await createClient()
 
@@ -62,7 +62,7 @@ export async function checkDuplicateDocumentName(
   filename: string,
   documentType: string,
   userId: string,
-  excludeDocumentId?: string
+  excludeDocumentId?: string,
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
 

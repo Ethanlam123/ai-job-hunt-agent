@@ -56,7 +56,7 @@ export class InterviewAgent {
     sessionId: string,
     userId: string,
     difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate',
-    questionCount: number = 10
+    questionCount: number = 10,
   ): Promise<InterviewState> {
     const state: InterviewState = {
       userId,
@@ -113,7 +113,7 @@ export class InterviewAgent {
       // Fetch CV document
       const cvDocument = await this.documentService.getDocument(
         state.cvDocumentId,
-        state.userId
+        state.userId,
       )
 
       if (!cvDocument) {
@@ -123,7 +123,7 @@ export class InterviewAgent {
       // Fetch JD document
       const jdDocument = await this.documentService.getDocument(
         state.jdDocumentId,
-        state.userId
+        state.userId,
       )
 
       if (!jdDocument) {
@@ -155,7 +155,7 @@ export class InterviewAgent {
    */
   private async generateQuestionsNode(
     state: InterviewState,
-    questionCount: number
+    questionCount: number,
   ): Promise<Partial<InterviewState>> {
     try {
       if (state.error) {
@@ -166,7 +166,7 @@ export class InterviewAgent {
         state.cvContent,
         state.jdContent,
         state.difficulty,
-        questionCount
+        questionCount,
       )
 
       console.log('Generate Questions - Sending prompt to LLM...')
@@ -198,7 +198,7 @@ export class InterviewAgent {
           'Raw content that failed to parse:',
           typeof response.content === 'string'
             ? response.content
-            : JSON.stringify(response.content)
+            : JSON.stringify(response.content),
         )
 
         // Fallback questions
@@ -319,7 +319,7 @@ export class InterviewAgent {
   async evaluateAnswer(
     questionId: string,
     candidateAnswer: string,
-    userId: string
+    userId: string,
   ): Promise<any> {
     try {
       // Fetch the question from database
@@ -339,7 +339,7 @@ export class InterviewAgent {
         question.question_text,
         question.expected_answer,
         candidateAnswer,
-        question.evaluation_criteria || []
+        question.evaluation_criteria || [],
       )
 
       console.log('Evaluate Answer - Sending prompt to LLM...')
@@ -434,7 +434,7 @@ export class InterviewAgent {
       const prompt = InterviewPrompts.analyzeInterviewPerformance(
         questionsData,
         answersData,
-        evaluationsData
+        evaluationsData,
       )
 
       console.log('Analyze Performance - Sending prompt to LLM...')

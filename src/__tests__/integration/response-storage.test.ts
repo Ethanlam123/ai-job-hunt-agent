@@ -2,6 +2,7 @@
  * Integration tests for response storage functionality
  */
 
+import { describe, it, expect, beforeAll, beforeEach } from '@jest/globals'
 import { CVAgent } from '@/lib/agents/cv-agent'
 import { createClient } from '@supabase/supabase-js'
 
@@ -17,13 +18,13 @@ describe('Response Storage Integration', () => {
       const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        supabaseKey
+        supabaseKey,
       )
       cvAgent = new CVAgent(supabase)
 
       // Create test data
-      testUserId = 'test-user-' + Date.now()
-      testSessionId = 'test-session-' + Date.now()
+      testUserId = `test-user-${  Date.now()}`
+      testSessionId = `test-session-${  Date.now()}`
     }
   })
 
@@ -40,7 +41,7 @@ describe('Response Storage Integration', () => {
           questionCategory: 'personal',
           questionText: 'What is your full name?',
           answer: 'John Doe',
-          isSkipped: false
+          isSkipped: false,
         },
         {
           questionId: 'q2',
@@ -50,24 +51,24 @@ describe('Response Storage Integration', () => {
             achievements: [
               'Led team of 5 developers',
               'Increased revenue by 30%',
-              'Reduced costs by $100K'
-            ]
+              'Reduced costs by $100K',
+            ],
           },
-          isSkipped: false
+          isSkipped: false,
         },
         {
           questionId: 'q3',
           questionCategory: 'formatting',
           questionText: 'Preferred CV length?',
           answer: '2 pages',
-          isSkipped: false
-        }
+          isSkipped: false,
+        },
       ]
 
       const result = await cvAgent.saveResponses(
         testSessionId,
         testUserId,
-        responses
+        responses,
       )
 
       expect(result).toHaveProperty('success')
@@ -88,21 +89,21 @@ describe('Response Storage Integration', () => {
           questionText: 'What is your target role?',
           answer: null,
           isSkipped: true,
-          skipReason: 'Not applicable to my situation'
+          skipReason: 'Not applicable to my situation',
         },
         {
           questionId: 'q5',
           questionCategory: 'experience',
           questionText: 'Describe your leadership experience',
           answer: 'I have led teams of various sizes',
-          isSkipped: false
-        }
+          isSkipped: false,
+        },
       ]
 
       const result = await cvAgent.saveResponses(
         testSessionId,
         testUserId,
-        responses
+        responses,
       )
 
       expect(result).toHaveProperty('success')
@@ -121,14 +122,14 @@ describe('Response Storage Integration', () => {
           questionCategory: 'personal',
           questionText: 'Contact email?',
           answer: 'john@example.com',
-          isSkipped: false
-        }
+          isSkipped: false,
+        },
       ]
 
       await cvAgent.saveResponses(
         testSessionId,
         testUserId,
-        responses
+        responses,
       )
 
       // Verify session stage was updated
@@ -154,14 +155,14 @@ describe('Response Storage Integration', () => {
           questionCategory: 'personal',
           questionText: 'Test question',
           answer: 'Test answer',
-          isSkipped: false
-        }
+          isSkipped: false,
+        },
       ]
 
       const result = await cvAgent.saveResponses(
         testSessionId,
         testUserId,
-        responses
+        responses,
       )
 
       // Should handle error without throwing
@@ -197,22 +198,22 @@ describe('Response Storage Integration', () => {
           questionCategory: 'personal',
           questionText: 'Full name?',
           answer: 'Jane Smith',
-          isSkipped: false
+          isSkipped: false,
         },
         {
           questionId: 'get-test-2',
           questionCategory: 'experience',
           questionText: 'Years of experience?',
           answer: 5,
-          isSkipped: false
+          isSkipped: false,
         },
         {
           questionId: 'get-test-3',
           questionCategory: 'career',
           questionText: 'Target industry?',
           answer: null,
-          isSkipped: true
-        }
+          isSkipped: true,
+        },
       ]
 
       await cvAgent.saveResponses(testSessionId, testUserId, testResponses)
@@ -250,12 +251,12 @@ describe('Response Storage Integration', () => {
             eq: jest.fn().mockReturnValue({
               not: jest.fn().mockReturnValue({
                 order: jest.fn().mockRejectedValue({
-                  code: 'PGRST205'
-                })
-              })
-            })
-          })
-        })
+                  code: 'PGRST205',
+                }),
+              }),
+            }),
+          }),
+        }),
       })
 
       const responses = await cvAgent.getResponses(testSessionId, testUserId)
@@ -280,14 +281,14 @@ describe('Response Storage Integration', () => {
           questionCategory: 'personal',
           questionText: 'Email address?',
           answer: 'test@example.com',
-          isSkipped: false
-        }
+          isSkipped: false,
+        },
       ]
 
       const result = await cvAgent.saveResponses(
         testSessionId,
         testUserId,
-        validResponses
+        validResponses,
       )
 
       expect(result.success).toBe(true)
@@ -306,7 +307,7 @@ describe('Response Storage Integration', () => {
         question_text: 'Email address?',
         answer: 'test@example.com',
         is_required: 'true',
-        is_skipped: 'false'
+        is_skipped: 'false',
       })
     })
 
@@ -322,14 +323,14 @@ describe('Response Storage Integration', () => {
           questionCategory: 'personal',
           questionText: 'Name?',
           answer: 'John Doe',
-          isSkipped: false
+          isSkipped: false,
         },
         {
           questionId: 'type-test-number',
           questionCategory: 'experience',
           questionText: 'Years of experience?',
           answer: 5,
-          isSkipped: false
+          isSkipped: false,
         },
         {
           questionId: 'type-test-object',
@@ -338,23 +339,23 @@ describe('Response Storage Integration', () => {
           answer: {
             metric: '30% increase',
             scope: 'team of 5',
-            impact: 'revenue growth'
+            impact: 'revenue growth',
           },
-          isSkipped: false
+          isSkipped: false,
         },
         {
           questionId: 'type-test-array',
           questionCategory: 'skills',
           questionText: 'Technical skills?',
           answer: ['JavaScript', 'React', 'Node.js'],
-          isSkipped: false
-        }
+          isSkipped: false,
+        },
       ]
 
       const result = await cvAgent.saveResponses(
         testSessionId,
         testUserId,
-        responses
+        responses,
       )
 
       expect(result.success).toBe(true)
@@ -379,7 +380,7 @@ describe('Response Storage Integration', () => {
       expect(objectResponse?.answer).toEqual({
         metric: '30% increase',
         scope: 'team of 5',
-        impact: 'revenue growth'
+        impact: 'revenue growth',
       })
       expect(arrayResponse?.answer).toEqual(['JavaScript', 'React', 'Node.js'])
     })
@@ -399,14 +400,14 @@ describe('Response Storage Integration', () => {
         questionCategory: i % 2 === 0 ? 'personal' : 'experience',
         questionText: `Test question ${i}`,
         answer: `Test answer ${i}`,
-        isSkipped: false
+        isSkipped: false,
       }))
 
       const startTime = Date.now()
       const result = await cvAgent.saveResponses(
         testSessionId,
         testUserId,
-        responses
+        responses,
       )
       const endTime = Date.now()
 
@@ -434,9 +435,9 @@ describe('Response Storage Integration', () => {
             questionCategory: 'personal',
             questionText: 'Concurrent test question',
             answer: `Concurrent answer ${i}`,
-            isSkipped: false
-          }]
-        )
+            isSkipped: false,
+          }],
+        ),
       )
 
       const results = await Promise.all(promises)

@@ -34,7 +34,7 @@ export class CacheService {
     key: string,
     value: T,
     userId: string | undefined,
-    ttl: number = 3600
+    ttl: number = 3600,
   ): Promise<void> {
     const scopedKey = this.generateKey(key, userId)
     const expiresAt = new Date(Date.now() + ttl * 1000)

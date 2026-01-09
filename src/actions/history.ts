@@ -102,7 +102,7 @@ export async function getUserSessions(input?: z.infer<typeof GetUserSessionsSche
               file_path
             `)
             .eq('session_id', session.id)
-            .eq('user_id', user.id)
+            .eq('user_id', user.id),
         ])
 
         return {
@@ -120,22 +120,22 @@ export async function getUserSessions(input?: z.infer<typeof GetUserSessionsSche
             documentType: doc.document_type,
             originalFilename: doc.original_filename,
             fileFormat: doc.file_format || 'unknown',
-            filePath: doc.file_path
+            filePath: doc.file_path,
           })) || [],
           resultCounts: {
             skillGaps: skillGapsCount.count || 0,
             interviewQuestions: interviewQuestionsCount.count || 0,
             coverLetters: coverLettersCount.count || 0,
             messages: messagesCount.count || 0,
-          }
+          },
         }
-      })
+      }),
     )
 
     return {
       success: true,
       data: sessionsWithCounts,
-      hasMore: sessionsWithCounts.length === limit
+      hasMore: sessionsWithCounts.length === limit,
     }
   } catch (error) {
     console.error('Error in getUserSessions:', error)
@@ -144,13 +144,13 @@ export async function getUserSessions(input?: z.infer<typeof GetUserSessionsSche
       return {
         success: false,
         error: 'Invalid input parameters',
-        details: error.issues
+        details: error.issues,
       }
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch session history'
+      error: error instanceof Error ? error.message : 'Failed to fetch session history',
     }
   }
 }
@@ -225,7 +225,7 @@ export async function getSessionDetails(input: z.infer<typeof GetSessionDetailsS
         .from('messages')
         .select('*')
         .eq('session_id', sessionId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true }),
     ])
 
     return {
@@ -245,15 +245,15 @@ export async function getSessionDetails(input: z.infer<typeof GetSessionDetailsS
           originalFilename: doc.original_filename,
           fileFormat: doc.file_format,
           filePath: doc.file_path,
-          parsedContent: doc.parsed_content
+          parsedContent: doc.parsed_content,
         })) || [],
         results: {
           skillGaps: skillGaps.data || [],
           interviewQuestions: interviewQuestions.data || [],
           coverLetter: coverLetters.data,
-          messages: messages.data || []
-        }
-      }
+          messages: messages.data || [],
+        },
+      },
     }
   } catch (error) {
     console.error('Error in getSessionDetails:', error)
@@ -262,13 +262,13 @@ export async function getSessionDetails(input: z.infer<typeof GetSessionDetailsS
       return {
         success: false,
         error: 'Invalid session ID format',
-        details: error.issues
+        details: error.issues,
       }
     }
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch session details'
+      error: error instanceof Error ? error.message : 'Failed to fetch session details',
     }
   }
 }

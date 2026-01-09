@@ -39,6 +39,9 @@ export function validateEmail(email: string): boolean {
     /^\./, // Starting with dot
     /\.$/, // Ending with dot
     /^[^@]*@.*@/, // Multiple @ symbols
+    /\.(?=@)/, // Local part ending with dot (dot immediately before @)
+    /^@\./, // Domain starting with @
+    /@\.\w/, // Domain starting with dot after @
   ]
 
   return !invalidPatterns.some(pattern => pattern.test(normalizedEmail))
@@ -81,7 +84,7 @@ export function validatePassword(password: string): {
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   }
 }
 
@@ -98,7 +101,7 @@ export function sanitizeInput(
     maxLength?: number
     allowHtml?: boolean
     trim?: boolean
-  } = {}
+  } = {},
 ): string {
   if (!input || typeof input !== 'string') {
     return ''
@@ -107,12 +110,13 @@ export function sanitizeInput(
   const {
     maxLength = 1000,
     allowHtml = false,
-    trim = true
+    trim = true,
   } = options
 
   let sanitized = input
 
   // Remove null bytes and control characters (except common whitespace)
+  // eslint-disable-next-line no-control-regex
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
 
   if (!allowHtml) {
@@ -122,12 +126,12 @@ export function sanitizeInput(
 
   // Remove potential SQL injection patterns (additional layer of protection)
   const sqlPatterns = [
-    /('|(\\')|(;)|(\-\-)|(\s+(OR|AND)\s+.*=.*(\s|;|$)))/gi,
-    /(UNION|SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)/gi
+    /('|(\\')|(;)|(--)|(\s+(OR|AND)\s+.*=.*(\s|;|$)))/gi,
+    /(UNION|SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)/gi,
   ]
 
   sanitized = sqlPatterns.reduce((str, pattern) =>
-    str.replace(pattern, ''), sanitized
+    str.replace(pattern, ''), sanitized,
   )
 
   if (trim) {
@@ -189,10 +193,10 @@ export function validateAuthFormData(formData: FormData): {
     isValid: errors.length === 0,
     data: {
       email: sanitizedEmail,
-      password: password, // Keep original password for Supabase
-      confirmPassword: validatedConfirmPassword
+      password, // Keep original password for Supabase
+      confirmPassword: validatedConfirmPassword,
     },
-    errors
+    errors,
   }
 }
 

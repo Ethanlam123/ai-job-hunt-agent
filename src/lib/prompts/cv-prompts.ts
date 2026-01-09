@@ -234,7 +234,7 @@ Return ONLY valid JSON, no markdown or additional text.`
       targetRole?: string;
       industry?: string;
       yearsExperience?: string;
-    }
+    },
   ): string {
     return `You are an expert CV strategist and career coach with deep expertise in helping professionals create compelling CVs that get results. Your task is to generate personalized, contextual questions that will help extract the specific information needed to enhance this user's CV based on their unique situation.
 
@@ -361,7 +361,7 @@ Return ONLY valid JSON, no markdown or additional text.`
    */
   static generateAchievementDetailQuestions(
     initialResponse: string,
-    questionContext: any
+    questionContext: any,
   ): string {
     return `You are helping a user provide more detailed, quantifiable achievements for their CV. Based on their initial response, generate specific follow-up questions to extract metrics and impact.
 

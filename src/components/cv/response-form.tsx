@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { SkipForward, User, Briefcase, Star, Settings, Info } from "lucide-react"
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { SkipForward, User, Briefcase, Star, Settings, Info } from 'lucide-react'
 
 interface ResponseFormProps {
   question: {
@@ -48,10 +48,10 @@ const categoryIcons = {
 }
 
 const categoryColors = {
-  personal: "bg-blue-50 border-blue-200 text-blue-800",
-  career: "bg-green-50 border-green-200 text-green-800",
-  experience: "bg-purple-50 border-purple-200 text-purple-800",
-  formatting: "bg-orange-50 border-orange-200 text-orange-800",
+  personal: 'bg-blue-50 border-blue-200 text-blue-800',
+  career: 'bg-green-50 border-green-200 text-green-800',
+  experience: 'bg-purple-50 border-purple-200 text-purple-800',
+  formatting: 'bg-orange-50 border-orange-200 text-orange-800',
 }
 
 export function ResponseForm({
@@ -61,10 +61,10 @@ export function ResponseForm({
   onSkip,
   isSkipped,
   skipReason,
-  showValidationErrors = false
+  showValidationErrors = false,
 }: ResponseFormProps) {
   const [showSkipDialog, setShowSkipDialog] = useState(false)
-  const [tempSkipReason, setTempSkipReason] = useState("")
+  const [tempSkipReason, setTempSkipReason] = useState('')
 
   // Handle both database structure and QuestionTemplate structure
   const category = question.question_category || question.category || 'personal'
@@ -111,9 +111,9 @@ export function ResponseForm({
           <Input
             value={String(value || '')}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder || "Enter your answer"}
+            placeholder={placeholder || 'Enter your answer'}
             maxLength={maxLength}
-            className={showError ? "border-red-500" : ""}
+            className={showError ? 'border-red-500' : ''}
           />
         )
 
@@ -122,18 +122,18 @@ export function ResponseForm({
           <Textarea
             value={String(value || '')}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder || "Enter your answer"}
+            placeholder={placeholder || 'Enter your answer'}
             maxLength={maxLength}
             rows={4}
-            className={showError ? "border-red-500" : ""}
+            className={showError ? 'border-red-500' : ''}
           />
         )
 
       case 'select':
         return (
           <Select value={String(value || '')} onValueChange={onChange}>
-            <SelectTrigger className={showError ? "border-red-500" : ""}>
-              <SelectValue placeholder={placeholder || "Select an option"} />
+            <SelectTrigger className={showError ? 'border-red-500' : ''}>
+              <SelectValue placeholder={placeholder || 'Select an option'} />
             </SelectTrigger>
             <SelectContent>
               {options?.map((option) => (
@@ -148,7 +148,7 @@ export function ResponseForm({
       case 'multiselect':
         const selectedValues = Array.isArray(value) ? value : []
         return (
-          <div className={`space-y-2 ${showError ? "border border-red-500 rounded-md p-2" : ""}`}>
+          <div className={`space-y-2 ${showError ? 'border border-red-500 rounded-md p-2' : ''}`}>
             {options?.map((option) => (
               <div key={option} className="flex items-center space-x-2">
                 <Checkbox
@@ -179,17 +179,17 @@ export function ResponseForm({
           <div className="flex space-x-4">
             <Button
               type="button"
-              variant={booleanValue ? "default" : "outline"}
+              variant={booleanValue ? 'default' : 'outline'}
               onClick={() => onChange(true)}
-              className={showError && !booleanValue ? "border-red-500" : ""}
+              className={showError && !booleanValue ? 'border-red-500' : ''}
             >
               Yes
             </Button>
             <Button
               type="button"
-              variant={!booleanValue && value !== null ? "default" : "outline"}
+              variant={!booleanValue && value !== null ? 'default' : 'outline'}
               onClick={() => onChange(false)}
-              className={showError && booleanValue ? "border-red-500" : ""}
+              className={showError && booleanValue ? 'border-red-500' : ''}
             >
               No
             </Button>
@@ -201,8 +201,8 @@ export function ResponseForm({
           <Input
             value={String(value || '')}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder || "Enter your answer"}
-            className={showError ? "border-red-500" : ""}
+            placeholder={placeholder || 'Enter your answer'}
+            className={showError ? 'border-red-500' : ''}
           />
         )
     }
@@ -216,7 +216,7 @@ export function ResponseForm({
     if (showSkipDialog) {
       onSkip(tempSkipReason)
       setShowSkipDialog(false)
-      setTempSkipReason("")
+      setTempSkipReason('')
     } else {
       setShowSkipDialog(true)
     }
@@ -276,7 +276,7 @@ export function ResponseForm({
                 variant="outline"
                 onClick={() => {
                   setShowSkipDialog(false)
-                  setTempSkipReason("")
+                  setTempSkipReason('')
                 }}
               >
                 Cancel

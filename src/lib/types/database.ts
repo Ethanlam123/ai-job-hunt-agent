@@ -224,7 +224,7 @@ export class DatabaseError extends Error {
     public readonly code: string,
     public readonly query?: string,
     public readonly params?: any[],
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message)
     this.name = 'DatabaseError'

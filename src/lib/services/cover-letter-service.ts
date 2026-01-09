@@ -29,7 +29,7 @@ export async function generateCoverLetter(input: CoverLetterInput): Promise<Cove
   console.log('Creating LLM with OpenRouter...')
   const llm = createLLM({
     temperature: 0.7,
-    maxTokens: 6000
+    maxTokens: 6000,
   })
 
   const systemMessage = `You are an expert career coach and professional cover letter writer. Your task is to create compelling, personalized cover letters that:
@@ -44,7 +44,7 @@ Always start with a strong opening that captures attention, provide concrete exa
 
   const messages = [
     { role: 'system' as const, content: systemMessage },
-    { role: 'user' as const, content: prompt }
+    { role: 'user' as const, content: prompt },
   ]
 
   const response = await llm.invoke(messages)
@@ -55,8 +55,8 @@ Always start with a strong opening that captures attention, provide concrete exa
     metadata: {
       companyName: input.companyName,
       positionTitle: input.positionTitle,
-      generatedAt: new Date().toISOString()
-    }
+      generatedAt: new Date().toISOString(),
+    },
   }
 }
 

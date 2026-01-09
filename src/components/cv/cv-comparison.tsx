@@ -1,9 +1,9 @@
-"use client";
+'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, FileText } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft, Download, FileText } from 'lucide-react'
 
 interface CVComparisonProps {
   originalCV: string;
@@ -18,7 +18,7 @@ export function CVComparison({
   updatedCV,
   downloadUrl,
   approvedCount,
-  onBack
+  onBack,
 }: CVComparisonProps) {
   return (
     <div className="space-y-6">
@@ -111,5 +111,5 @@ export function CVComparison({
         </Card>
       )}
     </div>
-  );
+  )
 }

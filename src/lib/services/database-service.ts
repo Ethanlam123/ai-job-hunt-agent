@@ -49,7 +49,7 @@ export class DatabaseService implements DatabaseClient {
    */
   async transaction<T>(
     callback: (client: DatabaseClient) => Promise<T>,
-    options: { timeoutMs?: number } = {}
+    options: { timeoutMs?: number } = {},
   ): Promise<T> {
     const startTime = Date.now()
     const timeoutMs = options.timeoutMs || 30000
@@ -89,7 +89,7 @@ export class DatabaseService implements DatabaseClient {
       threshold?: number
       whereClause?: string
       selectColumns?: string[]
-    } = {}
+    } = {},
   ): Promise<VectorSearchResult<T>> {
     const startTime = Date.now()
     const limit = options.limit || vectorSearchConfig.similarityLimit
@@ -103,14 +103,14 @@ export class DatabaseService implements DatabaseClient {
     if (!allowedTables.includes(tableName)) {
       throw new Error(
         `Invalid table name: ${tableName}. ` +
-        `Allowed tables: ${allowedTables.join(', ')}`
+        `Allowed tables: ${allowedTables.join(', ')}`,
       )
     }
 
     if (!allowedColumns.includes(vectorColumn)) {
       throw new Error(
         `Invalid vector column: ${vectorColumn}. ` +
-        `Allowed columns: ${allowedColumns.join(', ')}`
+        `Allowed columns: ${allowedColumns.join(', ')}`,
       )
     }
 
@@ -188,7 +188,7 @@ export class DatabaseService implements DatabaseClient {
   async batchOperation<T>(
     items: T[],
     operation: (batch: T[]) => Promise<void>,
-    options: BatchOperationOptions = { batchSize: 100 }
+    options: BatchOperationOptions = { batchSize: 100 },
   ): Promise<BatchOperationResult<T>> {
     const startTime = Date.now()
     const {
@@ -303,11 +303,11 @@ export const performVectorSearch = <T = any>(
   vector: number[],
   tableName: string,
   vectorColumn: string,
-  options?: any
+  options?: any,
 ) => databaseService.vectorSearch<T>(vector, tableName, vectorColumn, options)
 
 export const batchOperation = <T>(
   items: T[],
   operation: (batch: T[]) => Promise<void>,
-  options?: BatchOperationOptions
+  options?: BatchOperationOptions,
 ) => databaseService.batchOperation(items, operation, options)

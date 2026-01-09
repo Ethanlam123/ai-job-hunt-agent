@@ -63,7 +63,7 @@ export function SessionCard({ session, onClick, className }: SessionCardProps) {
         day: 'numeric',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       }).format(dateObj)
     } catch (error) {
       console.error('Error formatting date:', dateObj, error)
@@ -97,7 +97,7 @@ export function SessionCard({ session, onClick, className }: SessionCardProps) {
         session.status === 'completed' && 'border-l-green-500',
         session.status === 'processing' && 'border-l-yellow-500',
         session.status === 'failed' && 'border-l-red-500',
-        className
+        className,
       )}
       onClick={() => onClick(session.id)}
     >

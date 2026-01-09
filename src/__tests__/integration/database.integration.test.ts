@@ -63,7 +63,7 @@ describe('Database Integration Tests', () => {
       if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
         const adminClient = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
         )
 
         // Delete documents first (due to foreign key constraints)
@@ -74,7 +74,7 @@ describe('Database Integration Tests', () => {
 
         // Delete users
         await adminClient.auth.admin.deleteUser(
-          'test-user-id'
+          'test-user-id',
         ).catch(() => {
           // Ignore if user doesn't exist
         })
@@ -108,7 +108,7 @@ describe('Database Integration Tests', () => {
     it('should handle concurrent queries', async () => {
       const concurrentQueries = 10
       const promises = Array.from({ length: concurrentQueries }, () =>
-        db.query('SELECT 1 as test')
+        db.query('SELECT 1 as test'),
       )
 
       const results = await Promise.all(promises)
@@ -136,7 +136,7 @@ describe('Database Integration Tests', () => {
         db.transaction(async (client) => {
           await client.query('SELECT 1')
           throw new Error('Transaction failed')
-        })
+        }),
       ).rejects.toThrow('Transaction failed')
     }, TEST_TIMEOUT)
 
@@ -377,7 +377,7 @@ describe('Database Integration Tests', () => {
             limit: 5,
             threshold: 0.7,
             selectColumns: ['id', 'document_id', 'similarity'],
-          }
+          },
         )
 
         expect(result).toHaveProperty('records')
@@ -404,7 +404,7 @@ describe('Database Integration Tests', () => {
             // Simulate processing
             return new Promise<void>(resolve => setTimeout(resolve, 10))
           },
-          { batchSize: 2, batchDelayMs: 50 }
+          { batchSize: 2, batchDelayMs: 50 },
         )
 
         expect(result).toHaveProperty('successfulItems')
@@ -426,7 +426,7 @@ describe('Database Integration Tests', () => {
     it('should handle concurrent database operations', async () => {
       const concurrentOperations = 20
       const promises = Array.from({ length: concurrentOperations }, (_, i) =>
-        db.query(`SELECT ${i} as operation_id`)
+        db.query(`SELECT ${i} as operation_id`),
       )
 
       const startTime = Date.now()
@@ -542,7 +542,7 @@ describe('Database Integration Tests', () => {
         const promises = Array.from({ length: 10 }, () =>
           db.transaction(async (client) => {
             await client.query(`INSERT INTO ${tableName} (id) VALUES (1) ON CONFLICT (id) DO UPDATE SET counter = ${tableName}.counter + 1`)
-          })
+          }),
         )
 
         await Promise.all(promises)

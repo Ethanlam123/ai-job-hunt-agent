@@ -54,7 +54,7 @@ export function validateFileType(mimeType: string): { valid: boolean; error?: st
  */
 export function validateJDMetadata(
   companyName: string,
-  positionName: string
+  positionName: string,
 ): { valid: boolean; error?: string } {
   if (!companyName?.trim()) {
     return { valid: false, error: 'Company name is required for job descriptions' }
@@ -79,7 +79,7 @@ export function generateStoragePath(userId: string, fileName: string): string {
 export function generateJDFilename(
   companyName: string,
   positionName: string,
-  originalFileName?: string
+  originalFileName?: string,
 ): string {
   const date = new Date().toLocaleDateString()
   return originalFileName

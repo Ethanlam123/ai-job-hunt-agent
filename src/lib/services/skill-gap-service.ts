@@ -57,7 +57,7 @@ export class SkillGapService {
   async saveSkillGapAnalysis(
     sessionId: string,
     userId: string,
-    analysis: SkillGapAnalysis
+    analysis: SkillGapAnalysis,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Delete existing skill gaps for this session
@@ -93,7 +93,7 @@ export class SkillGapService {
             const insertedRecord = insertedData.find(record => record.skill_name === gap.skillName)
             return {
               ...gap,
-              id: insertedRecord?.id || `temp-${index}`
+              id: insertedRecord?.id || `temp-${index}`,
             }
           })
         }
@@ -111,8 +111,8 @@ export class SkillGapService {
           metadata: {
             analyzedAt: new Date().toISOString(),
             skillGapCount: analysis.skillGaps?.length || 0,
-            overallScore: analysis.overallMatch?.score || 0
-          }
+            overallScore: analysis.overallMatch?.score || 0,
+          },
         })
 
       if (taskError) {
@@ -124,7 +124,7 @@ export class SkillGapService {
       console.error('Save skill gap analysis error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
   }
@@ -134,7 +134,7 @@ export class SkillGapService {
    */
   async getSkillGapAnalysis(
     sessionId: string,
-    userId: string
+    userId: string,
   ): Promise<{ success: boolean; data?: SkillGapAnalysis; error?: string }> {
     try {
       // Get task results
@@ -173,7 +173,7 @@ export class SkillGapService {
           score: 0,
           summary: 'Analysis available',
           strengths: [],
-          criticalGaps: []
+          criticalGaps: [],
         },
         skillGaps: skillGaps.map(gap => {
           // Extract status from learning_resources
@@ -196,7 +196,7 @@ export class SkillGapService {
             status: (statusInfo?.status as 'pending' | 'in_progress' | 'completed' | 'not_interested') || 'pending',
             learningResources: gap.learning_resources || [],
             createdAt: gap.created_at,
-            updatedAt: gap.updated_at
+            updatedAt: gap.updated_at,
           }
         }),
         strengthsToHighlight: [],
@@ -204,8 +204,8 @@ export class SkillGapService {
           overallStrategy: 'Review skill gaps and create learning plan',
           quickWins: [],
           longTermGoals: [],
-          nextSteps: []
-        }
+          nextSteps: [],
+        },
       }
 
       return { success: true, data: reconstructedAnalysis }
@@ -213,7 +213,7 @@ export class SkillGapService {
       console.error('Get skill gap analysis error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
   }
@@ -225,7 +225,7 @@ export class SkillGapService {
     skillGapId: string,
     userId: string,
     status: 'pending' | 'in_progress' | 'completed' | 'not_interested',
-    notes?: string
+    notes?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Since the schema doesn't have status field, we'll store status in learning_resources
@@ -239,7 +239,7 @@ export class SkillGapService {
       if (currentData.error) {
         // Check if this is a temporary ID (from old analyses before the fix)
         if (skillGapId.startsWith('gap-') || skillGapId.startsWith('temp-')) {
-          throw new Error(`Cannot update status for skill gap with temporary ID. Please run a new analysis to get proper database IDs.`)
+          throw new Error('Cannot update status for skill gap with temporary ID. Please run a new analysis to get proper database IDs.')
         }
         throw new Error(`Failed to fetch skill gap: ${currentData.error.message}`)
       }
@@ -248,7 +248,7 @@ export class SkillGapService {
       const statusInfo = {
         status,
         updatedAt: new Date().toISOString(),
-        notes: notes || null
+        notes: notes || null,
       }
 
       // Update or add status info
@@ -274,7 +274,7 @@ export class SkillGapService {
       console.error('Update skill gap status error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
   }
@@ -284,7 +284,7 @@ export class SkillGapService {
    */
   async getSkillGapsByTimeline(
     sessionId: string,
-    userId: string
+    userId: string,
   ): Promise<{
     success: boolean
     data?: {
@@ -297,7 +297,7 @@ export class SkillGapService {
     try {
       const { success, data: analysis, error } = await this.getSkillGapAnalysis(
         sessionId,
-        userId
+        userId,
       )
 
       if (!success || !analysis) {
@@ -307,7 +307,7 @@ export class SkillGapService {
       const organizedGaps = {
         short: analysis.skillGaps.filter(gap => gap.timeline === 'short'),
         medium: analysis.skillGaps.filter(gap => gap.timeline === 'medium'),
-        long: analysis.skillGaps.filter(gap => gap.timeline === 'long')
+        long: analysis.skillGaps.filter(gap => gap.timeline === 'long'),
       }
 
       return { success: true, data: organizedGaps }
@@ -315,7 +315,7 @@ export class SkillGapService {
       console.error('Get skill gaps by timeline error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
   }
@@ -324,7 +324,7 @@ export class SkillGapService {
    * Get skill gap statistics for a user
    */
   async getSkillGapStats(
-    userId: string
+    userId: string,
   ): Promise<{
     success: boolean
     data?: {
@@ -397,14 +397,14 @@ export class SkillGapService {
           inProgressGaps,
           pendingGaps,
           averageScore: Math.round(averageScore),
-          recentAnalysis: tasks[0] || null
-        }
+          recentAnalysis: tasks[0] || null,
+        },
       }
     } catch (error) {
       console.error('Get skill gap stats error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
   }
@@ -428,7 +428,7 @@ export class SkillGapService {
         isSufficient: false,
         qualityScore: 0,
         issues,
-        suggestions
+        suggestions,
       }
     }
 
@@ -460,7 +460,7 @@ export class SkillGapService {
       isSufficient,
       qualityScore,
       issues,
-      suggestions
+      suggestions,
     }
   }
 }

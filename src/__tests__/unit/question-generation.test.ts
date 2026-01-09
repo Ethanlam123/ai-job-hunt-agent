@@ -11,14 +11,14 @@ describe('CVPrompts', () => {
       const cvContent = { fullText: 'Software Engineer with 5 years experience' }
       const cvAnalysis = { general: { weaknesses: ['Missing metrics'] } }
       const approvedImprovements = [
-        { id: 'imp1', section: 'experience', type: 'edit' }
+        { id: 'imp1', section: 'experience', type: 'edit' },
       ]
       const jobDescription = { fullText: 'Senior Software Engineer position' }
       const userProfile = {
         currentLevel: 'Mid-Level',
         targetRole: 'Senior Software Engineer',
         industry: 'Technology',
-        yearsExperience: '5 years'
+        yearsExperience: '5 years',
       }
 
       const prompt = CVPrompts.generateContextualQuestions(
@@ -26,7 +26,7 @@ describe('CVPrompts', () => {
         cvAnalysis,
         approvedImprovements,
         jobDescription,
-        userProfile
+        userProfile,
       )
 
       expect(prompt).toContain('You are an expert CV strategist')
@@ -48,7 +48,7 @@ describe('CVPrompts', () => {
         null,
         [],
         null,
-        {}
+        {},
       )
 
       expect(prompt).toContain('No CV content available')
@@ -65,7 +65,7 @@ describe('CVPrompts', () => {
         { general: { weaknesses: [] } },
         [],
         null,
-        {}
+        {},
       )
 
       expect(prompt).toContain('QUESTION GENERATION STRATEGY')
@@ -85,7 +85,7 @@ describe('CVPrompts', () => {
         { general: { weaknesses: [] } },
         [],
         null,
-        {}
+        {},
       )
 
       expect(prompt).toContain('OUTPUT FORMAT')
@@ -101,12 +101,12 @@ describe('CVPrompts', () => {
       const questionContext = {
         category: 'achievements',
         questionText: 'Describe your leadership experience',
-        cvReference: 'Experience section shows team leadership'
+        cvReference: 'Experience section shows team leadership',
       }
 
       const prompt = CVPrompts.generateAchievementDetailQuestions(
         initialResponse,
-        questionContext
+        questionContext,
       )
 
       expect(prompt).toContain('You are helping a user provide more detailed')
@@ -128,7 +128,7 @@ describe('CVPrompts', () => {
     it('should handle empty initial response', () => {
       const prompt = CVPrompts.generateAchievementDetailQuestions(
         '',
-        { category: 'general', questionText: 'Test question' }
+        { category: 'general', questionText: 'Test question' },
       )
 
       expect(prompt).toContain('Initial Response:')
@@ -150,24 +150,24 @@ describe('CVAgent Question Generation', () => {
           eq: jest.fn(() => ({
             eq: jest.fn(() => ({
               order: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: null, error: null }))
-              }))
-            }))
-          }))
-        }))
+                single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+              })),
+            })),
+          })),
+        })),
       })),
       insert: jest.fn(() => ({
         select: jest.fn(() => ({
-          single: jest.fn(() => Promise.resolve({ data: null, error: null }))
-        }))
-      }))
+          single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+        })),
+      })),
     }
 
     // Mock DocumentService
     const mockDocumentService = {
       getDocument: jest.fn(() => Promise.resolve({
-        parsed_content: { fullText: 'Software Engineer experience' }
-      }))
+        parsed_content: { fullText: 'Software Engineer experience' },
+      })),
     }
 
     cvAgent = new (CVAgent as any)(mockSupabase)
@@ -185,25 +185,25 @@ describe('CVAgent Question Generation', () => {
               context: {
                 cvReference: 'Experience section',
                 improvementLink: 'Add quantifiable achievements',
-                whyThisMatters: 'Recruiters want to see measurable impact'
+                whyThisMatters: 'Recruiters want to see measurable impact',
               },
               guidance: {
                 whatToInclude: 'Specific metrics and percentages',
                 exampleAnswer: 'Increased revenue by 30%',
-                avoidThis: 'Vague statements without numbers'
+                avoidThis: 'Vague statements without numbers',
               },
-              required: true
-            }
+              required: true,
+            },
           ],
           questionStrategy: {
             totalQuestions: 1,
             highPriorityCount: 1,
             focusAreas: ['achievements'],
             personalizationScore: 85,
-            estimatedTime: '5-10 minutes'
-          }
-        })
-      }))
+            estimatedTime: '5-10 minutes',
+          },
+        }),
+      })),
     }
   })
 
@@ -214,18 +214,18 @@ describe('CVAgent Question Generation', () => {
         result: {
           analysis: { general: { weaknesses: ['Missing metrics'] } },
           documentId: 'doc-123',
-          jobDescriptionId: 'jd-456'
-        }
+          jobDescriptionId: 'jd-456',
+        },
       })
 
       // Mock getApprovedImprovements
       jest.spyOn(cvAgent as any, 'getApprovedImprovements').mockResolvedValue([
-        { id: 'imp1', section: 'experience', type: 'edit' }
+        { id: 'imp1', section: 'experience', type: 'edit' },
       ])
 
       // Mock getSessionData
       jest.spyOn(cvAgent as any, 'getSessionData').mockResolvedValue({
-        targetRole: 'Senior Software Engineer'
+        targetRole: 'Senior Software Engineer',
       })
 
       // Mock getDocumentContent
@@ -248,7 +248,7 @@ describe('CVAgent Question Generation', () => {
         text: 'What measurable impact did your work have?',
         type: 'textarea',
         required: true,
-        placeholder: 'Specific metrics and percentages'
+        placeholder: 'Specific metrics and percentages',
       })
     })
 
@@ -261,8 +261,8 @@ describe('CVAgent Question Generation', () => {
         result: {
           analysis: { general: { weaknesses: [] } },
           documentId: null,
-          jobDescriptionId: null
-        }
+          jobDescriptionId: null,
+        },
       })
 
       // Mock other methods
@@ -358,20 +358,20 @@ describe('CVAgent Question Generation', () => {
                 single: jest.fn(() => Promise.resolve({
                   data: {
                     question_category: 'achievements',
-                    question_text: 'Describe your key achievements'
-                  }
-                }))
-              }))
-            }))
-          }))
-        }))
+                    question_text: 'Describe your key achievements',
+                  },
+                })),
+              })),
+            })),
+          })),
+        })),
       })
 
       const result = await cvAgent.generateFollowUpQuestions(
         'session-123',
         'user-123',
         'question-1',
-        'I improved the product performance'
+        'I improved the product performance',
       )
 
       expect(result).toHaveProperty('followUpQuestions')
@@ -386,23 +386,23 @@ describe('CVAgent Question Generation', () => {
           eq: jest.fn(() => ({
             eq: jest.fn(() => ({
               eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ error: 'Database error' }))
-              }))
-            }))
-          }))
-        }))
+                single: jest.fn(() => Promise.resolve({ error: 'Database error' })),
+              })),
+            })),
+          })),
+        })),
       })
 
       const result = await cvAgent.generateFollowUpQuestions(
         'session-123',
         'user-123',
         'question-1',
-        'Test response'
+        'Test response',
       )
 
       expect(result).toEqual({
         followUpQuestions: [],
-        analysis: { currentDetailLevel: 'low' }
+        analysis: { currentDetailLevel: 'low' },
       })
     })
   })

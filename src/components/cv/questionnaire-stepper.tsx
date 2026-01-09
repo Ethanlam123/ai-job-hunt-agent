@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ChevronLeft, ChevronRight, User, Briefcase, Star, Settings, CheckCircle } from "lucide-react"
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ChevronLeft, ChevronRight, User, Briefcase, Star, Settings, CheckCircle } from 'lucide-react'
 
 interface QuestionnaireStepperProps {
   questions: Array<{
@@ -47,7 +47,7 @@ export function QuestionnaireStepper({
   onSkip,
   onComplete,
   onBack,
-  isSubmitting = false
+  isSubmitting = false,
 }: QuestionnaireStepperProps) {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0)
   const [showValidationErrors, setShowValidationErrors] = useState(false)
@@ -75,7 +75,7 @@ export function QuestionnaireStepper({
   const validateCurrentCategory = () => {
     const requiredQuestions = currentQuestions.filter(q => q.is_required === 'true')
     const missingAnswers = requiredQuestions.filter(q =>
-      responses[q.id] === undefined || responses[q.id] === ''
+      responses[q.id] === undefined || responses[q.id] === '',
     )
 
     if (missingAnswers.length > 0) {
@@ -112,7 +112,7 @@ export function QuestionnaireStepper({
   const canProceed = () => {
     const requiredQuestions = currentQuestions.filter(q => q.is_required === 'true')
     return requiredQuestions.every(q =>
-      responses[q.id] !== undefined && responses[q.id] !== ''
+      responses[q.id] !== undefined && responses[q.id] !== '',
     )
   }
 
@@ -156,7 +156,7 @@ export function QuestionnaireStepper({
               return (
                 <Button
                   key={category}
-                  variant={isCurrent ? "default" : "outline"}
+                  variant={isCurrent ? 'default' : 'outline'}
                   size="sm"
                   className="flex items-center gap-2"
                   onClick={() => {

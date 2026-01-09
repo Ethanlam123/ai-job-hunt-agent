@@ -1,27 +1,27 @@
-"use client";
+'use client'
 
-import { useState, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { useState, useCallback, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import {
   Loader2, Upload, FileText, CheckCircle2, AlertCircle,
   ThumbsUp, BarChart3, Clock, Target, BookOpen, TrendingUp,
-  AlertTriangle, Info, CheckSquare, Square, XCircle, Type
-} from "lucide-react";
+  AlertTriangle, Info, CheckSquare, Square, XCircle, Type,
+} from 'lucide-react'
 import {
   analyzeSkillGaps,
   getSkillGapResults,
   getSkillGapsByTimeline,
   getUserCVDocuments,
-  validateJobDescription
-} from "@/actions/skill-gap";
-import { DocumentSelector } from "@/components/documents/document-selector";
-import { SkillGapResults } from "./skill-gap-results";
+  validateJobDescription,
+} from '@/actions/skill-gap'
+import { DocumentSelector } from '@/components/documents/document-selector'
+import { SkillGapResults } from './skill-gap-results'
 
 interface SkillGap {
   id: string;
@@ -57,93 +57,93 @@ interface SkillGapAnalysis {
 }
 
 export function SkillGapClient() {
-  const [activeTab, setActiveTab] = useState("setup");
-  const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<SkillGapAnalysis | null>(null);
+  const [activeTab, setActiveTab] = useState('setup')
+  const [isLoading, setIsLoading] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<SkillGapAnalysis | null>(null)
   const [organizedGaps, setOrganizedGaps] = useState<{
     short: SkillGap[];
     medium: SkillGap[];
     long: SkillGap[];
-  } | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  } | undefined>(undefined)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   // Form states
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string>("");
-  const [selectedJdDocumentId, setSelectedJdDocumentId] = useState<string>("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [jdInputTab, setJdInputTab] = useState<'file' | 'text'>('file');
-  const [jobDescriptionValidation, setJobDescriptionValidation] = useState<any>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string>('')
+  const [selectedJdDocumentId, setSelectedJdDocumentId] = useState<string>('')
+  const [jobDescription, setJobDescription] = useState('')
+  const [jdInputTab, setJdInputTab] = useState<'file' | 'text'>('file')
+  const [jobDescriptionValidation, setJobDescriptionValidation] = useState<any>(null)
 
-  
+
   // Clear messages after 5 seconds
   const clearMessages = useCallback(() => {
     setTimeout(() => {
-      setError(null);
-      setSuccess(null);
-    }, 5000);
-  }, []);
+      setError(null)
+      setSuccess(null)
+    }, 5000)
+  }, [])
 
   // Validate job description in real-time
   const validateJobDescriptionText = useCallback(async (text: string) => {
     if (text.length > 50) {
-      const result = await validateJobDescription(text);
+      const result = await validateJobDescription(text)
       if (result.success) {
-        setJobDescriptionValidation(result.validation);
+        setJobDescriptionValidation(result.validation)
       }
     } else {
-      setJobDescriptionValidation(null);
+      setJobDescriptionValidation(null)
     }
-  }, []);
+  }, [])
 
   const handleJobDescriptionChange = (value: string) => {
-    setJobDescription(value);
-    validateJobDescriptionText(value);
-  };
+    setJobDescription(value)
+    validateJobDescriptionText(value)
+  }
 
   const handleJdDocumentSelect = (documentId: string | null) => {
-    setSelectedJdDocumentId(documentId || '');
+    setSelectedJdDocumentId(documentId || '')
     // Clear text input when selecting a document
-    setJobDescription('');
-    setJobDescriptionValidation(null);
+    setJobDescription('')
+    setJobDescriptionValidation(null)
     // Reset to file tab when selecting document
     if (documentId) {
-      setJdInputTab('file');
+      setJdInputTab('file')
     }
-  };
+  }
 
-  
+
   // Handle skill gap analysis
   const handleAnalyzeSkillGaps = useCallback(async (formData?: FormData) => {
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
+    setIsLoading(true)
+    setError(null)
+    setSuccess(null)
 
     try {
-      const cvFile = formData?.get('cvFile') as File;
-      let cvFileData = "";
-      let cvFileName = "";
-      let cvFileType = "";
-      let cvFileSize = 0;
+      const cvFile = formData?.get('cvFile') as File
+      let cvFileData = ''
+      let cvFileName = ''
+      let cvFileType = ''
+      let cvFileSize = 0
 
       // Handle file upload if provided
       if (cvFile && cvFile.size > 0) {
-        const bytes = await cvFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        cvFileData = buffer.toString('base64');
-        cvFileName = cvFile.name;
-        cvFileType = cvFile.type;
-        cvFileSize = cvFile.size;
+        const bytes = await cvFile.arrayBuffer()
+        const buffer = Buffer.from(bytes)
+        cvFileData = buffer.toString('base64')
+        cvFileName = cvFile.name
+        cvFileType = cvFile.type
+        cvFileSize = cvFile.size
       }
 
       // Determine job description source
-      let jobDescriptionText = jobDescription.trim();
-      let jdDocumentId = selectedJdDocumentId || undefined;
+      let jobDescriptionText = jobDescription.trim()
+      const jdDocumentId = selectedJdDocumentId || undefined
 
       // If using selected JD document, prioritize it over text input
       if (selectedJdDocumentId && jdInputTab === 'file') {
-        jobDescriptionText = ''; // Let backend fetch from document
+        jobDescriptionText = '' // Let backend fetch from document
       }
 
       const result = await analyzeSkillGaps({
@@ -152,43 +152,43 @@ export function SkillGapClient() {
         cvFileType: cvFileType || undefined,
         cvFileSize: cvFileSize || undefined,
         cvFileData: cvFileData || undefined,
-        jobDescriptionText: jobDescriptionText,
-        jdDocumentId: jdDocumentId,
-      });
+        jobDescriptionText,
+        jdDocumentId,
+      })
 
       if (result.success) {
-        setSessionId(result.sessionId || null);
-        setAnalysis(result.analysis || null);
-        setSuccess("Skill gap analysis completed successfully!");
-        setActiveTab("results");
+        setSessionId(result.sessionId || null)
+        setAnalysis(result.analysis || null)
+        setSuccess('Skill gap analysis completed successfully!')
+        setActiveTab('results')
 
         // Fetch organized results
         if (result.sessionId) {
-          const organizedResult = await getSkillGapsByTimeline(result.sessionId);
+          const organizedResult = await getSkillGapsByTimeline(result.sessionId)
           if (organizedResult.success && organizedResult.data) {
-            setOrganizedGaps(organizedResult.data);
+            setOrganizedGaps(organizedResult.data)
           }
         }
       } else {
-        setError(result.error || "Failed to analyze skill gaps");
+        setError(result.error || 'Failed to analyze skill gaps')
       }
     } catch (error) {
-      console.error('Skill gap analysis error:', error);
-      setError("An unexpected error occurred during analysis");
+      console.error('Skill gap analysis error:', error)
+      setError('An unexpected error occurred during analysis')
     } finally {
-      setIsLoading(false);
-      clearMessages();
+      setIsLoading(false)
+      clearMessages()
     }
-  }, [selectedDocumentId, selectedJdDocumentId, jobDescription, jdInputTab]);
+  }, [selectedDocumentId, selectedJdDocumentId, jobDescription, jdInputTab])
 
-  
-  
+
+
   // Handle form submission
   const handleFormSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    handleAnalyzeSkillGaps(formData);
-  }, [handleAnalyzeSkillGaps]);
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    handleAnalyzeSkillGaps(formData)
+  }, [handleAnalyzeSkillGaps])
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -285,10 +285,10 @@ export function SkillGapClient() {
                         placeholder="Paste the job description here. Include requirements, responsibilities, and qualifications for the best analysis..."
                         value={jobDescription}
                         onChange={(e) => {
-                          handleJobDescriptionChange(e.target.value);
+                          handleJobDescriptionChange(e.target.value)
                           // Clear selected document when typing
                           if (selectedJdDocumentId) {
-                            setSelectedJdDocumentId('');
+                            setSelectedJdDocumentId('')
                           }
                         }}
                         rows={8}
@@ -301,8 +301,8 @@ export function SkillGapClient() {
                   {jobDescriptionValidation && (
                     <Alert className={
                       jobDescriptionValidation.isSufficient
-                        ? "border-green-200 bg-green-50 text-green-800"
-                        : "border-yellow-200 bg-yellow-50 text-yellow-800"
+                        ? 'border-green-200 bg-green-50 text-green-800'
+                        : 'border-yellow-200 bg-yellow-50 text-yellow-800'
                     }>
                       {jobDescriptionValidation.isSufficient ? (
                         <CheckCircle2 className="h-4 w-4" />
@@ -476,5 +476,5 @@ export function SkillGapClient() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  )
 }

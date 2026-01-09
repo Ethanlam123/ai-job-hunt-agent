@@ -79,7 +79,7 @@ describe('LRU Cache Eviction', () => {
 
       // Only the most recent items should remain
       expect(cache.has(`rapid_key_${operations - 1}`)).toBe(true)
-      expect(cache.has(`rapid_key_0`)).toBe(false)
+      expect(cache.has('rapid_key_0')).toBe(false)
     })
 
     it('should evict oldest items when cache is full', () => {

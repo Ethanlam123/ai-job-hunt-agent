@@ -176,7 +176,7 @@ export class CVAgent {
     try {
       const document = await this.documentService.getDocument(
         state.documentId,
-        state.userId
+        state.userId,
       )
 
       if (!document) {
@@ -209,7 +209,7 @@ export class CVAgent {
 
       const document = await this.documentService.getDocument(
         state.jobDescriptionId,
-        state.userId
+        state.userId,
       )
 
       if (!document) {
@@ -768,7 +768,7 @@ Provide only valid JSON as your response.
       // Create approval records for each improvement
       const allImprovements = [
         ...(state.improvements.general || []).map(imp => ({ ...imp, improvementType: 'general' })),
-        ...(state.improvements.jobSpecific || []).map(imp => ({ ...imp, improvementType: 'job_specific' }))
+        ...(state.improvements.jobSpecific || []).map(imp => ({ ...imp, improvementType: 'job_specific' })),
       ]
 
       if (allImprovements.length > 0) {
@@ -872,7 +872,7 @@ Provide only valid JSON as your response.
     approvalId: string,
     decision: 'approved' | 'rejected',
     feedback: string | null,
-    userId: string
+    userId: string,
   ) {
     const { data, error } = await this.supabase
       .from('approvals')
@@ -898,7 +898,7 @@ Provide only valid JSON as your response.
    */
   async generateQuestions(
     sessionId: string,
-    userId: string
+    userId: string,
   ): Promise<QuestionTemplate[]> {
     try {
       // Get the analysis results and approved improvements
@@ -918,7 +918,7 @@ Provide only valid JSON as your response.
         currentLevel: this.extractCareerLevel(cvContent, cvAnalysis),
         targetRole: this.extractTargetRole(jobDescriptionContent, sessionData),
         industry: this.extractIndustry(cvContent, jobDescriptionContent),
-        yearsExperience: this.extractYearsExperience(cvContent)
+        yearsExperience: this.extractYearsExperience(cvContent),
       }
 
       // Generate dynamic questions using LLM
@@ -927,7 +927,7 @@ Provide only valid JSON as your response.
         cvAnalysis,
         approvedImprovements,
         jobDescriptionContent,
-        userProfile
+        userProfile,
       )
 
       console.log('Generate Questions - Sending prompt to LLM...')
@@ -1069,12 +1069,12 @@ Provide only valid JSON as your response.
   private async saveQuestions(
     sessionId: string,
     userId: string,
-    questions: QuestionTemplate[]
+    questions: QuestionTemplate[],
   ) {
     // For now, just log that we're skipping database persistence
     // The questions will be stored in memory for the current session
     console.log(`Generated ${questions.length} questions for session ${sessionId}`)
-    console.log('Questions:', questions.map(q => ({ id: q.id, category: q.category, text: q.text.substring(0, 50) + '...' })))
+    console.log('Questions:', questions.map(q => ({ id: q.id, category: q.category, text: `${q.text.substring(0, 50)  }...` })))
 
     // TODO: Implement proper database persistence once schema issues are resolved
     // The current approach works by keeping questions in memory during the session
@@ -1126,7 +1126,7 @@ Provide only valid JSON as your response.
       type?: string;
       placeholder?: string;
       maxLength?: number;
-    }>
+    }>,
   ) {
     try {
       console.log(`Attempting to save ${responses.length} responses for session ${sessionId}`)
@@ -1149,13 +1149,13 @@ Provide only valid JSON as your response.
               type: response.type || 'text',
               placeholder: response.placeholder || '',
               maxLength: response.maxLength || null,
-              category: response.questionCategory || 'personal'
+              category: response.questionCategory || 'personal',
             },
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           }, {
             onConflict: 'session_id,question_id',
-            ignoreDuplicates: false
-          })
+            ignoreDuplicates: false,
+          }),
       )
 
       const results = await Promise.all(upsertPromises)
@@ -1173,7 +1173,7 @@ Provide only valid JSON as your response.
             .from('sessions')
             .update({
               current_stage: 'summary',
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq('id', sessionId)
             .eq('user_id', userId)
@@ -1197,7 +1197,7 @@ Provide only valid JSON as your response.
         .from('sessions')
         .update({
           current_stage: 'summary',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', sessionId)
         .eq('user_id', userId)
@@ -1213,7 +1213,7 @@ Provide only valid JSON as your response.
           .from('sessions')
           .update({
             current_stage: 'summary',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', sessionId)
           .eq('user_id', userId)
@@ -1232,7 +1232,7 @@ Provide only valid JSON as your response.
     sessionId: string,
     userId: string,
     questionId: string,
-    initialResponse: string
+    initialResponse: string,
   ): Promise<any> {
     try {
       // Get the original question context
@@ -1248,13 +1248,13 @@ Provide only valid JSON as your response.
         category: questionData?.question_category || 'general',
         questionText: questionData?.question_text || '',
         cvReference: 'Based on CV analysis',
-        improvementLink: 'Related to approved improvements'
+        improvementLink: 'Related to approved improvements',
       }
 
       // Generate follow-up questions using LLM
       const prompt = CVPrompts.generateAchievementDetailQuestions(
         initialResponse,
-        questionContext
+        questionContext,
       )
 
       console.log('Generate Follow-up Questions - Sending prompt to LLM...')
@@ -1263,7 +1263,7 @@ Provide only valid JSON as your response.
       // Parse LLM response
       const followUpData = JSONParser.cleanAndParseJSON(response.content, {
         followUpQuestions: [],
-        analysis: { currentDetailLevel: 'medium' }
+        analysis: { currentDetailLevel: 'medium' },
       })
 
       if (!followUpData || !followUpData.followUpQuestions) {

@@ -1,12 +1,12 @@
-"use client";
+'use client'
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Upload, FileText, CheckCircle2, AlertCircle, ThumbsUp, ThumbsDown, Sparkles, BarChart3, BriefcaseIcon, ArrowRightIcon, MessageSquare, User } from "lucide-react";
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Loader2, Upload, FileText, CheckCircle2, AlertCircle, ThumbsUp, ThumbsDown, Sparkles, BarChart3, BriefcaseIcon, ArrowRightIcon, MessageSquare, User } from 'lucide-react'
 import {
   uploadAndAnalyzeCV,
   getAnalysisResults,
@@ -17,13 +17,13 @@ import {
   getCVQuestions,
   saveCVResponses,
   getCVResponses,
-  generateUpdatedCV
-} from "@/actions/cv";
-import { getDocumentById } from "@/actions/documents";
-import { DocumentSelector } from "@/components/documents/document-selector";
-import { JobDescriptionSelector } from "@/components/documents/job-description-selector";
-import { ApprovalSummary } from "./approval-summary";
-import { ResponseForm } from "./response-form";
+  generateUpdatedCV,
+} from '@/actions/cv'
+import { getDocumentById } from '@/actions/documents'
+import { DocumentSelector } from '@/components/documents/document-selector'
+import { JobDescriptionSelector } from '@/components/documents/job-description-selector'
+import { ApprovalSummary } from './approval-summary'
+import { ResponseForm } from './response-form'
 
 interface AnalysisData {
   overallScore: number;
@@ -82,101 +82,101 @@ interface ApprovalSummaryData {
 type WorkflowStep = 'upload' | 'analyzing' | 'results' | 'approvals' | 'information_collection' | 'summary';
 
 export function CVAnalysisClient() {
-  const [file, setFile] = useState<File | null>(null);
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
-  const [uploadMode, setUploadMode] = useState<'existing' | 'new'>('existing');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [currentStep, setCurrentStep] = useState<WorkflowStep>('upload');
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
-  const [improvements, setImprovements] = useState<Improvement[]>([]);
-  const [approvals, setApprovals] = useState<ApprovalItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [processingApprovals, setProcessingApprovals] = useState<Set<string>>(() => new Set());
-  const [summary, setSummary] = useState<ApprovalSummaryData | null>(null);
+  const [file, setFile] = useState<File | null>(null)
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
+  const [uploadMode, setUploadMode] = useState<'existing' | 'new'>('existing')
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [currentStep, setCurrentStep] = useState<WorkflowStep>('upload')
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
+  const [improvements, setImprovements] = useState<Improvement[]>([])
+  const [approvals, setApprovals] = useState<ApprovalItem[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [processingApprovals, setProcessingApprovals] = useState<Set<string>>(() => new Set())
+  const [summary, setSummary] = useState<ApprovalSummaryData | null>(null)
 
   // New state for job description
-  const [selectedJobDescriptionId, setSelectedJobDescriptionId] = useState<string | null>(null);
-  const [includeJobDescription, setIncludeJobDescription] = useState<boolean>(false);
-  const [scores, setScores] = useState<{ overall: number; jobFit?: number } | null>(null);
+  const [selectedJobDescriptionId, setSelectedJobDescriptionId] = useState<string | null>(null)
+  const [includeJobDescription, setIncludeJobDescription] = useState<boolean>(false)
+  const [scores, setScores] = useState<{ overall: number; jobFit?: number } | null>(null)
 
   // State for tab interface
-  const [activeResultsTab, setActiveResultsTab] = useState<'general' | 'jobSpecific' | 'combined'>('combined');
+  const [activeResultsTab, setActiveResultsTab] = useState<'general' | 'jobSpecific' | 'combined'>('combined')
 
   // State for information collection
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [responses, setResponses] = useState<Record<string, any>>({});
-  const [skippedQuestions, setSkippedQuestions] = useState<Record<string, string>>({});
-  const [isSubmittingResponses, setIsSubmittingResponses] = useState(false);
-  const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [questions, setQuestions] = useState<any[]>([])
+  const [responses, setResponses] = useState<Record<string, any>>({})
+  const [skippedQuestions, setSkippedQuestions] = useState<Record<string, string>>({})
+  const [isSubmittingResponses, setIsSubmittingResponses] = useState(false)
+  const [showValidationErrors, setShowValidationErrors] = useState(false)
 
   // State for CV generation
-  const [isGeneratingCV, setIsGeneratingCV] = useState(false);
+  const [isGeneratingCV, setIsGeneratingCV] = useState(false)
   const [generatedCVResult, setGeneratedCVResult] = useState<{
     documentId: string | null;
     downloadUrl: string | null;
-  }>({ documentId: null, downloadUrl: null });
+  }>({ documentId: null, downloadUrl: null })
 
   // Handle scrolling and summary loading when step changes to summary
   useEffect(() => {
-    console.log('useEffect triggered, currentStep:', currentStep);
+    console.log('useEffect triggered, currentStep:', currentStep)
     if (currentStep === 'summary') {
-      console.log('Step changed to summary, loading data and scrolling to top...');
-      console.log('summary state:', summary);
-      console.log('sessionId state:', sessionId);
-      console.log('generatedCVResult state:', generatedCVResult);
+      console.log('Step changed to summary, loading data and scrolling to top...')
+      console.log('summary state:', summary)
+      console.log('sessionId state:', sessionId)
+      console.log('generatedCVResult state:', generatedCVResult)
 
       // Load summary data if not available
       if (!summary && sessionId) {
-        console.log('Loading summary data...');
+        console.log('Loading summary data...')
         getApprovalSummary(sessionId).then(response => {
           if (response.success && response.summary) {
-            console.log('Summary loaded successfully:', response.summary);
-            setSummary(response.summary);
+            console.log('Summary loaded successfully:', response.summary)
+            setSummary(response.summary)
           } else {
-            console.warn('Failed to load summary:', response.error);
+            console.warn('Failed to load summary:', response.error)
           }
         }).catch(err => {
-          console.error('Error loading summary:', err);
-        });
+          console.error('Error loading summary:', err)
+        })
       }
 
       // Small delay to ensure DOM has updated
       const scrollTimer = setTimeout(() => {
-        console.log('Executing scroll after timeout...');
+        console.log('Executing scroll after timeout...')
         // Try multiple scrolling methods for better compatibility
         try {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          console.log('Smooth scroll attempted');
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+          console.log('Smooth scroll attempted')
         } catch (e) {
-          console.warn('Smooth scroll failed, using instant scroll');
-          window.scrollTo(0, 0);
+          console.warn('Smooth scroll failed, using instant scroll')
+          window.scrollTo(0, 0)
         }
 
         // Also try documentElement scrolling as fallback
         if (document.documentElement.scrollTop > 0) {
-          document.documentElement.scrollTop = 0;
+          document.documentElement.scrollTop = 0
         }
 
         // Add debug information about what's visible
-        const summaryElement = document.querySelector('[data-summary-section]');
-        console.log('Summary element found:', !!summaryElement);
-      }, 150);
+        const summaryElement = document.querySelector('[data-summary-section]')
+        console.log('Summary element found:', !!summaryElement)
+      }, 150)
 
-      return () => clearTimeout(scrollTimer);
+      return () => clearTimeout(scrollTimer)
     }
-  }, [currentStep, summary, sessionId, generatedCVResult]);
+  }, [currentStep, summary, sessionId, generatedCVResult])
 
   // Separate improvements by type with memoization
   const generalImprovements = useMemo(() =>
     improvements.filter(imp => !imp.improvementType || imp.improvementType === 'general'),
-    [improvements]
-  );
+    [improvements],
+  )
 
   const jobSpecificImprovements = useMemo(() =>
     improvements.filter(imp => imp.improvementType === 'job_specific'),
-    [improvements]
-  );
+    [improvements],
+  )
 
   // Debug: Log current state on every render
   console.log('CVAnalysisClient render:', {
@@ -184,56 +184,56 @@ export function CVAnalysisClient() {
     summary: !!summary,
     sessionId,
     generatedCVResult: !!generatedCVResult?.documentId,
-    approvals: approvals.length
-  });
+    approvals: approvals.length,
+  })
 
   // Filter improvements based on active tab with memoization
   const getFilteredImprovements = useCallback(() => {
     switch (activeResultsTab) {
       case 'general':
-        return generalImprovements;
+        return generalImprovements
       case 'jobSpecific':
-        return jobSpecificImprovements;
+        return jobSpecificImprovements
       case 'combined':
       default:
-        return improvements;
+        return improvements
     }
-  }, [activeResultsTab, generalImprovements, jobSpecificImprovements, improvements]);
+  }, [activeResultsTab, generalImprovements, jobSpecificImprovements, improvements])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile && selectedFile.type === "application/pdf") {
-      setFile(selectedFile);
-      setError(null);
-      setCurrentStep('upload');
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile && selectedFile.type === 'application/pdf') {
+      setFile(selectedFile)
+      setError(null)
+      setCurrentStep('upload')
     } else {
-      setError("Please select a valid PDF file");
+      setError('Please select a valid PDF file')
     }
-  };
+  }
 
   const handleAnalyze = async () => {
     // Validate input based on mode
     if (uploadMode === 'new' && !file) {
-      setError('Please select a file to upload');
-      return;
+      setError('Please select a file to upload')
+      return
     }
     if (uploadMode === 'existing' && !selectedDocumentId) {
-      setError('Please select an existing CV');
-      return;
+      setError('Please select an existing CV')
+      return
     }
 
-    setIsProcessing(true);
-    setError(null);
-    setCurrentStep('analyzing');
+    setIsProcessing(true)
+    setError(null)
+    setCurrentStep('analyzing')
 
     try {
-      let fileData: { fileName: string; fileType: string; fileSize: number; fileData: string; documentId?: string };
+      let fileData: { fileName: string; fileType: string; fileSize: number; fileData: string; documentId?: string }
 
       if (uploadMode === 'existing' && selectedDocumentId) {
         // Use existing document
-        const docResult = await getDocumentById(selectedDocumentId);
+        const docResult = await getDocumentById(selectedDocumentId)
         if (!docResult.success || !docResult.document) {
-          throw new Error('Failed to load selected document');
+          throw new Error('Failed to load selected document')
         }
 
         // For existing documents, we pass the documentId
@@ -243,218 +243,218 @@ export function CVAnalysisClient() {
           fileSize: docResult.document.metadata?.size || 0,
           fileData: '', // Empty for existing documents
           documentId: selectedDocumentId,
-        };
+        }
       } else if (file) {
         // Upload new file
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const base64 = buffer.toString("base64");
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        const base64 = buffer.toString('base64')
 
         fileData = {
           fileName: file.name,
           fileType: file.type,
           fileSize: file.size,
           fileData: base64,
-        };
+        }
       } else {
-        throw new Error('No file or document selected');
+        throw new Error('No file or document selected')
       }
 
       // Upload and trigger the full CV analysis workflow
       const workflowResult = await uploadAndAnalyzeCV({
         ...fileData,
         jobDescriptionId: includeJobDescription ? selectedJobDescriptionId || undefined : undefined,
-      });
+      })
 
       if (!workflowResult.success) {
-        throw new Error(workflowResult.error || 'Workflow failed');
+        throw new Error(workflowResult.error || 'Workflow failed')
       }
 
-      setSessionId(workflowResult.sessionId);
+      setSessionId(workflowResult.sessionId)
 
       // Debug: Log workflow result
-      console.log('Workflow result:', workflowResult);
+      console.log('Workflow result:', workflowResult)
 
       // Try to use data from workflow result first (it's already available)
       if (workflowResult.analysis) {
-        console.log('Using analysis from workflow result');
+        console.log('Using analysis from workflow result')
         // Handle new structure - get general analysis
-        const generalAnalysis = workflowResult.analysis?.general || workflowResult.analysis;
-        setAnalysis(generalAnalysis);
+        const generalAnalysis = workflowResult.analysis?.general || workflowResult.analysis
+        setAnalysis(generalAnalysis)
 
         // Combine improvements from general and job-specific
         const allImprovements = [
           ...(workflowResult.improvements?.general || []),
-          ...(workflowResult.improvements?.jobSpecific || [])
-        ];
-        setImprovements(allImprovements);
+          ...(workflowResult.improvements?.jobSpecific || []),
+        ]
+        setImprovements(allImprovements)
 
         // Set scores
-        setScores(workflowResult.scores || { overall: 0 });
+        setScores(workflowResult.scores || { overall: 0 })
       } else {
         // Fallback: Fetch the analysis results from database
-        console.log('Fetching analysis results from database...');
-        const sessionId = workflowResult.sessionId;
+        console.log('Fetching analysis results from database...')
+        const sessionId = workflowResult.sessionId
         if (!sessionId) {
-          throw new Error('Session ID not found in workflow result');
+          throw new Error('Session ID not found in workflow result')
         }
-        const analysisResponse = await getAnalysisResults(sessionId);
-        console.log('Analysis response:', analysisResponse);
+        const analysisResponse = await getAnalysisResults(sessionId)
+        console.log('Analysis response:', analysisResponse)
 
         if (analysisResponse.success && analysisResponse.results?.result) {
-          console.log('Setting analysis:', analysisResponse.results.result.analysis);
-          const result = analysisResponse.results.result;
+          console.log('Setting analysis:', analysisResponse.results.result.analysis)
+          const result = analysisResponse.results.result
 
           // Handle new structure
-          const generalAnalysis = result.analysis?.general || result.analysis;
-          setAnalysis(generalAnalysis);
+          const generalAnalysis = result.analysis?.general || result.analysis
+          setAnalysis(generalAnalysis)
 
           // Combine improvements
           const allImprovements = [
             ...(result.improvements?.general || []),
-            ...(result.improvements?.jobSpecific || [])
-          ];
-          setImprovements(allImprovements);
+            ...(result.improvements?.jobSpecific || []),
+          ]
+          setImprovements(allImprovements)
 
           // Set scores
-          setScores(result.scores || { overall: 0 });
+          setScores(result.scores || { overall: 0 })
         } else {
-          console.warn('No analysis results found or invalid structure:', analysisResponse);
-          throw new Error('Failed to retrieve analysis results');
+          console.warn('No analysis results found or invalid structure:', analysisResponse)
+          throw new Error('Failed to retrieve analysis results')
         }
       }
 
       // Fetch pending approvals
-      const approvalsResponse = await getPendingApprovals(workflowResult.sessionId);
-      console.log('Approvals response:', approvalsResponse);
+      const approvalsResponse = await getPendingApprovals(workflowResult.sessionId)
+      console.log('Approvals response:', approvalsResponse)
 
       if (approvalsResponse.success && approvalsResponse.approvals) {
-        console.log('Setting approvals:', approvalsResponse.approvals);
-        setApprovals(approvalsResponse.approvals);
+        console.log('Setting approvals:', approvalsResponse.approvals)
+        setApprovals(approvalsResponse.approvals)
       } else {
-        console.warn('No approvals found or invalid structure:', approvalsResponse);
+        console.warn('No approvals found or invalid structure:', approvalsResponse)
       }
 
-      setCurrentStep('results');
+      setCurrentStep('results')
     } catch (err) {
-      console.error('Analysis error:', err);
-      setError(err instanceof Error ? err.message : "Failed to analyze CV");
-      setCurrentStep('upload');
+      console.error('Analysis error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to analyze CV')
+      setCurrentStep('upload')
     } finally {
-      setIsProcessing(false);
+      setIsProcessing(false)
     }
-  };
+  }
 
   const handleApproval = async (approvalId: string, decision: 'approved' | 'rejected', feedback?: string) => {
     // Add to processing set
-    setProcessingApprovals(prev => new Set(prev).add(approvalId));
+    setProcessingApprovals(prev => new Set(prev).add(approvalId))
 
     try {
-      await handleApprovalDecision(approvalId, decision, feedback);
+      await handleApprovalDecision(approvalId, decision, feedback)
 
       // Refresh approvals list
       if (sessionId) {
-        const approvalsResponse = await getPendingApprovals(sessionId);
+        const approvalsResponse = await getPendingApprovals(sessionId)
         if (approvalsResponse.success && approvalsResponse.approvals) {
-          setApprovals(approvalsResponse.approvals);
+          setApprovals(approvalsResponse.approvals)
         }
       }
     } catch (err) {
-      console.error('Approval error:', err);
-      setError(err instanceof Error ? err.message : "Failed to process approval");
+      console.error('Approval error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to process approval')
     } finally {
       // Remove from processing set
       setProcessingApprovals(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(approvalId);
-        return newSet;
-      });
+        const newSet = new Set(prev)
+        newSet.delete(approvalId)
+        return newSet
+      })
     }
-  };
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-blue-500';
-      default: return 'bg-gray-500';
+      case 'high': return 'bg-red-500'
+      case 'medium': return 'bg-yellow-500'
+      case 'low': return 'bg-blue-500'
+      default: return 'bg-gray-500'
     }
-  };
+  }
 
   // Information Collection Functions
   const handleStartInformationCollection = async () => {
-    if (!sessionId) return;
+    if (!sessionId) return
 
     try {
-      setIsProcessing(true);
-      setError(null);
+      setIsProcessing(true)
+      setError(null)
 
-      const questionsResult = await generateCVQuestions(sessionId);
+      const questionsResult = await generateCVQuestions(sessionId)
 
       if (questionsResult.success && questionsResult.questions) {
-        setQuestions(questionsResult.questions);
-        setCurrentStep('information_collection');
+        setQuestions(questionsResult.questions)
+        setCurrentStep('information_collection')
       } else {
-        setError(questionsResult.error || 'Failed to generate questions');
+        setError(questionsResult.error || 'Failed to generate questions')
       }
     } catch (err) {
-      console.error('Information collection error:', err);
-      setError(err instanceof Error ? err.message : "Failed to start information collection");
+      console.error('Information collection error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to start information collection')
     } finally {
-      setIsProcessing(false);
+      setIsProcessing(false)
     }
-  };
+  }
 
   const handleResponseChange = (questionId: string, value: any) => {
     setResponses(prev => ({
       ...prev,
-      [questionId]: value
-    }));
+      [questionId]: value,
+    }))
     // Clear any existing skip when user answers
     if (skippedQuestions[questionId]) {
       setSkippedQuestions(prev => {
-        const newSkipped = { ...prev };
-        delete newSkipped[questionId];
-        return newSkipped;
-      });
+        const newSkipped = { ...prev }
+        delete newSkipped[questionId]
+        return newSkipped
+      })
     }
-  };
+  }
 
   const handleSkipQuestion = (questionId: string, reason?: string) => {
     setSkippedQuestions(prev => ({
       ...prev,
-      [questionId]: reason || 'Skipped by user'
-    }));
+      [questionId]: reason || 'Skipped by user',
+    }))
     setResponses(prev => {
-      const newResponses = { ...prev };
-      delete newResponses[questionId];
-      return newResponses;
-    });
-  };
+      const newResponses = { ...prev }
+      delete newResponses[questionId]
+      return newResponses
+    })
+  }
 
   const validateResponses = useCallback(() => {
-    const requiredQuestions = questions.filter(q => q.is_required === 'true');
+    const requiredQuestions = questions.filter(q => q.is_required === 'true')
     const missingAnswers = requiredQuestions.filter(q =>
-      !responses[q.id] && !skippedQuestions[q.id]
-    );
+      !responses[q.id] && !skippedQuestions[q.id],
+    )
 
-    return missingAnswers.length === 0;
-  }, [questions, responses, skippedQuestions]);
+    return missingAnswers.length === 0
+  }, [questions, responses, skippedQuestions])
 
   const handleSubmitResponses = async () => {
-    if (!sessionId) return;
+    if (!sessionId) return
 
     // Validate responses first
-    const isValid = validateResponses();
+    const isValid = validateResponses()
     if (!isValid) {
-      setShowValidationErrors(true);
-      return;
+      setShowValidationErrors(true)
+      return
     }
 
     try {
-      setIsSubmittingResponses(true);
-      setError(null);
-      setShowValidationErrors(false);
+      setIsSubmittingResponses(true)
+      setError(null)
+      setShowValidationErrors(false)
 
       // Prepare responses for submission
       const submissionData = questions.map(question => ({
@@ -463,94 +463,94 @@ export function CVAnalysisClient() {
         questionText: question.text || question.question_text || '',
         answer: responses[question.id] || null,
         isSkipped: !!skippedQuestions[question.id],
-        skipReason: skippedQuestions[question.id] || undefined
-      }));
+        skipReason: skippedQuestions[question.id] || undefined,
+      }))
 
-      const result = await saveCVResponses(sessionId, submissionData);
+      const result = await saveCVResponses(sessionId, submissionData)
 
       if (result.success) {
         // Now generate the CV using the saved responses
-        setIsGeneratingCV(true);
-        const cvResult = await generateUpdatedCV(sessionId);
+        setIsGeneratingCV(true)
+        const cvResult = await generateUpdatedCV(sessionId)
 
         if (cvResult.success && cvResult.documentId && cvResult.downloadUrl) {
-          console.log('CV generation successful, setting result and navigating...');
+          console.log('CV generation successful, setting result and navigating...')
           console.log('Current states before setting summary:', {
             currentStep,
             summary: !!summary,
-            sessionId
-          });
+            sessionId,
+          })
 
           setGeneratedCVResult({
             documentId: cvResult.documentId,
-            downloadUrl: cvResult.downloadUrl
-          });
+            downloadUrl: cvResult.downloadUrl,
+          })
 
           // Load summary data before changing step
           try {
-            const summaryResponse = await getApprovalSummary(sessionId);
-            console.log('Summary response:', summaryResponse);
+            const summaryResponse = await getApprovalSummary(sessionId)
+            console.log('Summary response:', summaryResponse)
 
             if (summaryResponse.success && summaryResponse.summary) {
-              setSummary(summaryResponse.summary);
-              console.log('Summary set successfully');
+              setSummary(summaryResponse.summary)
+              console.log('Summary set successfully')
             } else {
-              console.warn('Failed to load summary:', summaryResponse.error);
+              console.warn('Failed to load summary:', summaryResponse.error)
             }
           } catch (err) {
-            console.error('Error loading summary:', err);
+            console.error('Error loading summary:', err)
           }
 
           // Change step after summary is loaded
-          setCurrentStep('summary');
-          console.log('Step set to summary');
+          setCurrentStep('summary')
+          console.log('Step set to summary')
 
           // Force scroll to top with a small delay to ensure DOM has updated
           setTimeout(() => {
-            console.log('Scrolling to top after CV generation...');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }, 100);
+            console.log('Scrolling to top after CV generation...')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }, 100)
         } else {
-          setError(cvResult.error || 'Failed to generate CV');
+          setError(cvResult.error || 'Failed to generate CV')
           // Still move to summary step even if CV generation failed
-          setCurrentStep('summary');
+          setCurrentStep('summary')
         }
       } else {
-        setError(result.error || 'Failed to save responses');
+        setError(result.error || 'Failed to save responses')
       }
     } catch (err) {
-      console.error('Submit responses error:', err);
-      setError(err instanceof Error ? err.message : "Failed to submit responses");
+      console.error('Submit responses error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to submit responses')
     } finally {
-      setIsSubmittingResponses(false);
-      setIsGeneratingCV(false);
+      setIsSubmittingResponses(false)
+      setIsGeneratingCV(false)
     }
-  };
+  }
 
   const handleBackToApprovals = () => {
-    setCurrentStep('approvals');
-    setShowValidationErrors(false);
-  };
+    setCurrentStep('approvals')
+    setShowValidationErrors(false)
+  }
 
   const handleViewSummary = async () => {
-    if (!sessionId) return;
+    if (!sessionId) return
 
     try {
-      const summaryResponse = await getApprovalSummary(sessionId);
+      const summaryResponse = await getApprovalSummary(sessionId)
 
       if (summaryResponse.success && summaryResponse.summary) {
-        setSummary(summaryResponse.summary);
-        setCurrentStep('summary');
+        setSummary(summaryResponse.summary)
+        setCurrentStep('summary')
         // Smooth scroll to top of the page to show the summary
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' })
       } else {
-        setError(summaryResponse.error || 'Failed to load summary');
+        setError(summaryResponse.error || 'Failed to load summary')
       }
     } catch (err) {
-      console.error('Summary error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load summary');
+      console.error('Summary error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load summary')
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -590,7 +590,7 @@ export function CVAnalysisClient() {
                       <div className="flex flex-col items-center space-y-2">
                         <Upload className="w-8 h-8 text-gray-400" />
                         <span className="text-sm text-gray-600">
-                          {file ? file.name : "Click to upload PDF"}
+                          {file ? file.name : 'Click to upload PDF'}
                         </span>
                       </div>
                       <input
@@ -1133,24 +1133,24 @@ export function CVAnalysisClient() {
             ) : (
               approvals.map((approval) => {
                 // Get improvement from proposed_content field (snake_case from database)
-                const improvement = (approval.proposed_content || approval) as any;
+                const improvement = (approval.proposed_content || approval) as any
 
                 // Debug log to see the structure
-                console.log('Approval item:', approval);
-                console.log('Improvement data:', improvement);
-                console.log('proposed_content:', approval.proposed_content);
+                console.log('Approval item:', approval)
+                console.log('Improvement data:', improvement)
+                console.log('proposed_content:', approval.proposed_content)
 
                 // Extract fields with fallbacks
-                const title = improvement?.title || 'Improvement suggestion';
-                const section = improvement?.section || 'general';
-                const priority = improvement?.priority || 'medium';
-                const description = improvement?.description || 'No description available';
-                const reasoning = improvement?.reasoning || 'No reasoning provided';
-                const jobContext = improvement?.jobContext || improvement?.job_context || null;
-                const improvementType = improvement?.improvementType || improvement?.improvement_type || null;
+                const title = improvement?.title || 'Improvement suggestion'
+                const section = improvement?.section || 'general'
+                const priority = improvement?.priority || 'medium'
+                const description = improvement?.description || 'No description available'
+                const reasoning = improvement?.reasoning || 'No reasoning provided'
+                const jobContext = improvement?.jobContext || improvement?.job_context || null
+                const improvementType = improvement?.improvementType || improvement?.improvement_type || null
 
                 // Check if this approval is being processed
-                const isProcessing = processingApprovals.has(approval.id);
+                const isProcessing = processingApprovals.has(approval.id)
 
                 return (
                   <Card key={approval.id} className={`border-2 transition-all duration-200 hover:shadow-md ${isProcessing ? 'opacity-60' : ''} ${
@@ -1224,7 +1224,7 @@ export function CVAnalysisClient() {
                       )}
                     </CardContent>
                   </Card>
-                );
+                )
               })
             )}
 
@@ -1414,5 +1414,5 @@ export function CVAnalysisClient() {
         </div>
       )}
     </div>
-  );
+  )
 }

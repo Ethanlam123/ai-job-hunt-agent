@@ -64,7 +64,7 @@ export function HistoryClient({ initialSessions }: HistoryPageClientProps) {
             status,
             cvDocument,
             jdDocument,
-            resultSummary
+            resultSummary,
           }
         })
 
@@ -131,7 +131,7 @@ export function HistoryClient({ initialSessions }: HistoryPageClientProps) {
             status,
             cvDocument,
             jdDocument,
-            resultSummary
+            resultSummary,
           }
         })
 

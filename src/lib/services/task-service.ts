@@ -35,7 +35,7 @@ export class TaskService {
     userId: string,
     sessionId: string,
     taskType: TaskType,
-    metadata?: any
+    metadata?: any,
   ): Promise<string> {
 
     const newTask: NewTask = {
@@ -92,7 +92,7 @@ export class TaskService {
     taskId: string,
     status: TaskStatus,
     result?: any,
-    errorMessage?: string
+    errorMessage?: string,
   ): Promise<void> {
 
     const updateData: Partial<Task> = {
@@ -196,8 +196,8 @@ export class TaskService {
       .where(
         and(
           eq(tasks.status, 'completed'),
-          eq(tasks.createdAt, cutoffDate)
-        )
+          eq(tasks.createdAt, cutoffDate),
+        ),
       )
   }
 
@@ -213,7 +213,7 @@ export class TaskService {
     taskId: string,
     userId: string,
     maxAttempts: number = 60,
-    intervalMs: number = 1000
+    intervalMs: number = 1000,
   ): Promise<TaskResult | null> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const task = await this.getTask(taskId, userId)

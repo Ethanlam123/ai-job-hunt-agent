@@ -124,7 +124,7 @@ export async function generateInterviewQuestions(input: {
       session.id,
       user.id,
       difficulty,
-      questionCount
+      questionCount,
     )
 
     if (result.error) {
@@ -243,7 +243,7 @@ export async function submitAnswer(input: {
     const evaluation = await interviewAgent.evaluateAnswer(
       questionId,
       answer.trim(),
-      user.id
+      user.id,
     )
 
     // Revalidate interview page
@@ -308,7 +308,7 @@ export async function analyzeInterviewPerformance(sessionId: string) {
     // Analyze performance
     const performanceAnalysis = await interviewAgent.analyzePerformance(
       sessionId,
-      user.id
+      user.id,
     )
 
     return {

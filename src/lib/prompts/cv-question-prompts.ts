@@ -27,7 +27,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     type: 'text',
     required: true,
     placeholder: 'John Doe',
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'professional-title',
@@ -36,7 +36,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     type: 'text',
     required: true,
     placeholder: 'Senior Software Engineer',
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'contact-email',
@@ -45,7 +45,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     type: 'text',
     required: true,
     placeholder: 'john.doe@example.com',
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'contact-phone',
@@ -54,7 +54,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     type: 'text',
     required: false,
     placeholder: '+1 (555) 123-4567',
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'linkedin-url',
@@ -63,7 +63,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     type: 'text',
     required: false,
     placeholder: 'https://linkedin.com/in/johndoe',
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'location',
@@ -72,7 +72,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     type: 'text',
     required: false,
     placeholder: 'San Francisco, CA',
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
 
   // Career Objectives
@@ -84,7 +84,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     required: true,
     placeholder: 'Seeking a senior software engineering role where I can leverage my expertise in full-stack development...',
     maxLength: 300,
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'target-industries',
@@ -102,9 +102,9 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
       'Consulting',
       'Government/Public Sector',
       'Non-profit',
-      'Other'
+      'Other',
     ],
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'target-role-level',
@@ -119,9 +119,9 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
       'Senior (7-10 years)',
       'Lead/Principal (10+ years)',
       'Manager/Director',
-      'Executive (C-level)'
+      'Executive (C-level)',
     ],
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'job-search-status',
@@ -133,9 +133,9 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
       'Actively looking',
       'Open to opportunities',
       'Not actively looking but interested',
-      'Exploring options'
+      'Exploring options',
     ],
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
 
   // Experience Preferences
@@ -151,9 +151,9 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
       '2-5 years',
       '5-10 years',
       '10-15 years',
-      '15+ years'
+      '15+ years',
     ],
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'key-achievements',
@@ -163,7 +163,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     required: false,
     placeholder: 'Led a team of 5 engineers to deliver a major product launch 3 months ahead of schedule...',
     maxLength: 500,
-    conditions: { analysisField: 'weaknesses' }
+    conditions: { analysisField: 'weaknesses' },
   },
   {
     id: 'technical-skills-highlight',
@@ -181,9 +181,9 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
       'Frontend Technologies',
       'Backend Technologies',
       'Security',
-      'Testing/Quality Assurance'
+      'Testing/Quality Assurance',
     ],
-    conditions: { improvementType: 'skills' }
+    conditions: { improvementType: 'skills' },
   },
   {
     id: 'leadership-experience',
@@ -191,7 +191,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     text: 'Do you have leadership or management experience?',
     type: 'yesno',
     required: false,
-    conditions: { targetRoleLevel: 'senior+' }
+    conditions: { targetRoleLevel: 'senior+' },
   },
   {
     id: 'remote-work-preference',
@@ -203,9 +203,9 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
       'Remote only',
       'Hybrid',
       'In-office only',
-      'Flexible/Open to all'
+      'Flexible/Open to all',
     ],
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
 
   // Formatting Preferences
@@ -219,9 +219,9 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
       'Reverse Chronological (most recent first)',
       'Functional (skills-based)',
       'Combination (hybrid)',
-      'No preference'
+      'No preference',
     ],
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'cv-length',
@@ -233,9 +233,9 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
       '1 page',
       '2 pages',
       '3 pages',
-      'No preference'
+      'No preference',
     ],
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'section-order',
@@ -247,9 +247,9 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
       'Summary -> Experience -> Skills -> Education',
       'Experience -> Skills -> Education -> Summary',
       'Skills -> Experience -> Education -> Summary',
-      'No preference'
+      'No preference',
     ],
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
   {
     id: 'include-photo',
@@ -257,7 +257,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     text: 'Would you like to include a professional photo on your CV?',
     type: 'yesno',
     required: false,
-    conditions: { hasJobDescription: false }
+    conditions: { hasJobDescription: false },
   },
 
   // Job-Specific Questions (conditional)
@@ -269,7 +269,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     required: true,
     placeholder: 'I am particularly drawn to this company because...',
     maxLength: 300,
-    conditions: { hasJobDescription: true }
+    conditions: { hasJobDescription: true },
   },
   {
     id: 'relevant-experience',
@@ -279,7 +279,7 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     required: true,
     placeholder: 'My experience at X company is particularly relevant because...',
     maxLength: 400,
-    conditions: { hasJobDescription: true }
+    conditions: { hasJobDescription: true },
   },
   {
     id: 'gap-explanation',
@@ -289,8 +289,8 @@ export const CV_QUESTION_TEMPLATES: QuestionTemplate[] = [
     required: false,
     placeholder: 'While I may not have direct experience with X, I have...',
     maxLength: 300,
-    conditions: { hasJobDescription: true, analysisField: 'weaknesses' }
-  }
+    conditions: { hasJobDescription: true, analysisField: 'weaknesses' },
+  },
 ]
 
 export function generateQuestions(
@@ -302,7 +302,7 @@ export function generateQuestions(
   approvedImprovements: Array<{
     section?: string
   }>,
-  hasJobDescription: boolean
+  hasJobDescription: boolean,
 ): QuestionTemplate[] {
   const selectedQuestionIds = new Set<string>()
   const questions: QuestionTemplate[] = []
@@ -322,16 +322,16 @@ export function generateQuestions(
     CV_QUESTION_TEMPLATES.filter(q =>
       q.required &&
       (q.category === 'personal' || q.category === 'career') &&
-      (!q.conditions?.hasJobDescription || q.conditions.hasJobDescription === hasJobDescription)
-    )
+      (!q.conditions?.hasJobDescription || q.conditions.hasJobDescription === hasJobDescription),
+    ),
   )
 
   // Add conditional questions based on analysis
   if (cvAnalysis?.general?.weaknesses && cvAnalysis.general.weaknesses.length > 0) {
     addQuestions(
       CV_QUESTION_TEMPLATES.filter(q =>
-        q.conditions?.analysisField === 'weaknesses'
-      )
+        q.conditions?.analysisField === 'weaknesses',
+      ),
     )
   }
 
@@ -340,8 +340,8 @@ export function generateQuestions(
   if (improvementTypes.has('skills')) {
     addQuestions(
       CV_QUESTION_TEMPLATES.filter(q =>
-        q.conditions?.improvementType === 'skills'
-      )
+        q.conditions?.improvementType === 'skills',
+      ),
     )
   }
 
@@ -349,16 +349,16 @@ export function generateQuestions(
   if (hasJobDescription) {
     addQuestions(
       CV_QUESTION_TEMPLATES.filter(q =>
-        q.conditions?.hasJobDescription === true
-      )
+        q.conditions?.hasJobDescription === true,
+      ),
     )
   }
 
   // Add optional formatting questions
   addQuestions(
     CV_QUESTION_TEMPLATES.filter(q =>
-      q.category === 'formatting' && !q.required
-    )
+      q.category === 'formatting' && !q.required,
+    ),
   )
 
   // Sort by category and then by required status

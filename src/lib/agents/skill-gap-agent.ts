@@ -46,7 +46,7 @@ export class SkillGapAgent {
     documentId: string,
     jobDescriptionText: string,
     sessionId: string,
-    userId: string
+    userId: string,
   ): Promise<SkillGapState> {
     const state: SkillGapState = {
       userId,
@@ -111,7 +111,7 @@ export class SkillGapAgent {
     try {
       const document = await this.documentService.getDocument(
         state.documentId,
-        state.userId
+        state.userId,
       )
 
       if (!document) {
@@ -176,7 +176,7 @@ export class SkillGapAgent {
         console.log('Analyze Job Description - Parsed successfully')
       } catch (parseError) {
         console.error('Failed to parse job requirements:', parseError)
-        console.error('Raw content that failed to parse:', typeof response.content === 'string' ? response.content.substring(0, 500) + '...' : 'Non-string content')
+        console.error('Raw content that failed to parse:', typeof response.content === 'string' ? `${response.content.substring(0, 500)  }...` : 'Non-string content')
 
         // Fallback job requirements
         jobRequirements = {
@@ -186,29 +186,29 @@ export class SkillGapAgent {
               category: 'soft',
               importance: 'important',
               description: 'Professional communication',
-              experienceLevel: 'Not specified'
+              experienceLevel: 'Not specified',
             },
             {
               name: 'Team collaboration',
               category: 'soft',
               importance: 'important',
               description: 'Working effectively in teams',
-              experienceLevel: 'Not specified'
-            }
+              experienceLevel: 'Not specified',
+            },
           ],
           responsibilities: [
             {
               title: 'Professional responsibilities',
               skillsUsed: ['Communication', 'Teamwork'],
-              importance: 'important'
-            }
+              importance: 'important',
+            },
           ],
           qualificationSummary: {
             minExperience: 'Not specified',
             educationLevel: 'Not specified',
             mustHaveSkills: [],
-            preferredSkills: []
-          }
+            preferredSkills: [],
+          },
         }
         console.log('Using fallback job requirements')
       }
@@ -219,7 +219,7 @@ export class SkillGapAgent {
           isSufficient: false,
           qualityScore: validation.qualityScore,
           issues: validation.issues,
-          suggestions: validation.suggestions
+          suggestions: validation.suggestions,
         }
       }
 
@@ -279,7 +279,7 @@ export class SkillGapAgent {
         console.log('Identify Skill Gaps - Parsed successfully')
       } catch (parseError) {
         console.error('Failed to parse skill gaps analysis:', parseError)
-        console.error('Raw content that failed to parse:', typeof response.content === 'string' ? response.content.substring(0, 500) + '...' : 'Non-string content')
+        console.error('Raw content that failed to parse:', typeof response.content === 'string' ? `${response.content.substring(0, 500)  }...` : 'Non-string content')
 
         // Fallback gap analysis
         gapAnalysis = {
@@ -287,7 +287,7 @@ export class SkillGapAgent {
             score: 50,
             summary: 'Unable to complete detailed analysis due to limited information',
             strengths: ['CV uploaded successfully'],
-            criticalGaps: ['Insufficient job description details']
+            criticalGaps: ['Insufficient job description details'],
           },
           skillGaps: [
             {
@@ -299,16 +299,16 @@ export class SkillGapAgent {
               gapDescription: 'Need more detailed job requirements',
               timeline: 'short',
               learningAdvice: 'Provide specific skills, experience levels, and responsibilities required',
-              reasoning: 'Quality job descriptions enable better skill gap analysis'
-            }
+              reasoning: 'Quality job descriptions enable better skill gap analysis',
+            },
           ],
           strengthsToHighlight: [],
           generalAdvice: {
             overallStrategy: 'Gather more specific job requirements',
             quickWins: ['Ask for detailed job description', 'Research similar roles'],
             longTermGoals: ['Build relationship with recruiters', 'Understand industry standards'],
-            nextSteps: ['Request detailed job description', 'Research company requirements']
-          }
+            nextSteps: ['Request detailed job description', 'Research company requirements'],
+          },
         }
         console.log('Using fallback gap analysis')
       }
@@ -336,7 +336,7 @@ export class SkillGapAgent {
           status: 'pending',
           learningResources: gap.learningResources || [],
           createdAt: new Date().toISOString(),
-          order: index // Add order for reference
+          order: index, // Add order for reference
         }))
       }
 
@@ -377,7 +377,7 @@ export class SkillGapAgent {
       const saveResult = await this.skillGapService.saveSkillGapAnalysis(
         state.sessionId,
         state.userId,
-        state.gapAnalysis
+        state.gapAnalysis,
       )
 
       if (!saveResult.success) {
@@ -402,7 +402,7 @@ export class SkillGapAgent {
       console.error('Get analysis results error:', error)
       return {
         success: false,
-        error: error.message || 'Failed to fetch analysis results'
+        error: error.message || 'Failed to fetch analysis results',
       }
     }
   }
@@ -414,7 +414,7 @@ export class SkillGapAgent {
     skillGapId: string,
     userId: string,
     status: 'pending' | 'in_progress' | 'completed' | 'not_interested',
-    notes?: string
+    notes?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       return await this.skillGapService.updateSkillGapStatus(skillGapId, userId, status, notes)
@@ -422,7 +422,7 @@ export class SkillGapAgent {
       console.error('Update skill gap status error:', error)
       return {
         success: false,
-        error: error.message || 'Failed to update skill gap status'
+        error: error.message || 'Failed to update skill gap status',
       }
     }
   }
@@ -437,7 +437,7 @@ export class SkillGapAgent {
       console.error('Get skill gaps by timeline error:', error)
       return {
         success: false,
-        error: error.message || 'Failed to fetch skill gaps by timeline'
+        error: error.message || 'Failed to fetch skill gaps by timeline',
       }
     }
   }
@@ -452,7 +452,7 @@ export class SkillGapAgent {
       console.error('Get skill gap stats error:', error)
       return {
         success: false,
-        error: error.message || 'Failed to fetch skill gap statistics'
+        error: error.message || 'Failed to fetch skill gap statistics',
       }
     }
   }

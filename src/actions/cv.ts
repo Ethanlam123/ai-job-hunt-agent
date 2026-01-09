@@ -1,9 +1,9 @@
 'use server'
 
-import { writeFile, unlink } from "fs/promises"
-import { join } from "path"
-import { tmpdir } from "os"
-import { randomUUID } from "crypto"
+import { writeFile, unlink } from 'fs/promises'
+import { join } from 'path'
+import { tmpdir } from 'os'
+import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { CVAgent } from '@/lib/agents/cv-agent'
 import { DocumentParser } from '@/lib/services/document-parser'
@@ -26,48 +26,48 @@ interface AnalyzeCVOutput {
 }
 
 export async function analyzeCVAction(input: AnalyzeCVInput): Promise<AnalyzeCVOutput> {
-  let tempFilePath: string | null = null;
+  let tempFilePath: string | null = null
 
   try {
-    const { fileName, fileData } = input;
+    const { fileName, fileData } = input
 
     // Validate input
     if (!fileName || !fileData) {
       return {
         success: false,
-        error: "Missing file name or file data",
-      };
+        error: 'Missing file name or file data',
+      }
     }
 
     // Validate PDF extension
     if (!fileName.toLowerCase().endsWith('.pdf')) {
       return {
         success: false,
-        error: "Only PDF files are supported",
-      };
+        error: 'Only PDF files are supported',
+      }
     }
 
     // Convert base64 to buffer
-    const buffer = Buffer.from(fileData, "base64");
+    const buffer = Buffer.from(fileData, 'base64')
 
     // Create temporary file
-    const tempFileName = `cv-${randomUUID()}.pdf`;
-    tempFilePath = join(tmpdir(), tempFileName);
+    const tempFileName = `cv-${randomUUID()}.pdf`
+    tempFilePath = join(tmpdir(), tempFileName)
 
     // Write buffer to temporary file
-    await writeFile(tempFilePath, buffer);
+    await writeFile(tempFilePath, buffer)
 
     // Parse PDF using DocumentParser
-    const documentParser = new DocumentParser();
-    const parsedResult = await documentParser.parseDocument(buffer, 'pdf');
+    const documentParser = new DocumentParser()
+    const parsedResult = await documentParser.parseDocument(buffer, 'pdf')
 
     // Extract text and metadata
-    const fullText = parsedResult.text;
-    const preview = fullText.slice(0, 500);
-    const pageCount = parsedResult.metadata?.pages || 1;
+    const fullText = parsedResult.text
+    const preview = fullText.slice(0, 500)
+    const pageCount = parsedResult.metadata?.pages || 1
 
     // Basic insights (can be enhanced with LLM later)
-    const insights = generateBasicInsights(fullText, pageCount);
+    const insights = generateBasicInsights(fullText, pageCount)
 
     return {
       success: true,
@@ -77,20 +77,20 @@ export async function analyzeCVAction(input: AnalyzeCVInput): Promise<AnalyzeCVO
         fullText,
         insights,
       },
-    };
+    }
   } catch (error) {
-    console.error("CV Analysis Error:", error);
+    console.error('CV Analysis Error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to analyze CV",
-    };
+      error: error instanceof Error ? error.message : 'Failed to analyze CV',
+    }
   } finally {
     // Clean up temporary file
     if (tempFilePath) {
       try {
-        await unlink(tempFilePath);
+        await unlink(tempFilePath)
       } catch (cleanupError) {
-        console.error("Failed to clean up temp file:", cleanupError);
+        console.error('Failed to clean up temp file:', cleanupError)
       }
     }
   }
@@ -101,15 +101,15 @@ export async function analyzeCVAction(input: AnalyzeCVInput): Promise<AnalyzeCVO
  * This is a simple implementation - can be enhanced with LLM analysis
  */
 function generateBasicInsights(text: string, pageCount: number): string {
-  const insights: string[] = [];
+  const insights: string[] = []
 
   // Page count analysis
   if (pageCount === 1) {
-    insights.push("✓ Good: Your CV is concise at 1 page");
+    insights.push('✓ Good: Your CV is concise at 1 page')
   } else if (pageCount === 2) {
-    insights.push("✓ Good: Your CV is 2 pages, which is acceptable for experienced professionals");
+    insights.push('✓ Good: Your CV is 2 pages, which is acceptable for experienced professionals')
   } else if (pageCount > 2) {
-    insights.push("⚠ Consider: Your CV is " + pageCount + " pages. Consider condensing to 1-2 pages");
+    insights.push(`⚠ Consider: Your CV is ${  pageCount  } pages. Consider condensing to 1-2 pages`)
   }
 
   // Check for common sections
@@ -119,27 +119,27 @@ function generateBasicInsights(text: string, pageCount: number): string {
     experience: /experience|employment|work history/i.test(text),
     education: /education|degree|university|college/i.test(text),
     skills: /skills|technologies|competencies/i.test(text),
-  };
+  }
 
-  if (sections.email) insights.push("✓ Contact email found");
-  else insights.push("⚠ Missing: Email address not detected");
+  if (sections.email) insights.push('✓ Contact email found')
+  else insights.push('⚠ Missing: Email address not detected')
 
-  if (sections.phone) insights.push("✓ Phone number found");
+  if (sections.phone) insights.push('✓ Phone number found')
 
-  if (sections.experience) insights.push("✓ Work experience section detected");
-  else insights.push("⚠ Missing: Work experience section not clearly identified");
+  if (sections.experience) insights.push('✓ Work experience section detected')
+  else insights.push('⚠ Missing: Work experience section not clearly identified')
 
-  if (sections.education) insights.push("✓ Education section detected");
-  else insights.push("⚠ Missing: Education section not clearly identified");
+  if (sections.education) insights.push('✓ Education section detected')
+  else insights.push('⚠ Missing: Education section not clearly identified')
 
-  if (sections.skills) insights.push("✓ Skills section detected");
-  else insights.push("⚠ Missing: Skills section not clearly identified");
+  if (sections.skills) insights.push('✓ Skills section detected')
+  else insights.push('⚠ Missing: Skills section not clearly identified')
 
   // Word count
-  const wordCount = text.split(/\s+/).length;
-  insights.push(`\nWord count: ${wordCount} words`);
+  const wordCount = text.split(/\s+/).length
+  insights.push(`\nWord count: ${wordCount} words`)
 
-  return insights.join("\n");
+  return insights.join('\n')
 }
 
 /**
@@ -161,7 +161,7 @@ export async function uploadAndAnalyzeCV(input: {
     return { success: false, error: 'Unauthorized' }
   }
 
-  let tempFilePath: string | null = null
+  const tempFilePath: string | null = null
   let documentId: string | undefined = input.documentId
 
   try {
@@ -227,7 +227,7 @@ export async function uploadAndAnalyzeCV(input: {
           pageCount: parsedResult.metadata?.pages || 1,
           fullText: parsedResult.text,
           wordCount: parsedResult.metadata?.wordCount || 0,
-          sections: sections,
+          sections,
           pages: parsedResult.documents.map((doc, index) => ({
             pageNumber: index + 1,
             content: doc.pageContent,
@@ -421,7 +421,7 @@ export async function getPendingApprovals(sessionId: string) {
 export async function handleApprovalDecision(
   approvalId: string,
   decision: 'approved' | 'rejected',
-  feedback?: string
+  feedback?: string,
 ) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -436,7 +436,7 @@ export async function handleApprovalDecision(
       approvalId,
       decision,
       feedback || null,
-      user.id
+      user.id,
     )
 
     revalidatePath('/cv-analysis')
@@ -675,7 +675,7 @@ export async function generateUpdatedCV(sessionId: string) {
       user.id,
       sessionId,
       documentId,
-      result.updatedCV
+      result.updatedCV,
     )
 
     if (!saveResult.success || !saveResult.documentId || !saveResult.filePath) {
@@ -732,7 +732,7 @@ export async function generateCVQuestions(sessionId: string) {
       .from('sessions')
       .update({
         current_stage: 'information_collection',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', sessionId)
       .eq('user_id', user.id)
@@ -796,7 +796,7 @@ export async function saveCVResponses(
     answer: any;
     isSkipped?: boolean;
     skipReason?: string
-  }>
+  }>,
 ) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()

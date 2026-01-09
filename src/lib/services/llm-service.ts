@@ -68,14 +68,14 @@ export async function invokeLLM(
   options?: {
     runName?: string
     metadata?: Record<string, any>
-  }
+  },
 ) {
   const { runName = 'LLM Invocation', metadata = {} } = options || {}
 
   // Add LangSmith tracing if enabled
   return await LangSmithUtils.createRun(
     runName,
-    { prompt: typeof prompt === 'string' ? prompt.slice(0, 200) + '...' : 'Array of messages', metadata },
+    { prompt: typeof prompt === 'string' ? `${prompt.slice(0, 200)  }...` : 'Array of messages', metadata },
     async () => {
       const startTime = Date.now()
 
@@ -90,7 +90,7 @@ export async function invokeLLM(
         console.error(`❌ LLM call failed after ${duration}ms:`, error)
         throw error
       }
-    }
+    },
   )
 }
 
@@ -155,5 +155,5 @@ export function truncateToTokenLimit(text: string, maxTokens: number): string {
 
   // Calculate approximate character limit
   const charLimit = maxTokens * 4
-  return text.substring(0, charLimit) + '...'
+  return `${text.substring(0, charLimit)  }...`
 }

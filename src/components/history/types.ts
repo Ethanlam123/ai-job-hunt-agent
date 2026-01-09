@@ -4,7 +4,7 @@ import { SessionDocument, SessionWithDetails, SessionSummary } from '@/lib/servi
 export type {
   SessionDocument,
   SessionWithDetails,
-  SessionSummary
+  SessionSummary,
 }
 
 // Additional component-specific types

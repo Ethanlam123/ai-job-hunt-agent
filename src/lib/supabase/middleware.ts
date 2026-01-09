@@ -20,11 +20,11 @@ export async function updateSession(request: NextRequest) {
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options),
           )
         },
       },
-    }
+    },
   )
 
   // IMPORTANT: Avoid writing any logic between createServerClient and
@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest) {
   ]
 
   const isProtectedRoute = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
+    request.nextUrl.pathname.startsWith(route),
   )
 
   if (!user && isProtectedRoute) {

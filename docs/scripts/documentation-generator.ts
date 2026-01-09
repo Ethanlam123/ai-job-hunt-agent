@@ -80,7 +80,7 @@ class DocumentationGenerator {
         tables.push({
           name: match[1],
           actualName: match[2],
-          definition: match[3].trim()
+          definition: match[3].trim(),
         })
       }
 
@@ -117,7 +117,7 @@ class DocumentationGenerator {
         'Supabase': variables.filter(v => v.key.includes('SUPABASE')),
         'AI Services': variables.filter(v => v.key.includes('OPENROUTER') || v.key.includes('OPENAI')),
         'Database': variables.filter(v => v.key.includes('DATABASE')),
-        'Optional': variables.filter(v => !v.key.includes('SUPABASE') && !v.key.includes('OPENROUTER') && !v.key.includes('OPENAI') && !v.key.includes('DATABASE'))
+        'Optional': variables.filter(v => !v.key.includes('SUPABASE') && !v.key.includes('OPENROUTER') && !v.key.includes('OPENAI') && !v.key.includes('DATABASE')),
       }
 
       for (const [category, vars] of Object.entries(categories)) {
@@ -140,7 +140,7 @@ class DocumentationGenerator {
     const docFiles = [
       'api/server-actions.md',
       'components/index.md',
-      'database/schema.md'
+      'database/schema.md',
     ]
 
     for (const file of docFiles) {
@@ -204,7 +204,7 @@ class DocumentationGenerator {
     const fileName = basename(filePath, '.ts')
 
     let doc = `### ${fileName}\n\n`
-    doc += `**Location**: \`src/actions/${filePath.replace(this.projectRoot + '/src/actions/', '')}\`\n\n`
+    doc += `**Location**: \`src/actions/${filePath.replace(`${this.projectRoot  }/src/actions/`, '')}\`\n\n`
 
     const functionRegex = /export async function (\w+)\([^)]*\)/g
     const functions: Array<{ name: string }> = []
@@ -216,7 +216,7 @@ class DocumentationGenerator {
 
     for (const func of functions) {
       doc += `#### ${func.name}\n\n`
-      doc += `**Usage**:\n\`\`\`typescript\n`
+      doc += '**Usage**:\n```typescript\n'
       doc += `const result = await ${func.name}(params)\n\`\`\`\n\n`
     }
 
@@ -228,7 +228,7 @@ class DocumentationGenerator {
     const fileName = basename(filePath, '.tsx')
 
     let doc = `### ${fileName}\n\n`
-    doc += `**Location**: \`src/components/${filePath.replace(this.projectRoot + '/src/components/', '')}\`\n\n`
+    doc += `**Location**: \`src/components/${filePath.replace(`${this.projectRoot  }/src/components/`, '')}\`\n\n`
 
     const interfaceRegex = /interface (\w+Props[^{]*)\{([^}]+)\}/
     const interfaceMatch = interfaceRegex.exec(content)

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { getUserSessions, createSessionSummary } from '@/lib/services/session-data-service'
+import { getUserSessions } from '@/lib/services/session-data-service'
 import { HistoryClient } from './history-client'
 
 export default async function HistoryPage() {
@@ -10,12 +10,14 @@ export default async function HistoryPage() {
     throw new Error('Unauthorized')
   }
 
+  // Fetch initial sessions data on the server
+  let sessionSummaries: any[] = []
+
   try {
-    // Fetch initial sessions data on the server
     const { sessions } = await getUserSessions(user.id, 20, 0)
 
     // Convert sessions to summary format
-    const sessionSummaries = sessions.map(session => {
+    sessionSummaries = sessions.map(session => {
       // The getUserSessions function already returns processed sessions with correct structure
       // We just need to create the summary format
       const cvDocument = session.documents.find(doc => doc.documentType === 'cv')
@@ -52,14 +54,14 @@ export default async function HistoryPage() {
         status,
         cvDocument,
         jdDocument,
-        resultSummary
+        resultSummary,
       }
     })
-
-    return <HistoryClient initialSessions={sessionSummaries} />
   } catch (error) {
     console.error('Error fetching history data:', error)
-    // Return client component with empty sessions on error
-    return <HistoryClient initialSessions={[]} />
+    // sessionSummaries will remain empty on error
   }
+
+  // Return client component with fetched sessions (or empty array on error)
+  return <HistoryClient initialSessions={sessionSummaries} />
 }

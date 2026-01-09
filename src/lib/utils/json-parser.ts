@@ -93,7 +93,7 @@ export class JSONParser {
 
     if (typeof response === 'string') {
       // Limit string length to prevent database issues
-      return response.length > 10000 ? response.substring(0, 10000) + '...' : response
+      return response.length > 10000 ? `${response.substring(0, 10000)  }...` : response
     }
 
     if (typeof response === 'object' && !Array.isArray(response)) {
@@ -132,7 +132,7 @@ export class JSONParser {
       experience: 400,
       career: 300,
       personal: 200,
-      formatting: 100
+      formatting: 100,
     }
 
     return maxLengths[category] || 300
@@ -160,7 +160,7 @@ export class JSONParser {
       maxLength: this.getMaxLengthForCategory(llmQuestion.category || 'general'),
       conditions: {},
       options: (llmQuestion.type === 'select' || llmQuestion.type === 'multiselect') ?
-        (llmQuestion.options || []) : undefined
+        (llmQuestion.options || []) : undefined,
     }
   }
 

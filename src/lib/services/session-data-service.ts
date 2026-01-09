@@ -115,12 +115,12 @@ export async function getUserSessions(userId: string, limit: number = 20, offset
           supabase
             .from('messages')
             .select('id', { count: 'exact', head: true })
-            .eq('session_id', session.id)
+            .eq('session_id', session.id),
         ])
 
         return {
           id: session.id,
-          userId: userId, // Add the userId to satisfy the TypeScript interface
+          userId, // Add the userId to satisfy the TypeScript interface
           currentStage: session.current_stage,
           state: session.state,
           createdAt: session.created_at,
@@ -133,22 +133,22 @@ export async function getUserSessions(userId: string, limit: number = 20, offset
             documentType: doc.document_type,
             originalFilename: doc.original_filename,
             fileFormat: doc.file_format || 'unknown',
-            filePath: doc.file_path
+            filePath: doc.file_path,
           })),
           resultCounts: {
             skillGaps: skillGapsResult.count || 0,
             interviewQuestions: interviewQuestionsResult.count || 0,
             coverLetters: coverLettersResult.count || 0,
             messages: messagesResult.count || 0,
-          }
+          },
         }
-      })
+      }),
     )
 
     return {
       sessions: sessionsWithCounts,
       hasMore: sessionsWithCounts.length === limit,
-      total: count || 0
+      total: count || 0,
     }
   } catch (error) {
     console.error('Error in getUserSessions:', error)
@@ -213,7 +213,7 @@ export async function getSessionDetails(sessionId: string, userId: string) {
         .from('messages')
         .select('*')
         .eq('session_id', sessionId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true }),
     ])
 
     return {
@@ -222,8 +222,8 @@ export async function getSessionDetails(sessionId: string, userId: string) {
         skillGaps: skillGapsResult.data || [],
         interviewQuestions: interviewQuestionsResult.data || [],
         coverLetter: coverLettersResult.data,
-        messages: messagesResult.data || []
-      }
+        messages: messagesResult.data || [],
+      },
     }
   } catch (error) {
     console.error('Error in getSessionDetails:', error)
@@ -258,7 +258,7 @@ export function createSessionSummary(session: any): SessionSummary {
     status,
     cvDocument,
     jdDocument,
-    resultSummary: summaryText
+    resultSummary: summaryText,
   }
 }
 
@@ -270,7 +270,7 @@ function getStageDisplayName(stage: string | null): string {
     'skill_gap': 'Skill Gap Analysis',
     'interview_preparation': 'Interview Preparation',
     'generating_cover_letter': 'Cover Letter Generation',
-    'skill-gap': 'Skill Gap Analysis'
+    'skill-gap': 'Skill Gap Analysis',
   }
 
   return stageNames[stage] || stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())

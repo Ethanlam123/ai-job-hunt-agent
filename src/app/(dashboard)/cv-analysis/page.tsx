@@ -1,10 +1,10 @@
-import { Metadata } from "next";
-import { CVAnalysisClient } from "@/components/cv/cv-analysis-client";
+import { Metadata } from 'next'
+import { CVAnalysisClient } from '@/components/cv/cv-analysis-client'
 
 export const metadata: Metadata = {
-  title: "CV Analysis | AI Job Hunt Agent",
-  description: "Analyze and improve your CV with AI-powered insights",
-};
+  title: 'CV Analysis | AI Job Hunt Agent',
+  description: 'Analyze and improve your CV with AI-powered insights',
+}
 
 export default function CVAnalysisPage() {
   return (
@@ -20,5 +20,5 @@ export default function CVAnalysisPage() {
         <CVAnalysisClient />
       </div>
     </div>
-  );
+  )
 }

@@ -484,7 +484,7 @@ export class UserRepository extends BaseRepository<User, string> implements IUse
       sql += ` WHERE ${conditions.join(' AND ')}`
     }
 
-    sql += ` ORDER BY created_at DESC`
+    sql += ' ORDER BY created_at DESC'
 
     if (criteria.limit) {
       sql += ` LIMIT $${paramIndex}`

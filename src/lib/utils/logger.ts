@@ -196,7 +196,7 @@ export class Logger {
   performance(
     operation: string,
     duration: number,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): void {
     const threshold = this.config.performanceThresholds.slowProcess
     const level = duration > threshold ? LogLevel.WARN : LogLevel.DEBUG
@@ -217,7 +217,7 @@ export class Logger {
     path: string,
     statusCode: number,
     duration: number,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): void {
     const threshold = this.config.performanceThresholds.slowApi
     const level = statusCode >= 500 ? LogLevel.ERROR :
@@ -243,7 +243,7 @@ export class Logger {
     query: string,
     duration: number,
     rowCount?: number,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): void {
     const threshold = this.config.performanceThresholds.slowQuery
     const level = duration > threshold ? LogLevel.WARN : LogLevel.TRACE
@@ -264,7 +264,7 @@ export class Logger {
   userAction(
     action: string,
     userId?: string,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): void {
     this.log(LogLevel.INFO, `User Action: ${action}`, {
       ...context,
@@ -280,7 +280,7 @@ export class Logger {
   security(
     event: string,
     severity: 'low' | 'medium' | 'high' | 'critical',
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): void {
     const level = severity === 'critical' ? LogLevel.ERROR :
                   severity === 'high' ? LogLevel.WARN :
@@ -317,7 +317,7 @@ export class Logger {
     level: LogLevel,
     message: string,
     context?: Record<string, any>,
-    error?: Error
+    error?: Error,
   ): void {
     // Check if we should log at this level
     if (level > this.config.level) {

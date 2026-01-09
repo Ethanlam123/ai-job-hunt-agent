@@ -128,7 +128,7 @@ export function CoverLetterClient() {
         jdDocumentId: jdMode === 'existing' ? selectedJdId || undefined : undefined,
         companyName: companyName || undefined,
         positionTitle: positionTitle || undefined,
-        hiringManagerName: hiringManagerName || undefined
+        hiringManagerName: hiringManagerName || undefined,
       })
 
       if (result.error) {

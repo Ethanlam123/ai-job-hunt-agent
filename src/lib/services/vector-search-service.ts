@@ -90,7 +90,7 @@ export class VectorSearchService {
    */
   async generateEmbedding(
     text: string,
-    options: EmbeddingOptions = {}
+    options: EmbeddingOptions = {},
   ): Promise<number[]> {
     const {
       model = APP_CONSTANTS.LLM_MODELS.EMBEDDINGS,
@@ -153,7 +153,7 @@ export class VectorSearchService {
    */
   async generateBatchEmbeddings(
     texts: string[],
-    options: EmbeddingOptions & BatchOperationOptions = { batchSize: 100 }
+    options: EmbeddingOptions & BatchOperationOptions = { batchSize: 100 },
   ): Promise<BatchOperationResult<{ text: string; embedding: number[] }>> {
     const {
       batchSize = vectorSearchConfig.batchSize,
@@ -170,7 +170,7 @@ export class VectorSearchService {
           batch.map(async ({ text }: any) => {
             const embedding = await this.generateEmbedding(text, embeddingOptions)
             return { text, embedding }
-          })
+          }),
         )
 
         // Handle failed embeddings
@@ -189,7 +189,7 @@ export class VectorSearchService {
           throw new Error(`Failed to generate embeddings for ${failedTexts.length} texts`)
         }
       },
-      { batchSize, continueOnError }
+      { batchSize, continueOnError },
     ) as unknown as BatchOperationResult<{ text: string; embedding: number[] }>
   }
 
@@ -200,7 +200,7 @@ export class VectorSearchService {
     queryVector: number[],
     tableName: string,
     vectorColumn: string = 'embedding',
-    options: SearchOptions = {}
+    options: SearchOptions = {},
   ): Promise<VectorSearchResult> {
     const {
       limit = vectorSearchConfig.similarityLimit,
@@ -218,7 +218,7 @@ export class VectorSearchService {
           queryVector,
           tableName,
           vectorColumn,
-          { limit, threshold, whereClause, selectColumns }
+          { limit, threshold, whereClause, selectColumns },
         )
 
         const cached = await this.cacheService.get(cacheKey)
@@ -238,7 +238,7 @@ export class VectorSearchService {
           threshold,
           whereClause,
           selectColumns,
-        }
+        },
       )
 
       // Cache the result
@@ -247,7 +247,7 @@ export class VectorSearchService {
           queryVector,
           tableName,
           vectorColumn,
-          { limit, threshold, whereClause, selectColumns }
+          { limit, threshold, whereClause, selectColumns },
         )
         await this.cacheService.set(cacheKey, result, undefined, cacheTtl)
       }
@@ -280,7 +280,7 @@ export class VectorSearchService {
   async findSimilarDocuments(
     queryText: string,
     tableName: string,
-    options: SearchOptions & EmbeddingOptions = {}
+    options: SearchOptions & EmbeddingOptions = {},
   ): Promise<VectorSearchResult> {
     try {
       // Generate embedding for query text
@@ -308,7 +308,7 @@ export class VectorSearchService {
    */
   async createEmbeddingJob(
     text: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<EmbeddingJob> {
     const job: EmbeddingJob = {
       id: this.generateJobId(),
@@ -442,7 +442,7 @@ export class VectorSearchService {
     vector: number[],
     tableName: string,
     vectorColumn: string,
-    options: Record<string, any>
+    options: Record<string, any>,
   ): string {
     const vectorHash = this.hashVector(vector)
     const optionsHash = this.hashObject(options)
@@ -501,7 +501,7 @@ export const generateEmbedding = (text: string, options?: EmbeddingOptions) =>
 export const findSimilarDocuments = (
   queryText: string,
   tableName: string,
-  options?: SearchOptions & EmbeddingOptions
+  options?: SearchOptions & EmbeddingOptions,
 ) => vectorSearchService.findSimilarDocuments(queryText, tableName, options)
 
 export const createEmbeddingJob = (text: string, metadata?: Record<string, any>) =>

@@ -63,7 +63,7 @@ export class StatsService implements IStatsService {
         completedSessionsResult,
         documentsResult,
         coverLettersResult,
-        interviewQuestionsResult
+        interviewQuestionsResult,
       ] = await Promise.allSettled([
         // Get total sessions count
         supabase
@@ -94,7 +94,7 @@ export class StatsService implements IStatsService {
         supabase
           .from('interview_questions')
           .select('session_id')
-          .eq('user_id', userId)
+          .eq('user_id', userId),
       ])
 
       // Process results with proper error handling
@@ -217,7 +217,7 @@ export class StatsService implements IStatsService {
           }
           return acc
         },
-        {} as Record<string, number>
+        {} as Record<string, number>,
       )
 
     } catch (error) {
@@ -248,7 +248,7 @@ export class StatsService implements IStatsService {
           .from('interview_questions')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .not('user_answer', 'is', null)
+          .not('user_answer', 'is', null),
       ])
 
       let totalQuestions = 0

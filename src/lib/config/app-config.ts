@@ -196,7 +196,7 @@ export const ERROR_MESSAGES = {
   [ERROR_CODES.MISSING_REQUIRED_FIELD]: 'Required field is missing. Please complete all required fields.',
   [ERROR_CODES.INVALID_EMAIL_FORMAT]: 'Please enter a valid email address.',
   [ERROR_CODES.PASSWORD_TOO_WEAK]: 'Password does not meet security requirements.',
-  [ERROR_CODES.FILE_TOO_LARGE]: `File size exceeds the maximum allowed size.`,
+  [ERROR_CODES.FILE_TOO_LARGE]: 'File size exceeds the maximum allowed size.',
   [ERROR_CODES.INVALID_FILE_TYPE]: 'This file type is not supported. Please upload a PDF, DOCX, TXT, or Markdown file.',
 
   [ERROR_CODES.NOT_FOUND]: 'The requested resource was not found.',
@@ -306,11 +306,11 @@ function loadConfig(): EnvironmentConfig {
       if (hasSecretKey) keys.push('SUPABASE_SECRET_KEY (new)')
 
       throw new Error(
-        `SECURITY: Elevated access keys must not be available in production. ` +
+        'SECURITY: Elevated access keys must not be available in production. ' +
         `Found: ${keys.join(', ')}. ` +
-        `These keys bypass Row Level Security (RLS) policies and expose all user data if compromised. ` +
-        `Please remove these keys from your production environment. ` +
-        `Use only NEXT_PUBLIC_SUPABASE_ANON_KEY (or publishable key) in production.`
+        'These keys bypass Row Level Security (RLS) policies and expose all user data if compromised. ' +
+        'Please remove these keys from your production environment. ' +
+        'Use only NEXT_PUBLIC_SUPABASE_ANON_KEY (or publishable key) in production.',
       )
     }
 
@@ -319,7 +319,7 @@ function loadConfig(): EnvironmentConfig {
       console.warn(
         'Warning: No elevated access key available (SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY). ' +
         'Some administrative operations may fail in development. ' +
-        'Recommendation: Use SUPABASE_SECRET_KEY (new format) instead of legacy SUPABASE_SERVICE_ROLE_KEY.'
+        'Recommendation: Use SUPABASE_SECRET_KEY (new format) instead of legacy SUPABASE_SERVICE_ROLE_KEY.',
       )
     }
 
