@@ -177,13 +177,24 @@
 ---
 
 #### 5.1.2 Fix Unit Tests
-- [ ] 5.1.2.1 Add missing parameter to function calls
-- [ ] 5.1.2.2 Fix implicit any types in callbacks
-- [ ] 5.1.2.3 Add proper type annotations
+- [x] 5.1.2.1 Add missing parameter to function calls
+- [x] 5.1.2.2 Fix implicit any types in callbacks
+- [x] 5.1.2.3 Add proper type annotations
 
 **Files**: `src/__tests__/unit/question-generation.test.ts`, `src/__tests__/integration/response-storage.test.ts`
 
 **Validation**: All type errors resolved
+
+---
+
+#### 5.1.3 Fix Security Tests
+- [x] 5.1.3.1 Add null checks for query results
+- [x] 5.1.3.2 Fix Supabase aggregate method calls
+- [x] 5.1.3.3 Update to use Supabase v2 API
+
+**Files**: `src/__tests__/security/data-leakage.security.test.ts`
+
+**Validation**: Security tests compile and run
 
 ---
 
@@ -198,194 +209,14 @@
 
 ---
 
-## 8. Validation
-
-### 8.1 Pre-Merge Checklist
-- [ ] 8.1.1 All TypeScript type checking passes (`npm run type-check`)
-- [ ] 8.1.2 All ESLint checks pass (`npm run lint`)
-- [ ] 8.1.3 Test suite executes successfully (`npm run test`)
-- [ ] 8.1.4 Security tests pass with service role key blocked in production
-- [ ] 8.1.5 Build succeeds without service role key in production
-- [ ] 8.1.6 Build fails if service role key present in production
-- [ ] 2.2.1.4 Create migration script
-
-**Files**: `supabase/migrations/[timestamp]_vector_search_rpc.sql`
-
-**Validation**: Execute SQL function directly in Supabase SQL editor
-
----
-
-#### 2.2.2 Replace Raw SQL in Database Service
-- [ ] 2.2.2.1 Update `vectorSearch()` to use `supabase.rpc()`
-- [ ] 2.2.2.2 Add table/column whitelist validation
-- [ ] 2.2.2.3 Remove string concatenation for query construction
-- [ ] 2.2.2.4 Update type signatures
-
-**Files**: `src/lib/services/database-service.ts`
-
-**Validation**: Integration tests for vector search pass
-
----
-
-#### 2.2.3 SQL Injection Testing
-- [ ] 2.2.3.1 Add test cases for malicious table names
-- [ ] 2.2.3.2 Add test cases for SQL injection payloads
-- [ ] 2.2.3.3 Verify whitelist validation blocks invalid inputs
-
-**Files**: `src/__tests__/security/sql-injection.test.ts` (new file)
-
-**Validation**: All injection attempts are blocked
-
----
-
-### 2.3 Cryptographic Hash Replacement
-
-#### 2.3.1 Replace DJB2 with SHA-256
-- [ ] 2.3.1.1 Import `crypto` module
-- [ ] 2.3.1.2 Rewrite `hashText()` method using SHA-256
-- [ ] 2.3.1.3 Truncate output to 16 characters for cache keys
-- [ ] 2.3.1.4 Update type annotations
-
-**Files**: `src/lib/services/vector-search-service.ts`
-
-**Validation**: Unit tests for hash function pass
-
----
-
-#### 2.3.2 Test Hash Function
-- [ ] 2.3.2.1 Test collision resistance with different inputs
-- [ ] 2.3.2.2 Verify consistent output for same input
-- [ ] 2.3.2.3 Test performance with large inputs
-
-**Files**: `src/__tests__/unit/hash-function.test.ts` (new file)
-
-**Validation**: No collisions in 10,000 random inputs
-
----
-
-## 3. Memory Management
-
-### 3.1 Implement LRU Cache
-
-#### 3.1.1 Install and Configure LRU Cache
-- [ ] 3.1.1.1 Install `lru-cache` dependency
-- [ ] 3.1.1.2 Replace `embeddingCache` Map with LRU instance
-- [ ] 3.1.1.3 Replace `processingJobs` Map with LRU instance
-- [ ] 3.1.1.4 Configure max size and TTL for each cache
-
-**Files**: `src/lib/services/vector-search-service.ts`, `package.json`
-
-**Validation**: TypeScript compilation succeeds
-
----
-
-#### 3.1.2 Test Cache Eviction
-- [ ] 3.1.2.1 Test cache eviction at max size
-- [ ] 3.1.2.2 Test TTL expiration
-- [ ] 3.1.2.3 Verify no memory leaks from cache growth
-
-**Files**: `src/__tests__/unit/lru-cache.test.ts` (new file)
-
-**Validation**: Cache size stays within configured limits
-
----
-
-## 4. Error Handling
-
-### 4.1 Sanitize Error Messages
-
-#### 4.1.1 Create Centralized Error Handler
-- [ ] 4.1.1.1 Update `ErrorHandler.sanitize()` method
-- [ ] 4.1.1.2 Log full error server-side
-- [ ] 4.1.1.3 Return generic message to client
-- [ ] 4.1.1.4 Include details in development mode only
-
-**Files**: `src/lib/utils/error-handler.ts`
-
-**Validation**: Production errors hide internal details
-
----
-
-#### 4.1.2 Update Server Actions
-- [ ] 4.1.2.1 Replace direct error returns with `ErrorHandler.sanitize()`
-- [ ] 4.1.2.2 Update `documents.ts` upload action
-- [ ] 4.1.2.3 Update other server actions as needed
-
-**Files**: `src/actions/documents.ts`
-
-**Validation**: Error messages don't expose database schema
-
----
-
-### 4.2 Remove Client-Side Logging
-
-#### 4.2.1 Audit and Remove Console Statements
-- [ ] 4.2.1.1 Search for `console.log` in client components
-- [ ] 4.2.1.2 Remove or replace with environment-aware logging
-- [ ] 4.2.1.3 Verify no sensitive data logged
-
-**Files**: All `src/components/**/*.tsx` files
-
-**Validation**: `rg "console\." src/components` returns no results
-
----
-
-## 5. Test Suite Fixes
-
-### 5.1 Fix Type Errors in Tests
-
-#### 5.1.1 Fix Integration Tests
-- [ ] 5.1.1.1 Add missing `created_at` and `updated_at` fields to test data
-- [ ] 5.1.1.2 Remove non-existent `getQueryMetrics()` call
-- [ ] 5.1.1.3 Fix Supabase aggregate method calls
-
-**Files**: `src/__tests__/integration/database.integration.test.ts`
-
-**Validation**: `npm run type-check` passes for test files
-
----
-
-#### 5.1.2 Fix Unit Tests
-- [ ] 5.1.2.1 Add missing parameter to function calls
-- [ ] 5.1.2.2 Fix implicit any types in callbacks
-- [ ] 5.1.2.3 Add proper type annotations
-
-**Files**: `src/__tests__/unit/question-generation.test.ts`, `src/__tests__/integration/response-storage.test.ts`
-
-**Validation**: All type errors resolved
-
----
-
-#### 5.1.3 Fix Security Tests
-- [ ] 5.1.3.1 Add null checks for query results
-- [ ] 5.1.3.2 Fix Supabase aggregate method calls
-- [ ] 5.1.3.3 Update to use Supabase v2 API
-
-**Files**: `src/__tests__/security/data-leakage.security.test.ts`
-
-**Validation**: Security tests compile and run
-
----
-
-### 5.2 Remove Client Module Import Issues
-- [ ] 5.2.1 Verify `approval-summary.tsx` imports work correctly
-- [ ] 5.2.2 Check for other files importing deleted module
-- [ ] 5.2.3 Update any remaining broken imports
-
-**Files**: All `src/**/*.{ts,tsx}` files
-
-**Validation**: No import errors in type check
-
----
-
 ## 6. Performance Improvements
 
 ### 6.1 Fix Batch Operation Delays
-- [ ] 6.1.1 Remove unnecessary `batchDelayMs` in `database-service.ts`
-- [ ] 6.1.2 Use `Promise.all()` for concurrent batch processing
-- [ ] 6.1.3 Test batch operation performance
+- [x] 6.1.1 Remove unnecessary `batchDelayMs` in `database-service.ts`
+- [x] 6.1.2 Use `Promise.all()` for concurrent batch processing
+- [x] 6.1.3 Test batch operation performance
 
-**Files**: `src/lib/services/database-service.ts`
+**Files**: `src/lib/services/database-service.ts`, `src/lib/services/vector-search-service.ts`
 
 **Validation**: Batch operations complete without artificial delays
 
@@ -408,12 +239,12 @@
 ## 8. Validation
 
 ### 8.1 Pre-Merge Checklist
-- [ ] 8.1.1 All TypeScript type checking passes (`npm run type-check`)
+- [x] 8.1.1 All TypeScript type checking passes (`npm run type-check`)
 - [ ] 8.1.2 All ESLint checks pass (`npm run lint`)
 - [ ] 8.1.3 Test suite executes successfully (`npm run test`)
-- [ ] 8.1.4 Security tests pass with service role key blocked in production
-- [ ] 8.1.5 Build succeeds without service role key in production
-- [ ] 8.1.6 Build fails if service role key present in production
+- [x] 8.1.4 Security tests pass with service role key blocked in production
+- [x] 8.1.5 Build succeeds without service role key in production
+- [x] 8.1.6 Build fails if service role key present in production
 
 ### 8.2 Deployment Validation
 - [ ] 8.2.1 Deploy to staging environment

@@ -234,7 +234,10 @@ describe('CVAgent Question Generation', () => {
         .mockResolvedValueOnce({ fullText: 'Senior Software Engineer position' })
 
       // Mock saveQuestions
-      jest.spyOn(cvAgent as any, 'saveQuestions').mockResolvedValue()
+      jest.spyOn(cvAgent as any, 'saveQuestions').mockImplementation(async (...args: any[]) => {
+        // Do nothing, just succeed
+        return Promise.resolve(undefined)
+      })
 
       const questions = await cvAgent.generateQuestions('session-123', 'user-123')
 
@@ -265,7 +268,10 @@ describe('CVAgent Question Generation', () => {
       // Mock other methods
       jest.spyOn(cvAgent as any, 'getApprovedImprovements').mockResolvedValue([])
       jest.spyOn(cvAgent as any, 'getSessionData').mockResolvedValue({})
-      jest.spyOn(cvAgent as any, 'saveQuestions').mockResolvedValue()
+      jest.spyOn(cvAgent as any, 'saveQuestions').mockImplementation(async (...args: any[]) => {
+        // Do nothing, just succeed
+        return Promise.resolve(undefined)
+      })
 
       const questions = await cvAgent.generateQuestions('session-123', 'user-123')
 

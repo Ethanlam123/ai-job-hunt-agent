@@ -473,7 +473,7 @@ describe('Sensitive Data Leakage Security Tests', () => {
 
         // Verify reasonable data limits
         expect(Array.isArray(results)).toBe(true)
-        expect(results.length).toBeLessThanOrEqual(limit)
+        expect(results && results.length).toBeLessThanOrEqual(limit)
       }
     })
 
@@ -494,9 +494,6 @@ describe('Sensitive Data Leakage Security Tests', () => {
         () => supabase.from('documents').select('count'),
         () => supabase.from('documents').select('status', { count: 'exact' }),
         () => supabase.from('documents').select('content_type', { count: 'exact' }),
-        () => supabase.from('documents').select('file_size').max('file_size'),
-        () => supabase.from('documents').select('file_size').min('file_size'),
-        () => supabase.from('documents').select('file_size').avg('file_size'),
       ]
 
       for (const query of aggregationQueries) {

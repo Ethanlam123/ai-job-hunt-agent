@@ -369,10 +369,10 @@ describe('Response Storage Integration', () => {
 
       expect(savedResponses).toHaveLength(4)
 
-      const stringResponse = savedResponses.find(r => r.question_id === 'type-test-string')
-      const numberResponse = savedResponses.find(r => r.question_id === 'type-test-number')
-      const objectResponse = savedResponses.find(r => r.question_id === 'type-test-object')
-      const arrayResponse = savedResponses.find(r => r.question_id === 'type-test-array')
+      const stringResponse = savedResponses.find((r: any) => r.question_id === 'type-test-string')
+      const numberResponse = savedResponses.find((r: any) => r.question_id === 'type-test-number')
+      const objectResponse = savedResponses.find((r: any) => r.question_id === 'type-test-object')
+      const arrayResponse = savedResponses.find((r: any) => r.question_id === 'type-test-array')
 
       expect(stringResponse?.answer).toBe('John Doe')
       expect(numberResponse?.answer).toBe(5)

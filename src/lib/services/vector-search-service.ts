@@ -157,7 +157,6 @@ export class VectorSearchService {
   ): Promise<BatchOperationResult<{ text: string; embedding: number[] }>> {
     const {
       batchSize = vectorSearchConfig.batchSize,
-      batchDelayMs = 100,
       continueOnError = true,
       ...embeddingOptions
     } = options
@@ -190,7 +189,7 @@ export class VectorSearchService {
           throw new Error(`Failed to generate embeddings for ${failedTexts.length} texts`)
         }
       },
-      { batchSize, batchDelayMs, continueOnError }
+      { batchSize, continueOnError }
     ) as unknown as BatchOperationResult<{ text: string; embedding: number[] }>
   }
 

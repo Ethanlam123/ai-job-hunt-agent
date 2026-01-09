@@ -193,39 +193,43 @@ export class DatabaseService implements DatabaseClient {
     const startTime = Date.now()
     const {
       batchSize = vectorSearchConfig.batchSize,
-      batchDelayMs = 100,
       continueOnError = true,
     } = options
 
     const successfulItems: T[] = []
     const failedItems: Array<{ item: T; error: Error }> = []
 
+    // Process batches concurrently using Promise.all for better performance
+    const batchPromises: Promise<void>[] = []
+
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize)
 
-      try {
-        await operation(batch)
-        successfulItems.push(...batch)
+      const batchPromise = (async () => {
+        try {
+          await operation(batch)
+          successfulItems.push(...batch)
+        } catch (error) {
+          const errorObj = error instanceof Error ? error : new Error('Unknown error')
 
-        if (batchDelayMs > 0 && i + batchSize < items.length) {
-          await this.sleep(batchDelayMs)
+          if (continueOnError) {
+            failedItems.push(...batch.map(item => ({ item, error: errorObj })))
+            logger.warn('Batch operation failed for some items', {
+              batchSize: batch.length,
+              error: errorObj.message,
+            })
+          } else {
+            failedItems.push(...batch.map(item => ({ item, error: errorObj })))
+            throw errorObj
+          }
         }
-      } catch (error) {
-        const errorObj = error instanceof Error ? error : new Error('Unknown error')
+      })()
 
-        if (continueOnError) {
-          failedItems.push(...batch.map(item => ({ item, error: errorObj })))
-          logger.warn('Batch operation failed for some items', {
-            batchSize: batch.length,
-            error: errorObj.message,
-          })
-        } else {
-          const remainingItems = items.slice(i)
-          failedItems.push(...remainingItems.map(item => ({ item, error: errorObj })))
-          break
-        }
-      }
+      batchPromises.push(batchPromise)
     }
+
+    // Wait for all batches to complete
+    await Promise.all(batchPromises)
 
     const processingTime = Date.now() - startTime
     const totalProcessed = successfulItems.length + failedItems.length
@@ -246,13 +250,6 @@ export class DatabaseService implements DatabaseClient {
       successRate,
       processingTimeMs: processingTime,
     }
-  }
-
-  /**
-   * Sleep utility for delays
-   */
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
   }
 
   /**

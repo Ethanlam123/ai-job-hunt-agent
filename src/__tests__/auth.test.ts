@@ -313,7 +313,7 @@ describe('Rate Limiting Security', () => {
 
     expect(errorResponse.success).toBe(false)
     expect(errorResponse.error.code).toBe(ERROR_CODES.RATE_LIMIT_EXCEEDED)
-    expect(errorResponse.error.details).toHaveLength(2)
-    expect(errorResponse.error.details[0].code).toBe('RATE_LIMIT_RETRY_AFTER')
+    expect(errorResponse.error.details && errorResponse.error.details).toHaveLength(2)
+    expect(errorResponse.error.details && errorResponse.error.details[0].code).toBe('RATE_LIMIT_RETRY_AFTER')
   })
 })
