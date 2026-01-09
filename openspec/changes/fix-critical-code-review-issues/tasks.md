@@ -72,15 +72,28 @@
 
 ---
 
+### 2.1.4 Secret API Key Support (New Format)
+
+- [x] 2.1.4.1 Add `SUPABASE_SECRET_KEY` to configuration schema
+- [x] 2.1.4.2 Update production validation to check both legacy and new keys
+- [x] 2.1.4.3 Update build-time validation in `next.config.ts`
+- [x] 2.1.4.4 Update `.env.example` with Secret key documentation
+
+**Files**: `src/lib/config/app-config.ts`, `next.config.ts`, `.env.example`
+
+**Validation**: Production builds block both `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_SECRET_KEY`
+
+---
+
 ### 2.2 SQL Injection Fix
 
 #### 2.2.1 Create Supabase RPC Function
-- [ ] 2.2.1.1 Write `vector_search()` SQL function
-- [ ] 2.2.1.2 Use `format()` for safe query construction
-- [ ] 2.2.1.3 Add `SECURITY DEFINER` for proper permissions
-- [ ] 2.2.1.4 Create migration script
+- [x] 2.2.1.1 Write `vector_search()` SQL function
+- [x] 2.2.1.2 Use `format()` for safe query construction
+- [x] 2.2.1.3 Add `SECURITY DEFINER` for proper permissions
+- [x] 2.2.1.4 Create migration script
 
-**Files**: `supabase/migrations/[timestamp]_vector_search_rpc.sql`
+**Files**: `supabase/migrations/20260110000001_vector_search_rpc.sql`
 
 **Validation**: Execute SQL function directly in Supabase SQL editor
 

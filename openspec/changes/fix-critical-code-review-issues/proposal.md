@@ -15,7 +15,8 @@ These issues violate the project's security-first principles and prevent the app
 ## What Changes
 
 ### Security Fixes
-- Implement production-safe service role key validation with build-time and runtime checks
+- Implement production-safe elevated key validation with build-time and runtime checks (supports both legacy `service_role` and new `secret` API keys)
+- Add support for Supabase's new Secret API keys (`sb_secret_...`) with improved browser protection
 - Fix SQL injection vulnerability in vector search by using parameterized queries
 - Replace weak DJB2 hash with SHA-256 cryptographic function for cache keys
 
@@ -48,20 +49,24 @@ These issues violate the project's security-first principles and prevent the app
 
 ### Affected Code
 - `src/lib/supabase/client.ts` - **DELETED** (needs restoration or replacement)
-- `src/lib/config/app-config.ts` - Service role key validation
+- `src/lib/config/app-config.ts` - Elevated access key validation (both legacy and new formats)
 - `src/lib/services/database-service.ts` - SQL injection fix
 - `src/lib/services/vector-search-service.ts` - Hash function replacement
 - `src/components/cv/approval-summary.tsx` - Import fix
 - `src/__tests__/` - All test files
 - `eslint.config.js` - Configuration fix
 - `src/actions/documents.ts` - Error message sanitization
+- `.env.example` - Updated with new Secret key format documentation
 
 ### Breaking Changes
 None - All changes restore intended functionality or fix security vulnerabilities without changing public APIs.
 
 ### Migration Requirements
-- No database migrations required
-- Environment variable changes needed (service role key validation)
+- Database migration required: `20260110000001_vector_search_rpc.sql` for SQL-safe vector search
+- Environment variable changes needed:
+  - Add `SUPABASE_SECRET_KEY` (recommended new format: `sb_secret_...`)
+  - Legacy `SUPABASE_SERVICE_ROLE_KEY` still supported but deprecated
+  - Both keys are blocked in production builds (security validation)
 - Dependency installation required (vitest, @typescript-eslint/parser)
 
 ### Risk Assessment
