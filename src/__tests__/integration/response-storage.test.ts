@@ -14,9 +14,10 @@ describe('Response Storage Integration', () => {
   beforeAll(async () => {
     // Initialize Supabase client for testing
     if (process.env.DATABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        supabaseKey
       )
       cvAgent = new CVAgent(supabase)
 

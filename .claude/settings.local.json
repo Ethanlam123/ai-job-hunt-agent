@@ -96,7 +96,12 @@
       "mcp__serena__list_memories",
       "mcp__serena__get_symbols_overview",
       "mcp__serena__find_symbol",
-      "mcp__serena__search_for_pattern"
+      "mcp__serena__search_for_pattern",
+      "Bash(echo:*)",
+      "WebSearch",
+      "Bash(npx supabase storage list:*)",
+      "Bash(npx openspec show:*)",
+      "Bash(xargs cat:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,9 @@
 // Simplified ESLint Configuration for AI Job Hunt Agent
 
 const js = require('@eslint/js')
+const nextEslint = require('eslint-config-next')
+const typescriptEslint = require('@typescript-eslint/eslint-plugin')
+const typescriptParser = require('@typescript-eslint/parser')
 
 module.exports = [
   js.configs.recommended,
@@ -62,40 +65,27 @@ module.exports = [
   // TypeScript specific configuration
   {
     files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': typescriptEslint,
+    },
     rules: {
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/prefer-const': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/no-empty-interface': 'warn',
       '@typescript-eslint/ban-ts-comment': 'warn',
     },
   },
 
-  // React specific configuration
-  {
-    files: ['**/*.{jsx,tsx}'],
-    languageOptions: {
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
-    },
-    settings: {
-      react: {
-        version: 'detect',
-      },
-    },
-    rules: {
-      'react/react-in-jsx-scope': 'off', // Not needed in Next.js
-      'react/prop-types': 'off', // Using TypeScript for prop validation
-      'react/display-name': 'warn',
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
-      'react/no-unknown-property': 'warn',
-    },
-  },
+  // React specific configuration (using Next.js config)
+  ...nextEslint,
 
   // Configuration files
   {

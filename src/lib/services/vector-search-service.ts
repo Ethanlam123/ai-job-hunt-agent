@@ -12,6 +12,7 @@ import { vectorSearchConfig } from '@/lib/config/database'
 import { logger } from '@/lib/utils/secure-logger'
 import { CacheService } from '@/lib/services/cache-service'
 import { APP_CONSTANTS } from '@/lib/config/app-config'
+import { LRUCache } from 'lru-cache'
 
 export interface EmbeddingOptions {
   /** Model to use for embeddings */
@@ -53,8 +54,24 @@ export interface EmbeddingJob {
 export class VectorSearchService {
   private openai: OpenAI
   private cacheService: CacheService
-  private embeddingCache = new Map<string, number[]>()
-  private processingJobs = new Map<string, EmbeddingJob>()
+
+  /**
+   * LRU cache for embeddings to prevent memory leaks
+   * Max 1000 entries, 1 hour TTL
+   */
+  private embeddingCache = new LRUCache<string, number[]>({
+    max: 1000,
+    ttl: 1000 * 60 * 60, // 1 hour
+  })
+
+  /**
+   * LRU cache for processing jobs
+   * Max 100 entries, 30 minute TTL
+   */
+  private processingJobs = new LRUCache<string, EmbeddingJob>({
+    max: 100,
+    ttl: 1000 * 60 * 30, // 30 minutes
+  })
 
   constructor() {
     this.openai = new OpenAI({
@@ -434,17 +451,15 @@ export class VectorSearchService {
   }
 
   /**
-   * Hash text for cache keys
+   * Hash text for cache keys using SHA-256
+   *
+   * SECURITY: Uses cryptographic hash function to prevent collision attacks
+   * and ensure cache integrity. Truncated to 16 characters for cache key storage.
    */
   private hashText(text: string): string {
-    // Simple hash implementation - in production use crypto
-    let hash = 0
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
-      hash = hash & hash
-    }
-    return Math.abs(hash).toString(36)
+    const crypto = require('crypto')
+    const hash = crypto.createHash('sha256').update(text).digest('base64')
+    return hash.substring(0, 16)
   }
 
   /**
@@ -471,7 +486,7 @@ export class VectorSearchService {
    * Generate unique job ID
    */
   private generateJobId(): string {
-    return `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return `job_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
   }
 }
 

@@ -75,6 +75,10 @@ export class DatabaseService implements DatabaseClient {
 
   /**
    * Perform vector similarity search
+   *
+   * SECURITY: Table and column names are validated against a whitelist
+   * to prevent SQL injection attacks. This is a temporary measure until
+   * Supabase RPC functions are implemented for full parameterization.
    */
   async vectorSearch<T = any>(
     _vector: number[],
@@ -92,11 +96,48 @@ export class DatabaseService implements DatabaseClient {
     const threshold = options.threshold || vectorSearchConfig.similarityThreshold
     const selectColumns = options.selectColumns || ['*']
 
+    // SECURITY: Whitelist validation for table and column names
+    const allowedTables = ['cv_embeddings', 'job_descriptions', 'skill_gap_embeddings']
+    const allowedColumns = ['embedding', 'content_embedding', 'cv_embedding', 'jd_embedding']
+
+    if (!allowedTables.includes(tableName)) {
+      throw new Error(
+        `Invalid table name: ${tableName}. ` +
+        `Allowed tables: ${allowedTables.join(', ')}`
+      )
+    }
+
+    if (!allowedColumns.includes(vectorColumn)) {
+      throw new Error(
+        `Invalid vector column: ${vectorColumn}. ` +
+        `Allowed columns: ${allowedColumns.join(', ')}`
+      )
+    }
+
+    // SECURITY: Reject potentially malicious whereClause
+    if (options.whereClause && /;|--|\/\*/i.test(options.whereClause)) {
+      throw new Error('Invalid whereClause: potentially malicious content detected')
+    }
+
+    // SECURITY: Validate selectColumns to prevent injection
+    const dangerousKeywords = ['union', 'drop', 'delete', 'insert', 'update', 'alter']
+    const safeSelectColumns = selectColumns.map(col => {
+      const lowerCol = col.toLowerCase()
+      if (dangerousKeywords.some(kw => lowerCol.includes(kw))) {
+        throw new Error(`Invalid selectColumn: ${col} contains dangerous keyword`)
+      }
+      // Only allow alphanumeric, underscores, and dots
+      if (!/^[a-zA-Z0-9_.\s*]+$/.test(col)) {
+        throw new Error(`Invalid selectColumn: ${col} contains invalid characters`)
+      }
+      return col
+    })
+
     try {
       const whereClause = options.whereClause ? `AND ${options.whereClause}` : ''
 
       const sql = `
-        SELECT ${selectColumns.join(', ')}, 1 - (${vectorColumn} <=> '$1') as similarity
+        SELECT ${safeSelectColumns.join(', ')}, 1 - (${vectorColumn} <=> '$1') as similarity
         FROM ${tableName}
         WHERE 1 - (${vectorColumn} <=> '$1') > ${threshold}
         ${whereClause}

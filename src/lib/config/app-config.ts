@@ -225,7 +225,8 @@ export const APP_CONSTANTS = {
 
   /** LLM Model constants */
   LLM_MODELS: {
-    DEFAULT: 'openai/gpt-5-nano',
+    // DEFAULT: 'openai/gpt-5-nano',
+    DEFAULT: 'openai/gpt-oss-120b',
     FALLBACK: 'openai/gpt-4o-mini',
     EMBEDDINGS: 'qwen/qwen3-embedding-8b',
     EMBEDDING_DIMENSIONS: 1536,
@@ -292,6 +293,24 @@ export const FEATURE_FLAGS = {
 function loadConfig(): EnvironmentConfig {
   try {
     const config = EnvironmentConfigSchema.parse(process.env)
+
+    // PRODUCTION SECURITY CHECK: Prevent service role key usage in production
+    if (config.NODE_ENV === 'production' && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error(
+        'SECURITY: SUPABASE_SERVICE_ROLE_KEY must not be available in production. ' +
+        'This key bypasses Row Level Security (RLS) policies and exposes all user data if compromised. ' +
+        'Please remove SUPABASE_SERVICE_ROLE_KEY from your production environment.'
+      )
+    }
+
+    // Development warning if service role key is missing
+    if (config.NODE_ENV === 'development' && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn(
+        'Warning: SUPABASE_SERVICE_ROLE_KEY not available. ' +
+        'Some administrative operations may fail in development.'
+      )
+    }
+
     return config
   } catch (error) {
     console.error('Configuration validation failed:', error)
