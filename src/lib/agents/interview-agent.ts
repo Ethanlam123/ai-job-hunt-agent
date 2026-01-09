@@ -2,6 +2,7 @@ import { ChatOpenAI } from '@langchain/openai'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { InterviewPrompts } from '@/lib/prompts/interview-prompts'
 import { DocumentService } from '@/lib/services/document-service'
+import { APP_CONSTANTS } from '@/lib/config/app-config'
 
 interface InterviewState {
   userId: string
@@ -35,7 +36,7 @@ export class InterviewAgent {
 
     // Initialize OpenRouter LLM
     this.llm = new ChatOpenAI({
-      model: 'openai/gpt-5-nano',
+      model: APP_CONSTANTS.LLM_MODELS.DEFAULT,
       temperature: 0.7,
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',

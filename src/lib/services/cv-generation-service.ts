@@ -1,5 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { APP_CONSTANTS } from '@/lib/config/app-config'
 
 interface ApprovedImprovement {
   id: string
@@ -28,8 +29,8 @@ export class CVGenerationService {
 
     // Initialize OpenRouter LLM
     this.llm = new ChatOpenAI({
-      model: 'openai/gpt-5-nano',
-      temperature: 0.3, // Lower temperature for more consistent output
+      model: APP_CONSTANTS.LLM_MODELS.DEFAULT,
+      temperature: 0.3,
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',
         apiKey: process.env.OPENROUTER_API_KEY,

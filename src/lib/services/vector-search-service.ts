@@ -11,6 +11,7 @@ import { databaseService } from '@/lib/services/database-service'
 import { vectorSearchConfig } from '@/lib/config/database'
 import { logger } from '@/lib/utils/secure-logger'
 import { CacheService } from '@/lib/services/cache-service'
+import { APP_CONSTANTS } from '@/lib/config/app-config'
 
 export interface EmbeddingOptions {
   /** Model to use for embeddings */
@@ -70,10 +71,10 @@ export class VectorSearchService {
     options: EmbeddingOptions = {}
   ): Promise<number[]> {
     const {
-      model = 'text-embedding-3-small',
-      dimensions = 1536,
+      model = APP_CONSTANTS.LLM_MODELS.EMBEDDINGS,
+      dimensions = APP_CONSTANTS.LLM_MODELS.EMBEDDING_DIMENSIONS,
       useCache = true,
-      cacheTtl = 3600, // 1 hour
+      cacheTtl = 3600,
     } = options
 
     try {

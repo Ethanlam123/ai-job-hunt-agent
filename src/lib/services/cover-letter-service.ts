@@ -28,7 +28,6 @@ export async function generateCoverLetter(input: CoverLetterInput): Promise<Cove
 
   console.log('Creating LLM with OpenRouter...')
   const llm = createLLM({
-    model: 'openai/gpt-5-nano', // Same model used by CV agent
     temperature: 0.7,
     maxTokens: 6000
   })
