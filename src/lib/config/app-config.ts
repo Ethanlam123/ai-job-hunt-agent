@@ -29,7 +29,6 @@ const EnvironmentConfigSchema = z.object({
 
   /** API Keys */
   OPENROUTER_API_KEY: z.string().min(1),
-  OPENAI_API_KEY: z.string().min(1),
 
   /** Optional services */
   TAVILY_API_KEY: z.string().optional(),
@@ -345,7 +344,6 @@ export const validateRuntimeConfig = (): boolean => {
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     'OPENROUTER_API_KEY',
-    'OPENAI_API_KEY',
   ]
 
   const missingKeys = requiredKeys.filter(key => !process.env[key])

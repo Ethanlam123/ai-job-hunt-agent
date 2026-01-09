@@ -273,7 +273,6 @@ export const validateConfig = (): void => {
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     'OPENROUTER_API_KEY',
-    'OPENAI_API_KEY',
   ]
 
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName])
