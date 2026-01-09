@@ -1,13 +1,14 @@
 /**
- * CacheService
+ * Cache Service
  *
- * PostgreSQL-based caching with RLS support
- * Cache keys must be scoped: user:{userId}:{key} or public:{key}
+ * PostgreSQL-based caching with RLS support.
+ * Cache keys are scoped as: user:{userId}:{key} or public:{key}
+ * RLS policies enforce access control at the database level.
  */
 
 import { SupabaseClient } from '@supabase/supabase-js'
 import { cache } from '@/lib/db/schema'
-import { eq, lt } from 'drizzle-orm'
+import { eq, lt, like } from 'drizzle-orm'
 import { db } from '@/lib/db'
 
 export interface CacheOptions {
@@ -15,42 +16,29 @@ export interface CacheOptions {
 }
 
 export class CacheService {
-  private supabase: SupabaseClient
-
-  constructor(supabase: SupabaseClient) {
-    this.supabase = supabase
-  }
+  constructor(_supabase: SupabaseClient) {}
 
   /**
    * Generate RLS-aware cache key
-   * @param key - The base cache key
-   * @param userId - Optional user ID for user-scoped cache
-   * @returns Properly scoped cache key
+   * User-specific keys: user:{userId}:{key}
+   * Public keys: public:{key}
    */
   private generateKey(key: string, userId?: string): string {
-    if (userId) {
-      return `user:${userId}:${key}`
-    }
-    return `public:${key}`
+    return userId ? `user:${userId}:${key}` : `public:${key}`
   }
 
   /**
-   * Set a cache value
-   * @param key - Cache key (will be scoped automatically)
-   * @param value - Value to cache (must be JSON-serializable)
-   * @param userId - Optional user ID for user-scoped cache
-   * @param ttl - Time to live in seconds (default: 3600)
+   * Set a cache value with optional TTL
    */
   async set<T = any>(
     key: string,
     value: T,
-    userId?: string,
+    userId: string | undefined,
     ttl: number = 3600
   ): Promise<void> {
     const scopedKey = this.generateKey(key, userId)
     const expiresAt = new Date(Date.now() + ttl * 1000)
 
-    // Upsert: insert or update if key exists
     await db
       .insert(cache)
       .values({
@@ -68,10 +56,7 @@ export class CacheService {
   }
 
   /**
-   * Get a cache value
-   * @param key - Cache key (will be scoped automatically)
-   * @param userId - Optional user ID for user-scoped cache
-   * @returns Cached value or null if not found/expired
+   * Get a cache value if not expired
    */
   async get<T = any>(key: string, userId?: string): Promise<T | null> {
     const scopedKey = this.generateKey(key, userId)
@@ -90,7 +75,6 @@ export class CacheService {
 
     // Check if expired
     if (entry.expiresAt && new Date(entry.expiresAt) < new Date()) {
-      // Delete expired entry
       await this.delete(key, userId)
       return null
     }
@@ -100,19 +84,14 @@ export class CacheService {
 
   /**
    * Delete a cache entry
-   * @param key - Cache key (will be scoped automatically)
-   * @param userId - Optional user ID for user-scoped cache
    */
   async delete(key: string, userId?: string): Promise<void> {
     const scopedKey = this.generateKey(key, userId)
-
     await db.delete(cache).where(eq(cache.key, scopedKey))
   }
 
   /**
    * Check if a cache key exists and is not expired
-   * @param key - Cache key (will be scoped automatically)
-   * @param userId - Optional user ID for user-scoped cache
    */
   async has(key: string, userId?: string): Promise<boolean> {
     const value = await this.get(key, userId)
@@ -120,7 +99,7 @@ export class CacheService {
   }
 
   /**
-   * Clear all expired cache entries (cleanup task)
+   * Clear all expired cache entries
    * Should be run periodically (e.g., via cron job)
    */
   async clearExpired(): Promise<void> {
@@ -130,17 +109,16 @@ export class CacheService {
 
   /**
    * Clear all cache entries for a specific user
-   * @param userId - User ID
+   * Matches all keys starting with user:{userId}:
    */
   async clearUserCache(userId: string): Promise<void> {
-
-    // Delete all entries matching user:{userId}:*
-    await db.delete(cache).where(eq(cache.key, `user:${userId}:%`))
+    const userKeyPattern = `user:${userId}:%`
+    await db.delete(cache).where(like(cache.key, userKeyPattern))
   }
 }
 
 /**
- * Create a cache service instance with the provided Supabase client
+ * Create a cache service instance
  */
 export function createCacheService(supabase: SupabaseClient): CacheService {
   return new CacheService(supabase)
