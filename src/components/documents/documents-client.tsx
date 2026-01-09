@@ -15,17 +15,9 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import type { DocumentType } from '@/lib/types'
+import type { Document, DocumentType } from '@/lib/types'
 import { DocumentPreviewDialog } from './document-preview-dialog'
-
-interface Document {
-  id: string
-  original_filename: string
-  document_type: string
-  file_format: string
-  created_at: string
-  metadata?: any
-}
+import { formatFileSize, formatDate } from '@/lib/utils/document-utils'
 
 interface DocumentsClientProps {
   initialDocuments: Document[]
@@ -234,9 +226,7 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
     try {
       const result = await uploadDocument(formData)
 
-      if (result.error) {
-        toast.error(result.error)
-      } else {
+      if (result.success) {
         toast.success('Document uploaded successfully!')
         setDocuments((prev) => [result.document, ...prev])
         setSelectedFile(null)
@@ -248,6 +238,8 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
         // Reset file input
         const fileInput = document.getElementById('file-upload') as HTMLInputElement
         if (fileInput) fileInput.value = ''
+      } else {
+        toast.error(result.error)
       }
     } catch (error) {
       toast.error('An unexpected error occurred')
@@ -275,19 +267,6 @@ export function DocumentsClient({ initialDocuments }: DocumentsClientProps) {
     }
   }
 
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return 'N/A'
-    const mb = bytes / (1024 * 1024)
-    return `${mb.toFixed(2)} MB`
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
 
   return (
     <div className="space-y-6">

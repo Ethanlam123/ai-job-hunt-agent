@@ -2,39 +2,37 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { DocumentType } from '@/lib/types'
+import type { DocumentType, Document } from '@/lib/types'
 import { DocumentParser } from '@/lib/services/document-parser'
+import {
+  validateFileSize,
+  validateFileType,
+  validateJDMetadata,
+  generateStoragePath,
+  generateJDFilename,
+  fileToBuffer,
+} from '@/lib/utils/document-utils'
+import {
+  getAuthenticatedUser,
+  checkDuplicateDocumentName,
+  cleanupUploadedFile,
+  verifyAndFetchDocument,
+} from '@/lib/utils/document-helpers'
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-const ALLOWED_FILE_TYPES = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain',
-  'text/markdown',
-  'text/x-markdown',
-  'text/md'
-]
+export type DocumentUploadResult =
+  | { success: true; document: Document }
+  | { success: false; error: string; code?: string }
 
-export async function uploadDocument(formData: FormData) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+export async function uploadDocument(formData: FormData): Promise<DocumentUploadResult> {
+  const { user, error: authError } = await getAuthenticatedUser()
 
   if (authError || !user) {
-    console.error('Authentication error:', { authError, user })
     return {
+      success: false,
       error: 'Authentication required. Please log in to upload documents.',
-      code: 'AUTH_REQUIRED'
+      code: 'AUTH_REQUIRED',
     }
   }
-
-  console.log('Upload attempt:', {
-    userId: user.id,
-    formDataKeys: Array.from(formData.keys()),
-    userAuthenticated: true,
-  })
 
   const file = formData.get('file') as File
   const jdText = formData.get('jdText') as string
@@ -46,127 +44,97 @@ export async function uploadDocument(formData: FormData) {
   const positionName = formData.get('positionName') as string
   const hiringManagerName = formData.get('hiringManagerName') as string | null
 
-  // Function to check for duplicate document names
-  const checkDuplicateName = async (filename: string) => {
-    const { data: existingDoc, error: duplicateError } = await supabase
-      .from('documents')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('document_type', documentType)
-      .eq('original_filename', filename)
-      .single()
-
-    if (duplicateError && duplicateError.code !== 'PGRST116') { // PGRST116 means no rows returned
-      return { error: `Error checking for duplicate names: ${duplicateError.message}` }
-    }
-
-    if (existingDoc) {
-      return { error: `A document with this name already exists for this document type` }
-    }
-
-    return { success: true }
-  }
-
   // Handle text input for Job Descriptions
   if (documentType === 'jd' && jdText) {
+    const validation = validateJDMetadata(companyName, positionName)
+    if (!validation.valid) {
+      return { success: false, error: validation.error || 'Validation failed' }
+    }
+
     if (!jdText.trim()) {
-      return { error: 'Job description text cannot be empty' }
+      return { success: false, error: 'Job description text cannot be empty' }
     }
 
-    // Validate required JD metadata
-    if (!companyName?.trim() || !positionName?.trim()) {
-      return { error: 'Company name and position name are required for job descriptions' }
+    const filename = generateJDFilename(companyName, positionName)
+    const duplicateCheck = await checkDuplicateDocumentName(filename, documentType, user.id)
+    if (duplicateCheck.error) {
+      return { success: false, error: duplicateCheck.error }
     }
 
-    try {
-      // Create document record for text-based JD
-      const parsedContent = {
-        fullText: jdText.trim(),
-        pageCount: 0,
-        wordCount: jdText.trim().split(/\s+/).length,
-        sections: {},
-      }
-
-      // Create enhanced filename with company and position
-      const filename = `${companyName.trim()} - ${positionName.trim()} - ${new Date().toLocaleDateString()}`
-
-      // Check for duplicate names
-      const duplicateCheck = await checkDuplicateName(filename)
-      if (duplicateCheck.error) {
-        return duplicateCheck
-      }
-
-      const metadata: any = {
-        source: 'text_input',
-        wordCount: parsedContent.wordCount,
-        companyName: companyName.trim(),
-        positionName: positionName.trim(),
-      }
-
-      // Add hiring manager if provided
-      if (hiringManagerName?.trim()) {
-        metadata.hiringManagerName = hiringManagerName.trim()
-      }
-
-      const { data: document, error: dbError } = await supabase
-        .from('documents')
-        .insert({
-          user_id: user.id,
-          session_id: sessionId,
-          document_type: documentType,
-          original_filename: filename,
-          file_path: null, // No file for text input
-          file_format: 'txt',
-          parsed_content: parsedContent,
-          metadata,
-        })
-        .select()
-        .single()
-
-      if (dbError) {
-        return { error: `Failed to create document record: ${dbError.message}` }
-      }
-
-      revalidatePath('/dashboard')
-      revalidatePath('/workflow')
-      revalidatePath('/documents')
-
-      return { success: true, document }
-    } catch (error: any) {
-      return { error: error.message || 'An unexpected error occurred' }
+    const parsedContent = {
+      fullText: jdText.trim(),
+      pageCount: 0,
+      wordCount: jdText.trim().split(/\s+/).length,
+      sections: {},
     }
+
+    const metadata: any = {
+      source: 'text_input',
+      wordCount: parsedContent.wordCount,
+      companyName: companyName.trim(),
+      positionName: positionName.trim(),
+    }
+
+    if (hiringManagerName?.trim()) {
+      metadata.hiringManagerName = hiringManagerName.trim()
+    }
+
+    const supabase = await createClient()
+    const { data: document, error: dbError } = await supabase
+      .from('documents')
+      .insert({
+        user_id: user.id,
+        session_id: sessionId,
+        document_type: documentType,
+        original_filename: filename,
+        file_path: null,
+        file_format: 'txt',
+        parsed_content: parsedContent,
+        metadata,
+      })
+      .select()
+      .single()
+
+    if (dbError) {
+      return { success: false, error: `Failed to create document record: ${dbError.message}` }
+    }
+
+    revalidatePath('/dashboard')
+    revalidatePath('/workflow')
+    revalidatePath('/documents')
+
+    return { success: true, document }
   }
 
   // Validate JD metadata for file uploads
-  if (documentType === 'jd' && (!companyName?.trim() || !positionName?.trim())) {
-    return { error: 'Company name and position name are required for job descriptions' }
+  if (documentType === 'jd') {
+    const validation = validateJDMetadata(companyName, positionName)
+    if (!validation.valid) {
+      return { success: false, error: validation.error || 'Validation failed' }
+    }
   }
 
   // Handle file upload
   if (!file) {
-    return { error: 'No file provided' }
+    return { success: false, error: 'No file provided' }
   }
 
   // Validate file size
-  if (file.size > MAX_FILE_SIZE) {
-    return { error: 'File size exceeds 10MB limit' }
+  const sizeValidation = validateFileSize(file.size)
+  if (!sizeValidation.valid) {
+    return { success: false, error: sizeValidation.error || 'Validation failed' }
   }
 
   // Validate file type
-  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-    return {
-      error: `Invalid file type "${file.type}". Allowed file types are: PDF, DOCX, TXT, and Markdown files (.md)`
-    }
+  const typeValidation = validateFileType(file.type)
+  if (!typeValidation.valid) {
+    return { success: false, error: typeValidation.error || 'Validation failed' }
   }
 
   try {
-    // Generate unique file path
     const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${fileExt}`
-
-    // Convert file to buffer for parsing
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    const fileName = generateStoragePath(user.id, file.name)
+    const buffer = await fileToBuffer(file)
 
     // Parse document content
     const parser = new DocumentParser()
@@ -181,7 +149,6 @@ export async function uploadDocument(formData: FormData) {
       }
     } catch (parseError) {
       console.error('Document parsing failed:', parseError)
-      // Continue with upload even if parsing fails
       parsedContent = {
         fullText: 'Parsing failed',
         pageCount: 0,
@@ -191,6 +158,7 @@ export async function uploadDocument(formData: FormData) {
     }
 
     // Upload file to Supabase Storage
+    const supabase = await createClient()
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
       .upload(fileName, buffer, {
@@ -205,51 +173,39 @@ export async function uploadDocument(formData: FormData) {
       })
 
     if (uploadError) {
-      console.error('Storage upload error:', {
-        error: uploadError,
-        fileName,
-        fileSize: file.size,
-        mimeType: file.type,
-        userId: user.id,
-        bucketId: 'documents',
-      })
+      console.error('Storage upload error:', { error: uploadError, fileName, userId: user.id })
 
-      // Provide more specific error messages based on error type
       if (uploadError.message?.includes('Forbidden') || uploadError.message?.includes('403')) {
-        return { error: 'Upload failed: Permission denied. Please ensure you are logged in and try again.' }
+        return { success: false, error: 'Upload failed: Permission denied. Please ensure you are logged in and try again.' }
       } else if (uploadError.message?.includes('row-level security policy')) {
-        return { error: 'Upload failed: Authentication required. Please log in again to upload files.' }
+        return { success: false, error: 'Upload failed: Authentication required. Please log in again to upload files.' }
       } else if (uploadError.message?.includes('Bucket not found')) {
-        return { error: 'Upload failed: Storage system is not properly configured. Please contact support.' }
+        return { success: false, error: 'Upload failed: Storage system is not properly configured. Please contact support.' }
       } else if (uploadError.message?.includes('File too large')) {
-        return { error: `Upload failed: File is too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.` }
+        return { success: false, error: `Upload failed: File is too large. Maximum size is 10MB.` }
       } else if (uploadError.message?.includes('Invalid file type')) {
-        return { error: `Upload failed: File type "${file.type}" is not supported. Allowed types: PDF, DOCX, TXT, and Markdown.` }
-      } else {
-        return { error: `Upload failed: ${uploadError.message}` }
+        return { success: false, error: `Upload failed: File type "${file.type}" is not supported. Allowed types: PDF, DOCX, TXT, and Markdown.` }
       }
+      return { success: false, error: `Upload failed: ${uploadError.message}` }
     }
 
-    // Create enhanced metadata
+    // Determine filename and check for duplicates
+    const filename = documentType === 'jd'
+      ? generateJDFilename(companyName, positionName, file.name)
+      : file.name
+
+    const duplicateCheck = await checkDuplicateDocumentName(filename, documentType, user.id)
+    if (duplicateCheck.error) {
+      await cleanupUploadedFile(fileName)
+      return { success: false, error: duplicateCheck.error }
+    }
+
+    // Create metadata
     const metadata: any = {
       size: file.size,
       mimeType: file.type,
     }
 
-    // Determine filename and check for duplicates
-    const filename = documentType === 'jd'
-      ? `${companyName.trim()} - ${positionName.trim()} - ${file.name}`
-      : file.name
-
-    // Check for duplicate names
-    const duplicateCheck = await checkDuplicateName(filename)
-    if (duplicateCheck.error) {
-      // Clean up uploaded file if duplicate found
-      await supabase.storage.from('documents').remove([fileName])
-      return duplicateCheck
-    }
-
-    // Add JD metadata if applicable
     if (documentType === 'jd') {
       metadata.companyName = companyName.trim()
       metadata.positionName = positionName.trim()
@@ -258,7 +214,7 @@ export async function uploadDocument(formData: FormData) {
       }
     }
 
-    // Create document record in database with parsed content
+    // Create document record
     const { data: document, error: dbError } = await supabase
       .from('documents')
       .insert({
@@ -275,9 +231,8 @@ export async function uploadDocument(formData: FormData) {
       .single()
 
     if (dbError) {
-      // Clean up uploaded file if database insert fails
-      await supabase.storage.from('documents').remove([fileName])
-      return { error: `Failed to create document record: ${dbError.message}` }
+      await cleanupUploadedFile(fileName)
+      return { success: false, error: `Failed to create document record: ${dbError.message}` }
     }
 
     revalidatePath('/dashboard')
@@ -286,22 +241,19 @@ export async function uploadDocument(formData: FormData) {
 
     return { success: true, document }
   } catch (error: any) {
-    return { error: error.message || 'An unexpected error occurred' }
+    return { success: false, error: error.message || 'An unexpected error occurred' }
   }
 }
 
 export async function getUserDocuments(documentType?: DocumentType) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { user, error: authError } = await getAuthenticatedUser()
 
   if (authError || !user) {
-    return { error: 'Unauthorized' }
+    return { success: false, error: 'Unauthorized' }
   }
 
   try {
+    const supabase = await createClient()
     let query = supabase
       .from('documents')
       .select('*')
@@ -315,107 +267,78 @@ export async function getUserDocuments(documentType?: DocumentType) {
     const { data: documents, error: dbError } = await query
 
     if (dbError) {
-      return { error: `Failed to fetch documents: ${dbError.message}` }
+      return { success: false, error: `Failed to fetch documents: ${dbError.message}` }
     }
 
     return { success: true, documents: documents || [] }
   } catch (error: any) {
-    return { error: error.message || 'An unexpected error occurred' }
+    return { success: false, error: error.message || 'An unexpected error occurred' }
   }
 }
 
 export async function getDocumentById(documentId: string) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { user, error: authError } = await getAuthenticatedUser()
 
   if (authError || !user) {
-    return { error: 'Unauthorized' }
+    return { success: false, error: 'Unauthorized' }
   }
 
-  try {
-    const { data: document, error: dbError } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('id', documentId)
-      .eq('user_id', user.id)
-      .single()
+  const { document, error } = await verifyAndFetchDocument(documentId, user.id)
 
-    if (dbError || !document) {
-      return { error: 'Document not found' }
-    }
-
-    return { success: true, document }
-  } catch (error: any) {
-    return { error: error.message || 'An unexpected error occurred' }
+  if (error) {
+    return { error }
   }
+
+  return { success: true, document }
 }
 
 export async function renameDocument(documentId: string, newName: string) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { user, error: authError } = await getAuthenticatedUser()
 
   if (authError || !user) {
-    return { error: 'Unauthorized' }
+    return { success: false, error: 'Unauthorized' }
   }
 
-  // Validate new name
   const trimmedName = newName.trim()
   if (!trimmedName) {
-    return { error: 'Document name cannot be empty' }
+    return { success: false, error: 'Document name cannot be empty' }
   }
 
   if (trimmedName.length > 100) {
-    return { error: 'Document name must be 100 characters or less' }
+    return { success: false, error: 'Document name must be 100 characters or less' }
   }
 
   try {
-    // Get document to verify ownership and get document type
+    const supabase = await createClient()
     const { data: document, error: fetchError } = await supabase
       .from('documents')
-      .select('original_filename, document_type, user_id')
+      .select('document_type')
       .eq('id', documentId)
+      .eq('user_id', user.id)
       .single()
 
     if (fetchError || !document) {
-      return { error: 'Document not found' }
+      return { success: false, error: 'Document not found' }
     }
 
-    if (document.user_id !== user.id) {
-      return { error: 'Unauthorized to rename this document' }
+    const duplicateCheck = await checkDuplicateDocumentName(
+      trimmedName,
+      document.document_type,
+      user.id,
+      documentId
+    )
+
+    if (duplicateCheck.error) {
+      return { success: false, error: duplicateCheck.error }
     }
 
-    // Check for duplicate names within the same document type
-    const { data: existingDoc, error: duplicateError } = await supabase
-      .from('documents')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('document_type', document.document_type)
-      .eq('original_filename', trimmedName)
-      .neq('id', documentId) // Exclude current document from duplicate check
-      .single()
-
-    if (duplicateError && duplicateError.code !== 'PGRST116') { // PGRST116 means no rows returned
-      return { error: 'Error checking for duplicate names' }
-    }
-
-    if (existingDoc) {
-      return { error: 'A document with this name already exists for this document type' }
-    }
-
-    // Update document name
     const { error: updateError } = await supabase
       .from('documents')
       .update({ original_filename: trimmedName })
       .eq('id', documentId)
 
     if (updateError) {
-      return { error: `Failed to rename document: ${updateError.message}` }
+      return { success: false, error: `Failed to rename document: ${updateError.message}` }
     }
 
     revalidatePath('/dashboard')
@@ -424,55 +347,47 @@ export async function renameDocument(documentId: string, newName: string) {
 
     return { success: true, newName: trimmedName }
   } catch (error: any) {
-    return { error: error.message || 'An unexpected error occurred' }
+    return { success: false, error: error.message || 'An unexpected error occurred' }
   }
 }
 
 export async function deleteDocument(documentId: string) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { user, error: authError } = await getAuthenticatedUser()
 
   if (authError || !user) {
-    return { error: 'Unauthorized' }
+    return { success: false, error: 'Unauthorized' }
   }
 
   try {
-    // Get document to verify ownership and get file path
+    const supabase = await createClient()
     const { data: document, error: fetchError } = await supabase
       .from('documents')
-      .select('file_path, user_id')
+      .select('file_path')
       .eq('id', documentId)
+      .eq('user_id', user.id)
       .single()
 
     if (fetchError || !document) {
-      return { error: 'Document not found' }
+      return { success: false, error: 'Document not found' }
     }
 
-    if (document.user_id !== user.id) {
-      return { error: 'Unauthorized to delete this document' }
+    if (document.file_path) {
+      const { error: storageError } = await supabase.storage
+        .from('documents')
+        .remove([document.file_path])
+
+      if (storageError) {
+        console.error('Failed to delete file from storage:', storageError)
+      }
     }
 
-    // Delete file from storage
-    const { error: storageError } = await supabase.storage
-      .from('documents')
-      .remove([document.file_path])
-
-    if (storageError) {
-      console.error('Failed to delete file from storage:', storageError)
-      // Continue with database deletion even if storage deletion fails
-    }
-
-    // Delete document record
     const { error: dbError } = await supabase
       .from('documents')
       .delete()
       .eq('id', documentId)
 
     if (dbError) {
-      return { error: `Failed to delete document: ${dbError.message}` }
+      return { success: false, error: `Failed to delete document: ${dbError.message}` }
     }
 
     revalidatePath('/dashboard')
@@ -481,6 +396,6 @@ export async function deleteDocument(documentId: string) {
 
     return { success: true }
   } catch (error: any) {
-    return { error: error.message || 'An unexpected error occurred' }
+    return { success: false, error: error.message || 'An unexpected error occurred' }
   }
 }

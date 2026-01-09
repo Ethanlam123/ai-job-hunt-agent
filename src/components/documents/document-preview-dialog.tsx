@@ -12,23 +12,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Eye, Loader2 } from 'lucide-react'
 import { getDocumentById } from '@/actions/documents'
+import type { ParsedDocumentContent } from '@/lib/types'
 
 interface DocumentPreviewDialogProps {
   documentId: string
   filename: string
 }
 
-interface ParsedContent {
-  fullText?: string
-  pageCount?: number
-  wordCount?: number
-  sections?: Record<string, string>
-}
-
 export function DocumentPreviewDialog({ documentId, filename }: DocumentPreviewDialogProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [content, setContent] = useState<ParsedContent | null>(null)
+  const [content, setContent] = useState<ParsedDocumentContent | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const loadContent = async () => {
@@ -39,7 +33,7 @@ export function DocumentPreviewDialog({ documentId, filename }: DocumentPreviewD
       if (result.error || !result.document) {
         setError(result.error || 'Failed to load document')
       } else {
-        setContent(result.document.parsed_content)
+        setContent(result.document.parsed_content || null)
       }
     } catch (err) {
       setError('An unexpected error occurred')

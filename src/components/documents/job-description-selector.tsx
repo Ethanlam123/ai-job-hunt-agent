@@ -12,18 +12,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
+import type { Document } from '@/lib/types'
 import { DocumentPreviewDialog } from './document-preview-dialog'
 import { BriefcaseIcon, SearchIcon } from 'lucide-react'
-
-interface Document {
-  id: string
-  original_filename: string
-  document_type: string
-  file_format: string
-  created_at: string
-  metadata?: any
-  parsed_content?: any
-}
+import { isJobDescription, getDocumentSource, formatDate } from '@/lib/utils/document-utils'
 
 interface JobDescriptionSelectorProps {
   onSelect: (documentId: string | null) => void
@@ -58,34 +50,8 @@ export function JobDescriptionSelector({
           filename: doc.original_filename
         })))
 
-        // Filter for job descriptions from all features
-        const jobDescriptions = result.documents.filter(doc => {
-          const filename = doc.original_filename.toLowerCase();
-          const docType = doc.document_type;
-
-          // Debug logging for each document
-          console.log(`Filtering document: ${doc.original_filename} (type: ${docType})`);
-
-          // Check if it's a job description by multiple criteria
-          const isJobDescType = docType === 'jd' || docType === 'job_description';
-          const isJobDescFilename = filename.includes('job') ||
-                                   filename.includes('position') ||
-                                   filename.includes('role') ||
-                                   filename.includes('description') ||
-                                   filename.includes('posting') ||
-                                   filename.includes('opportunity');
-          const isFromOtherFeature = docType === 'cover_letter_jd' ||
-                                    docType === 'interview_jd' ||
-                                    docType === 'skill_gap_jd';
-
-          const isJobDescription = isJobDescType || isJobDescFilename || isFromOtherFeature;
-
-          if (isJobDescription) {
-            console.log(`✅ Found job description: ${doc.original_filename}`);
-          }
-
-          return isJobDescription;
-        })
+        // Filter for job descriptions using shared utility
+        const jobDescriptions = result.documents.filter(isJobDescription)
 
         console.log(`Total job descriptions found: ${jobDescriptions.length}`);
         setDocuments(jobDescriptions)
@@ -106,31 +72,6 @@ export function JobDescriptionSelector({
     setShowPreview(true)
   }
 
-  const getDocumentSource = (doc: Document) => {
-    const filename = doc.original_filename.toLowerCase();
-
-    switch (doc.document_type) {
-      case 'job_description':
-      case 'jd':
-        return 'Direct upload'
-      case 'cover_letter_jd':
-        return 'From cover letters'
-      case 'interview_jd':
-        return 'From interview prep'
-      case 'skill_gap_jd':
-        return 'From skill analysis'
-      default:
-        // Try to infer from filename
-        if (filename.includes('job') || filename.includes('position') || filename.includes('role')) {
-          return 'Job description file'
-        }
-        return 'Document'
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
-  }
 
   if (isLoading) {
     return (

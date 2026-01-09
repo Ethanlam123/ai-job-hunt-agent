@@ -12,17 +12,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
-import type { DocumentType } from '@/lib/types'
+import type { Document, DocumentType } from '@/lib/types'
 import { DocumentPreviewDialog } from './document-preview-dialog'
-
-interface Document {
-  id: string
-  original_filename: string
-  document_type: string
-  file_format: string
-  created_at: string
-  metadata?: any
-}
+import { formatDate } from '@/lib/utils/document-utils'
 
 interface DocumentSelectorProps {
   documentType: DocumentType
@@ -100,7 +92,7 @@ export function DocumentSelector({
                   )}
                   {doc.document_type !== 'jd' && (
                     <span className="text-xs text-muted-foreground">
-                      {new Date(doc.created_at).toLocaleDateString()}
+                      {formatDate(doc.created_at)}
                     </span>
                   )}
                 </div>

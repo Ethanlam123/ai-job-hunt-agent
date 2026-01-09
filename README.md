@@ -1,194 +1,113 @@
 # AI Job Hunt Agent
 
-An AI-powered job hunting assistant built with Next.js 16, LangChain.js, and Supabase. Features CV analysis, cover letter generation, interview preparation, and skill gap analysis with a human-in-the-loop approach.
+AI-powered job hunting assistant with CV analysis, cover letter generation, interview prep, and skill gap analysis.
 
 ## Features
 
-- 📄 **CV Analysis**: AI-powered CV analysis with improvement suggestions
-- ✉️ **Cover Letter Generation**: Personalized cover letters from CV + job description
-- 🎯 **Interview Preparation**: Mock questions and answer evaluation
-- 📊 **Document Management**: Upload and manage CVs and job descriptions
-- 📈 **Skill Gap Analysis**: Identify missing skills and get personalized learning roadmaps
-- 👤 **Human-in-the-Loop**: All CV changes require explicit user approval
+- **CV Analysis** - AI-powered improvement suggestions
+- **Cover Letter Generation** - Personalized from CV + job description
+- **Interview Preparation** - Mock questions with evaluation
+- **Skill Gap Analysis** - Learning roadmaps for target roles
+- **Document Management** - Upload and reuse CVs and job descriptions
 
 ## Tech Stack
 
-- **Frontend**: Next.js 16 with React 19, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL, Auth, Storage), LangChain.js
-- **AI**: OpenRouter (LLM), OpenAI (embeddings)
-- **Database**: PostgreSQL with pgvector for vector embeddings
-- **UI**: shadcn/ui components with Radix UI
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
+| Backend | Supabase (PostgreSQL, Auth, Storage), LangChain.js |
+| AI | OpenRouter (LLM), OpenAI (embeddings) |
+| Database | PostgreSQL with pgvector |
+| UI | shadcn/ui components |
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Supabase account with pgvector extension enabled
-- OpenRouter API key
-- OpenAI API key
-- Supabase MCP tools (for database setup - see instructions below)
-
-### Installation
-
-1. Clone the repository
-
-   ```bash
-   git clone <your-repo-url>
-   cd ai-job-hunt-agent
-   ```
-
-2. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-3. Set up environment variables
-
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys and Supabase credentials
-   ```
-
-4. Set up the database
-
-   **Option A: Automated Setup with MCP (Easiest)**
-
-   ```bash
-   ./scripts/setup-database.sh
-   ```
-
-   *Requires Supabase MCP tools to be configured*
-
-   **Option B: Automated Setup without MCP**
-
-   ```bash
-   # Using psql (requires PostgreSQL client tools)
-   ./scripts/setup-database-sql.sh
-
-   # Or manually with environment variables
-   export DATABASE_URL="postgresql://user:password@host:port/database"
-   ./scripts/setup-database-sql.sh
-   ```
-
-   **Option C: Supabase Dashboard (Visual)**
-
-   1. Go to your Supabase project dashboard
-   2. Open the SQL Editor
-   3. Copy and paste the contents of `scripts/database-schema.sql`
-   4. Run the script
-
-   **Option D: Traditional Drizzle Setup**
-
-   ```bash
-   npm run db:push  # May have connection issues
-   npm run db:apply-rls  # Apply Row Level Security policies
-   ```
-
-5. Apply Row Level Security (Required)
-
-   **Step 5a: Apply RLS policies (Required for user access)**
-
-   ```bash
-   npm run db:apply-rls  # Apply RLS policies
-   ```
-
-   **Alternative RLS application methods:**
-
-   - Supabase SQL Editor with `scripts/rls-policies.sql`
-   - Direct SQL: `psql $DATABASE_URL -f scripts/rls-policies.sql`
-
-   > **⚠️ Important**: RLS policies are **required** for the application to work. Users will get "Tenant or user not found" errors without proper RLS policies.
-
-6. Run the development server
-
-   ```bash
-   npm run dev
-   ```
-
-7. Open [http://localhost:3000](http://localhost:3000)
-
-## Troubleshooting
-
-### "Tenant or user not found" Error
-
-This error occurs when there's a mismatch between Supabase Auth users and your application's users table. Fix it with:
+## Quick Start
 
 ```bash
-# Quick fix (recommended)
-npm run db:apply-rls && npm run db:fix-all-rls
+# Install
+npm install
 
-# Manual fix via SQL Editor
-# 1. Open Supabase Dashboard → SQL Editor
-# 2. Run: scripts/supabase-auth-user-sync.sql
+# Setup environment
+cp .env.example .env.local
+# Edit .env.local with your API keys
+
+# Setup database (easiest method)
+./scripts/setup-database.sh
+
+# Start dev server
+npm run dev
 ```
 
-**Root Cause**: Supabase Auth creates users in `auth.users` table, but your app queries `public.users`. The sync script creates automatic sync between both tables.
+Visit http://localhost:3000
 
-### Database Connection Issues
+## Environment Variables
 
-See [DATABASE_FIX.md](./DATABASE_FIX.md) for comprehensive troubleshooting of connection problems.
+Required (see `.env.example`):
 
-## Documentation
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
-- **[CLAUDE.md](./CLAUDE.md)** - Architecture overview and development guide
-- **[TESTING.md](./TESTING.md)** - Comprehensive testing workflows
-- **[DATABASE_FIX.md](./DATABASE_FIX.md)** - Database setup troubleshooting and solutions
-- **[spec-nextjs.md](./spec-nextjs.md)** - Detailed technical specifications
-- **[Documentation Portal](./docs/)** - Complete documentation hub with guides for users, developers, and testers
+# Database
+DATABASE_URL=postgresql://...
+
+# AI Services
+OPENROUTER_API_KEY=
+OPENAI_API_KEY=
+```
+
+Get keys from:
+- Supabase: https://supabase.com/dashboard
+- OpenRouter: https://openrouter.ai/keys
+- OpenAI: https://platform.openai.com/api-keys
 
 ## Database Commands
 
 ```bash
-# Database Setup Commands (Choose one)
-./scripts/setup-database.sh      # Automated setup with MCP (easiest)
-./scripts/setup-database-sql.sh   # Automated setup without MCP
-npm run db:push                   # Traditional Drizzle setup (may have issues)
-
-# RLS Policies (Required after setup)
-npm run db:apply-rls              # Apply RLS policies (recommended)
-# Or manually: psql $DATABASE_URL -f scripts/rls-policies.sql
-
-# Management Commands
-npm run db:generate              # Generate migration files
-npm run db:studio                # Open Drizzle Studio
-npm run db:cleanup               # Clean database
-npm run db:migrate               # Run database migrations
-npm run db:fix-all-rls           # Fix all RLS policies
+npm run db:push        # Push schema changes
+npm run db:studio      # Open Drizzle Studio
+npm run db:cleanup     # Clear all data
+npm run db:apply-rls   # Apply RLS policies
+npm run db:fix-all-rls # Fix RLS policies
 ```
 
-### Database Setup Troubleshooting
+## Development
 
-If you encounter connection issues with `npm run db:push`, you have multiple alternatives:
+```bash
+npm run dev            # Start dev server
+npm run build          # Build for production
+npm run type-check     # TypeScript check
+npm run lint           # ESLint
+npm run test           # Run tests
+```
 
-1. **MCP-Free Script**: Use `./scripts/setup-database-sql.sh` (requires psql)
-2. **Supabase Dashboard**: Copy `scripts/database-schema.sql` to the SQL Editor
-3. **Manual Setup**: See [DATABASE_FIX.md](./DATABASE_FIX.md) for detailed troubleshooting
+## Troubleshooting
 
-**Prerequisites for Different Methods:**
+### "Tenant or user not found"
 
-- **MCP Script**: Supabase MCP tools configured
-- **SQL Script**: PostgreSQL client tools (`psql`) installed
-- **Supabase Dashboard**: Web browser and Supabase account
-- **Drizzle**: Working database connection (may have network issues)
+Run: `npm run db:apply-rls && npm run db:fix-all-rls`
 
-## Database Schema
+This syncs `auth.users` with `public.users` table.
 
-The application uses 15 tables with the following key features:
+### Database connection issues
 
-- **Vector embeddings** for CV and job description analysis (1536 dimensions)
-- **Row Level Security (RLS)** for multi-tenant data isolation
-- **JSONB storage** for flexible metadata and content
-- **UUID primary keys** for security and scalability
-- **Comprehensive audit trails** with created/updated timestamps
+Use the automated setup script: `./scripts/setup-database.sh`
 
-## Architecture Overview
+Or manually via Supabase Dashboard SQL Editor.
 
-- **Multi-Agent System**: Specialized AI agents for different tasks
-- **Human-in-the-Loop**: All CV modifications require user approval
-- **Document Processing**: Automatic parsing of PDF, DOCX, and TXT files
-- **Real-time Updates**: Server-Sent Events for long-running operations
+## Documentation
+
+- [Developer Guide](./docs/developer/development-guide.md)
+- [Architecture](./docs/architecture/system-overview.md)
+- [API Reference](./docs/api/server-actions.md)
+- [Testing](./docs/testing/comprehensive-testing.md)
+
+## Architecture
+
+- **Multi-Agent System** - Specialized AI agents per feature
+- **Human-in-the-Loop** - All CV changes require user approval
+- **Document Processing** - Auto-parse PDF, DOCX, TXT
+- **Row Level Security** - Multi-tenant data isolation
 
 ## License
 

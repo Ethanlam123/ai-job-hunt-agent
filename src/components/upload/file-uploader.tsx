@@ -83,17 +83,17 @@ export function FileUploader({ documentType, sessionId, onUploadComplete }: File
 
       const result = await uploadDocument(formData)
 
-      if (result.error) {
-        toast.error(result.error)
-      } else {
+      if (result.success) {
         toast.success('File uploaded successfully!')
         setSelectedFile(null)
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
         }
-        if (onUploadComplete && result.document) {
+        if (onUploadComplete) {
           onUploadComplete(result.document)
         }
+      } else {
+        toast.error(result.error)
       }
     } catch (error) {
       toast.error('An unexpected error occurred')
