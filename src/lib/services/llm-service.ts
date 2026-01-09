@@ -95,18 +95,24 @@ export async function invokeLLM(
 }
 
 /**
- * Create embeddings instance using OpenAI
- * Uses text-embedding-3-small (1536 dimensions)
+ * Create embeddings instance using OpenRouter
+ * Uses qwen/qwen3-embedding-8b via OpenRouter API
  */
 export function createEmbeddings() {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY environment variable is not set')
+  if (!process.env.OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY environment variable is not set')
   }
 
   return new OpenAIEmbeddings({
-    openAIApiKey: process.env.OPENAI_API_KEY,
+    openAIApiKey: process.env.OPENROUTER_API_KEY,
     modelName: APP_CONSTANTS.LLM_MODELS.EMBEDDINGS,
-    dimensions: APP_CONSTANTS.LLM_MODELS.EMBEDDING_DIMENSIONS,
+    configuration: {
+      baseURL: 'https://openrouter.ai/api/v1',
+      defaultHeaders: {
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': 'AI Job Hunt Agent',
+      },
+    },
   })
 }
 

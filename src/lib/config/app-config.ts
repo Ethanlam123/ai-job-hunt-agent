@@ -228,7 +228,7 @@ export const APP_CONSTANTS = {
   LLM_MODELS: {
     DEFAULT: 'openai/gpt-5-nano',
     FALLBACK: 'openai/gpt-4o-mini',
-    EMBEDDINGS: 'text-embedding-3-small',
+    EMBEDDINGS: 'qwen/qwen3-embedding-8b',
     EMBEDDING_DIMENSIONS: 1536,
   } as const,
 

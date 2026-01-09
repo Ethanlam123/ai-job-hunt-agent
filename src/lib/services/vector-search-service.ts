@@ -58,7 +58,12 @@ export class VectorSearchService {
 
   constructor() {
     this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: 'https://openrouter.ai/api/v1',
+      defaultHeaders: {
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': 'AI Job Hunt Agent',
+      },
     })
     this.cacheService = new CacheService(databaseService as any)
   }
