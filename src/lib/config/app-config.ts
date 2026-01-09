@@ -23,6 +23,7 @@ const EnvironmentConfigSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_SECRET_KEY: z.string().min(1).optional(),
 
   /** Database configuration */
   DATABASE_URL: z.string().url().optional(),
@@ -294,20 +295,31 @@ function loadConfig(): EnvironmentConfig {
   try {
     const config = EnvironmentConfigSchema.parse(process.env)
 
-    // PRODUCTION SECURITY CHECK: Prevent service role key usage in production
-    if (config.NODE_ENV === 'production' && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    // PRODUCTION SECURITY CHECK: Prevent elevated access keys in production
+    // Both legacy service_role and new secret keys bypass RLS and provide full access
+    const hasServiceRoleKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    const hasSecretKey = !!process.env.SUPABASE_SECRET_KEY
+
+    if (config.NODE_ENV === 'production' && (hasServiceRoleKey || hasSecretKey)) {
+      const keys = []
+      if (hasServiceRoleKey) keys.push('SUPABASE_SERVICE_ROLE_KEY (legacy)')
+      if (hasSecretKey) keys.push('SUPABASE_SECRET_KEY (new)')
+
       throw new Error(
-        'SECURITY: SUPABASE_SERVICE_ROLE_KEY must not be available in production. ' +
-        'This key bypasses Row Level Security (RLS) policies and exposes all user data if compromised. ' +
-        'Please remove SUPABASE_SERVICE_ROLE_KEY from your production environment.'
+        `SECURITY: Elevated access keys must not be available in production. ` +
+        `Found: ${keys.join(', ')}. ` +
+        `These keys bypass Row Level Security (RLS) policies and expose all user data if compromised. ` +
+        `Please remove these keys from your production environment. ` +
+        `Use only NEXT_PUBLIC_SUPABASE_ANON_KEY (or publishable key) in production.`
       )
     }
 
-    // Development warning if service role key is missing
-    if (config.NODE_ENV === 'development' && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    // Development warning if no elevated access key is available
+    if (config.NODE_ENV === 'development' && !hasServiceRoleKey && !hasSecretKey) {
       console.warn(
-        'Warning: SUPABASE_SERVICE_ROLE_KEY not available. ' +
-        'Some administrative operations may fail in development.'
+        'Warning: No elevated access key available (SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY). ' +
+        'Some administrative operations may fail in development. ' +
+        'Recommendation: Use SUPABASE_SECRET_KEY (new format) instead of legacy SUPABASE_SERVICE_ROLE_KEY.'
       )
     }
 
@@ -380,9 +392,9 @@ export const validateRuntimeConfig = (): boolean => {
  */
 export function getConfigValue<K extends keyof EnvironmentConfig>(
   key: K,
-  fallback?: EnvironmentConfig[K]
+  fallback?: EnvironmentConfig[K],
 ): EnvironmentConfig[K] {
-  return config[key] ?? fallback!
+  return config[key] ?? (fallback as EnvironmentConfig[K])
 }
 
 /**
