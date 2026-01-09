@@ -5,9 +5,55 @@ This document outlines the testing workflow for the AI Job Hunt Agent applicatio
 ## Prerequisites
 
 - Dev server running on `http://localhost:3000` (or another port if 3000 is occupied)
-- Valid Supabase connection
+- Valid Supabase connection with test environment setup
 - OpenRouter API key configured
-- OpenAI API key configured
+- OpenAI API key configured for embeddings
+
+## Test Environment Setup
+
+### Environment Variables for Testing
+
+The application has different environment requirements for testing:
+
+```bash
+# Set test environment
+NODE_ENV=test
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-publishable-or-anon-key>
+
+# Elevated Access Keys (Testing Only!)
+# Required for: test cleanup, admin operations, RLS policy testing
+# NEVER use these in production builds
+
+# Option 1: New Secret API Key (Recommended)
+SUPABASE_SECRET_KEY=sb_secret_...  # Has browser protection
+
+# Option 2: Legacy Service Role Key (Deprecated but still works)
+# SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
+
+# You may use either key type (or both) in development/test
+# Both are blocked in production builds by security validation
+
+# Other Services
+OPENROUTER_API_KEY=<your-key>
+OPENAI_API_KEY=<your-key>
+DATABASE_URL=<your-postgres-url>
+```
+
+### Security Validation
+
+**Production builds automatically block elevated access keys:**
+- Build fails if `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SECRET_KEY` is set with `NODE_ENV=production`
+- This prevents accidental deployment with admin credentials
+
+**Test/Development environments:**
+- Elevated keys are allowed and often required for:
+  - Database cleanup in tests
+  - Applying RLS policies
+  - Admin operations in tests
+  - Integration test setup
 
 ## Testing Workflow
 
@@ -267,8 +313,14 @@ This document outlines the testing workflow for the AI Job Hunt Agent applicatio
 ```bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=<your-url>
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-key>
-SUPABASE_SERVICE_ROLE_KEY=<your-key>  # Only for admin operations
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-publishable-or-anon-key>
+
+# Elevated Access Keys (Development/Test Only)
+# Choose one (or both, for migration purposes)
+SUPABASE_SECRET_KEY=sb_secret_...         # New format (recommended)
+SUPABASE_SERVICE_ROLE_KEY=<your-key>      # Legacy format (deprecated)
+
+# Database
 DATABASE_URL=<your-postgres-url>
 
 # OpenRouter (LLM)
@@ -284,3 +336,127 @@ LANGCHAIN_API_KEY=<your-key>
 ```
 
 All keys should be configured in `.env` file.
+
+---
+
+## Database Migration Guide
+
+### Vector Search Security Migration
+
+This migration adds SQL-safe vector search functionality using Supabase RPC functions.
+
+**Migration File**: `supabase/migrations/20260110000001_vector_search_rpc.sql`
+
+### Applying the Migration
+
+#### Option 1: Using MCP Server (Recommended)
+```bash
+# Apply the migration through Supabase MCP
+npx supabase db push
+```
+
+#### Option 2: Using Supabase Dashboard
+1. Open your project in Supabase Dashboard
+2. Go to SQL Editor
+3. Copy the contents of `20260110000001_vector_search_rpc.sql`
+4. Paste into SQL Editor
+5. Click "Run"
+
+#### Option 3: Using psql CLI
+```bash
+psql $DATABASE_URL < supabase/migrations/20260110000001_vector_search_rpc.sql
+```
+
+### What This Migration Does
+
+1. **Creates `vector_search()` RPC function**
+   - Performs safe vector similarity search using cosine distance
+   - Uses PostgreSQL `format()` for parameterized queries (prevents SQL injection)
+   - Includes `SECURITY DEFINER` for proper permissions
+
+2. **Sets up permissions**
+   - Grants `authenticated` users access to the function
+   - Grants `service_role` access for testing
+
+3. **Adds documentation**
+   - Comments explaining function parameters and usage
+
+### Verifying the Migration
+
+```sql
+-- Check if function exists
+SELECT routine_name, routine_type
+FROM information_schema.routines
+WHERE routine_schema = 'public'
+  AND routine_name = 'vector_search';
+
+-- Test the function
+SELECT * FROM vector_search(
+  '[0.1, 0.2, 0.3]'::vector(1536),
+  'cv_embeddings',
+  'embedding',
+  0.7,
+  5
+);
+```
+
+### Rollback (If Needed)
+
+```sql
+DROP FUNCTION IF EXISTS vector_search(
+  vector(1536),
+  text,
+  text,
+  float,
+  int
+);
+```
+
+---
+
+## Test Coverage Summary
+
+### Security Tests
+- ✅ SQL injection prevention (table/column validation)
+- ✅ Service role key validation (production blocking)
+- ✅ Secret API key support (new format)
+- ✅ Data leakage prevention (sanitized error messages)
+- ✅ Hash function collision resistance (SHA-256)
+
+### Unit Tests
+- ✅ Hash function tests (collision, consistency, performance)
+- ✅ LRU cache eviction tests (size limits, TTL, memory leaks)
+- ✅ CV question generation tests
+
+### Integration Tests
+- ✅ Database connection pooling
+- ✅ Vector search operations
+- ✅ Transaction handling
+- ✅ Response storage and retrieval
+
+### E2E Tests
+- ✅ User registration and login
+- ✅ Document upload and preview
+- ✅ CV analysis workflow
+- ✅ Skill gap analysis workflow
+
+---
+
+## Running Tests
+
+```bash
+# Run all tests
+npm run test
+
+# Run specific test suites
+npm run test -- -- src/__tests__/unit/
+npm run test -- -- src/__tests__/integration/
+npm run test -- -- src/__tests__/security/
+npm run test -- -- src/__tests__/e2e/
+
+# Run tests with coverage
+npm run test -- --coverage
+
+# Run tests in watch mode
+npm run test -- --watch
+```

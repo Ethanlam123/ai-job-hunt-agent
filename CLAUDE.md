@@ -243,26 +243,61 @@ export const APP_CONFIG = {
 
 ## Critical Security Requirements
 
-### Row Level Security (RLS) and Service Role Key Security
+### Supabase API Key Security
 
-**CRITICAL SECURITY IMPLEMENTATION:** The system now includes production-safe validation for `SUPABASE_SERVICE_ROLE_KEY`:
+**CRITICAL SECURITY IMPLEMENTATION:** The system supports both legacy and new Supabase API key formats with production-safe validation:
 
-- **Production Environment**: Service role key is automatically blocked and cannot be used
-- **Development Environment**: Service role key available for testing and administrative operations
-- **Test Environment**: Service role key available for comprehensive test coverage
-- **Build-time Validation**: Production builds fail if service role key is detected
+#### API Key Formats
 
-**OpenSpec Security Proposal:** See `openspec/changes/secure-service-role-key/` for detailed implementation
+| Type | Format | Status | Use Case |
+|------|--------|--------|----------|
+| **Publishable** | `sb_publishable_...` | ✅ Recommended | Client-side, replaces `anon` key |
+| **Secret** | `sb_secret_...` | ✅ Recommended | Server-side only, replaces `service_role` |
+| `anon` | JWT-based | ⚠️ Legacy | Same as publishable key |
+| `service_role` | JWT-based | ⚠️ Deprecated | Same as secret keys |
 
-**For standard operations, always use:**
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` for client-side operations (respects RLS)
-- Server-side Supabase clients created via `createClient()` (inherit user context from cookies)
-- Service role key only in development/test environments with proper validation
+#### Security Validation
+
+**Production Environment Protection:**
+- Both `SUPABASE_SERVICE_ROLE_KEY` (legacy) and `SUPABASE_SECRET_KEY` (new) are **automatically blocked**
+- Build fails if either elevated key is detected
+- Multi-layer validation: configuration → build-time → runtime
+
+**Development/Test Environments:**
+- Elevated keys are **allowed and often required** for:
+  - Database cleanup in tests
+  - Applying RLS policies
+  - Admin operations
+  - Integration test setup
+
+**Which Key to Use:**
+```bash
+# Development/Test (use either or both)
+SUPABASE_SECRET_KEY=sb_secret_...         # Recommended (has browser protection)
+SUPABASE_SERVICE_ROLE_KEY=<legacy-key>    # Deprecated but still works
+
+# Production (NEVER use elevated keys)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...  # Only this key
+```
+
+#### New Secret Key Benefits
+
+The `sb_secret_...` format provides improvements over legacy JWT-based keys:
+- **Browser Protection**: Returns HTTP 401 when used in browsers (User-Agent check)
+- **Easier Rotation**: Can rotate without downtime
+- **Better Security**: You can disable unused keys
+- **No JWT Issues**: Not tied to JWT secret rotation
+
+**OpenSpec Proposals:**
+- See `openspec/changes/fix-critical-code-review-issues/` for Secret key implementation
+- See `openspec/changes/secure-service-role-key/` for original security implementation
 
 **Security Validation Layers:**
-1. Configuration schema validation prevents service role key in production
-2. Build-time validation blocks production builds with service role key
-3. Runtime validation adds additional safety during application startup
+1. Configuration schema validates environment variables
+2. Build-time validation fails production builds with elevated keys
+3. Runtime validation checks during application startup
+
+### Row Level Security (RLS)
 
 **RLS-Aware Cache Keys:**
 All cache operations must use user-scoped keys:
@@ -270,6 +305,52 @@ All cache operations must use user-scoped keys:
 - Public data: `public:{key}` (e.g., `public:job_categories`)
 
 RLS policies use regex pattern matching on cache keys to enforce access control at the database level.
+
+### SQL Injection Prevention
+
+**Vector Search Security:**
+- Supabase RPC function `vector_search()` uses parameterized queries
+- PostgreSQL `format()` function for safe query construction
+- Whitelist validation for table and column names
+- See `supabase/migrations/20260110000001_vector_search_rpc.sql`
+
+**Example Safe Pattern:**
+```typescript
+// GOOD: Using RPC function with parameterization
+const { data } = await supabase.rpc('vector_search', {
+  query_vector: embedding,
+  search_table: 'cv_embeddings',
+  vector_col: 'embedding',
+})
+
+// BAD: Raw SQL string concatenation (NEVER do this)
+const query = `SELECT * FROM ${tableName} WHERE ...` // SQL injection risk!
+```
+
+### Cryptographic Hashing
+
+**Cache Key Hashing:**
+- SHA-256 based hash function for cache keys (replaced weak DJB2)
+- Collision-resistant with 16-character hexadecimal output
+- Handles unicode, special characters, and large inputs
+- See `src/lib/services/vector-search-service.ts`
+
+### Memory Management
+
+**LRU Cache Implementation:**
+- `embeddingCache`: Max 1000 entries, 1 hour TTL
+- `processingJobs`: Max 100 entries, 30 minute TTL
+- Automatic eviction prevents memory leaks
+- See `src/__tests__/unit/lru-cache.test.ts`
+
+### Error Message Sanitization
+
+**Production Error Handling:**
+- Full errors logged server-side only
+- Generic messages returned to clients
+- No database schema exposed
+- Sensitive fields redacted from logs
+- See `src/lib/utils/error-handler.ts`
 
 ### Document Processing Pipeline
 
